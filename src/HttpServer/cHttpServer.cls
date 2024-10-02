@@ -10,48 +10,70 @@ Attribute VB_Name = "cHttpServer"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Exposed = True
 Option Explicit
 
-Private WithEvents m_oServer    As cTlsRemaster
+Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
 
+Public Type TypeClientInfo
+    IP As String
+    Port As Long
+    ConnectAt As Date
+    
+End Type
 
-Public Function StartMe() As Boolean
-    Set m_oServer = New cTlsRemaster
+Public Type TypeContext
+    App As Object
+    Server As Object                                                            'LastError
+    Client As TypeClientInfo
+    Request As Object
+    Response As Object
+    Session As Object
+    Cookies As Object
+End Type
+
+
+
+Public Event OnAccept(ClientInfo As TypeClientInfo, Disconnect As Boolean)
+
+Public Router As New cHttpServerRouter
+
+Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "\www", Optional IP As String = "0.0.0.0") As Boolean
+    Set m_oServer = New cTlsReMaster
     m_oServer.Protocol = RemasterProtocolConstants.sckTCPProtocol
-    m_oServer.Bind 8088, "127.0.0.1"
+    m_oServer.Bind Port, IP
     m_oServer.Listen
     '    Shell "cmd /c start http://localhost:8088/"
-    StartMe = True
+    Start = True
 End Function
 
 
-Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long)
-    Dim oCallback           As cClientCallback
-    
-    Debug.Print "m_oServer_ConnectionRequest, requestID=" & requestID & ", RemoteHostIP=" & m_oServer.RemoteHostIP & ", RemotePort=" & m_oServer.RemotePort, Timer
-    Set oCallback = New cClientCallback
+Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
+    Dim oCallback           As New cClientCallback
+    ' requestID 就是客户端的句柄 hSocket
+    '    Debug.Print "m_oServer_ConnectionRequest, requestID=" & requestID & ", RemoteHostIP=" & m_oServer.RemoteHostIP & ", RemotePort=" & m_oServer.RemotePort, Timer
+    'todo 实现 Disconnect,
     m_cConnPool.Add oCallback
     oCallback.Index = m_cConnPool.Count
     Set oCallback.Parent = Me
-    Set oCallback.Socket = New cTlsRemaster
+    Set oCallback.Socket = New cTlsReMaster
     oCallback.Socket.Accept requestID
-    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
+    '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
 End Sub
 
-Public Sub OnDataArrival(Index As Long)
+Friend Sub OnDataArrival(Index As Long)
     Dim sRequest            As String
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
-    Debug.Print "OnDataArrival, Index=" & Index & ", bytesTotal=" & oCallback.dataTotal, Timer
+    '    Debug.Print "OnDataArrival, Index=" & Index & ", bytesTotal=" & oCallback.dataTotal, Timer
     oCallback.Socket.GetData sRequest
     
     Test oCallback, sRequest
 End Sub
 
-Public Sub OnCloseSck(Index As Long)
+Friend Sub OnCloseSck(Index As Long)
     m_cConnPool.Remove Index
     If m_cConnPool.Count >= Index Then
         m_cConnPool.Add Nothing, Before:=Index
@@ -71,7 +93,7 @@ Private Sub Test(oCallback As cClientCallback, sRequest As String)
     Dim sBody               As String
     vSplit = Split(sRequest, vbCrLf)
     If UBound(vSplit) >= 0 Then
-        Debug.Print vSplit(0)
+        '        Debug.Print vSplit(0)
         sBody = "<html><body><p>" & Join(vSplit, "</p>" & vbCrLf & "<p>" & Index & ": ") & "</p>" & vbCrLf & _
         "<p>" & Index & ": Current time is " & Now & "</p>" & _
         "<p>" & Index & ": RemoteHostIP is " & oCallback.Socket.RemoteHostIP & "</p>" & vbCrLf & _
@@ -82,6 +104,6 @@ Private Sub Test(oCallback As cClientCallback, sRequest As String)
 "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
         sBody
     End If
-    Debug.Print "OnDataArrival, Index=" & Index & ", done", Timer
+    '    Debug.Print "OnDataArrival, Index=" & Index & ", done", Timer
 End Sub
 

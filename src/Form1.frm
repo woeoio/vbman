@@ -25,8 +25,14 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-Dim HttpServer As New cHttpServer
+Dim WithEvents HttpServer As cHttpServer
+Attribute HttpServer.VB_VarHelpID = -1
 
 Private Sub Form_Load()
-    HttpServer.StartMe
+    Set HttpServer = New cHttpServer
+    HttpServer.Start 8000
+End Sub
+
+Private Sub HttpServer_OnAccept(ClientInfo As VBMAN.TypeClientInfo, Disconnect As Boolean)
+    '
 End Sub

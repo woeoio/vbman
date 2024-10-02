@@ -6,13 +6,13 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cTlsRemaster"
+Attribute VB_Name = "cTlsReMaster"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
-Private Const MODULE_NAME As String = "cTlsRemaster"
+Private Const MODULE_NAME As String = "cTlsReMaster"
 
 '=========================================================================
 ' Public enums
@@ -43,7 +43,7 @@ End Enum
 
 Public Event CloseSck()
 Public Event Connect()
-Public Event ConnectionRequest(ByVal requestID As Long)
+Public Event ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
 Public Event DataArrival(ByVal bytesTotal As Long)
 Public Event Error(ByVal Number As Integer, Description As String, ByVal Scode As Long, ByVal Source As String, ByVal HelpFile As String, ByVal HelpContext As Long, CancelDisplay As Boolean)
 Public Event SendComplete()
@@ -520,7 +520,7 @@ End Sub
 Private Sub m_oSocket_OnAccept()
     Const FUNC_NAME     As String = "m_oSocket_OnAccept"
     Dim oTemp           As cTlsSocket
-    
+    Dim IsDiss As Boolean
     On Error GoTo EH
     pvState = sckConnectionPending
     Set oTemp = New cTlsSocket
@@ -530,7 +530,7 @@ Private Sub m_oSocket_OnAccept()
     End If
     Set m_oRequestSocket = oTemp
     Set g_oRequestSocket = oTemp
-    RaiseEvent ConnectionRequest(oTemp.SocketHandle)
+    RaiseEvent ConnectionRequest(oTemp.SocketHandle, IsDiss)
     Set m_oRequestSocket = Nothing
     Set g_oRequestSocket = Nothing
 QH:

@@ -1991,33 +1991,33 @@ Public Function ImportPkcs12Certificates(CertFile As String, Optional Password A
 End Function
 
 Public Function ImportPemRootCaCertStore(Optional CaBundleFile As String, Optional RootCa As cTlsSocket) As Boolean
-#If Not ImplTlsServer Then
-    ErrRaise vbObjectError, , ERR_NO_SERVER_COMPILED
-#Else
-    Dim hCertStore      As Long
-    
-    pvSetLastError
-    If LenB(CaBundleFile) <> 0 Then
-        hCertStore = pvPkiPemImportRootCaCertStore(CaBundleFile)
-        If hCertStore = 0 Then
-            GoTo QH
+    #If Not ImplTlsServer Then
+        ErrRaise vbObjectError, , ERR_NO_SERVER_COMPILED
+    #Else
+        Dim hCertStore      As Long
+        
+        pvSetLastError
+        If LenB(CaBundleFile) <> 0 Then
+            hCertStore = pvPkiPemImportRootCaCertStore(CaBundleFile)
+            If hCertStore = 0 Then
+                GoTo QH
+            End If
+            If m_hRootStore <> 0 Then
+                Call CertCloseStore(m_hRootStore, 0)
+            End If
+            m_hRootStore = hCertStore
+            Set m_oRootCa = Nothing
+        Else
+            Set m_oRootCa = RootCa
+            If m_hRootStore <> 0 Then
+                Call CertCloseStore(m_hRootStore, 0)
+                m_hRootStore = 0
+            End If
         End If
-        If m_hRootStore <> 0 Then
-            Call CertCloseStore(m_hRootStore, 0)
-        End If
-        m_hRootStore = hCertStore
-        Set m_oRootCa = Nothing
-    Else
-        Set m_oRootCa = RootCa
-        If m_hRootStore <> 0 Then
-            Call CertCloseStore(m_hRootStore, 0)
-            m_hRootStore = 0
-        End If
-    End If
-    '--- success
-    ImportPemRootCaCertStore = True
+        '--- success
+        ImportPemRootCaCertStore = True
 QH:
-#End If
+    #End If
 End Function
 
 '= private ===============================================================
@@ -2030,7 +2030,7 @@ Private Function pvPkiPemImportCertificates(ByVal vPemFiles As Variant, sPasswor
     Dim baPrivKey()     As Byte
     Dim baEncrKey()     As Byte
     
-    If VarType(vPemFiles) = vbString Then
+    If varType(vPemFiles) = vbString Then
         vPemFiles = Array(vPemFiles)
     End If
     For Each vElem In vPemFiles

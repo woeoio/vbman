@@ -1,19 +1,23 @@
 Type=OleDll
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Form=FormSocket.frm
-Class=cHttpServer; cHttpServer.cls
 Class=cAsyncSocket; Socket\cAsyncSocket.cls
 Class=cClientCallback; Socket\cClientCallback.cls
 Class=cTlsSocket; Socket\cTlsSocket.cls
 Module=mdTlsThunks; Socket\mdTlsThunks.bas
-Class=cTlsRemaster; Socket\contrib\cTlsRemaster.cls
+Class=cTlsReMaster; Socket\contrib\cTlsReMaster.cls
+Class=cHttpServerRouter; HttpServer\cHttpServerRouter.cls
+Class=cHttpServer; HttpServer\cHttpServer.cls
+Module=ToolHttpServer; HttpServer\ToolHttpServer.bas
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"
+ExeName32="VBMAN.dll"
+Path32="..\dist"
 Command32=""
 Name="VBMAN"
 HelpContextID="0"
 CompatibleMode="1"
+CompatibleEXE32="..\dist\VBMAN.dll"
 MajorVer=1
 MinorVer=0
 RevisionVer=0
@@ -34,6 +38,8 @@ Unattended=0
 Retained=0
 ThreadPerObject=0
 MaxNumberOfThreads=1
+DebugStartupOption=0
+UseExistingBrowser=0
 
 [AmicForVB]
 XPSTYLE=0

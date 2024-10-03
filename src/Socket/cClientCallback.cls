@@ -16,8 +16,10 @@ Option Explicit
 Public Index                As Long
 Public hSocket                As Long
 Public dataTotal                As Long
+Public ClientInfo As cHttpServerClientInfo
+Public Context As cHttpServerContext
 Public Parent               As cHttpServer
-Public WithEvents Socket    As cTlsRemaster
+Public WithEvents Socket    As cTlsReMaster
 Attribute Socket.VB_VarHelpID = -1
 
 Private Sub Socket_DataArrival(ByVal bytesTotal As Long)

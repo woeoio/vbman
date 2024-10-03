@@ -17,26 +17,7 @@ Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
 
-Public Type TypeClientInfo
-    IP As String
-    Port As Long
-    ConnectAt As Date
-    
-End Type
-
-Public Type TypeContext
-    App As Object
-    Server As Object                                                            'LastError
-    Client As TypeClientInfo
-    Request As Object
-    Response As Object
-    Session As Object
-    Cookies As Object
-End Type
-
-
-
-Public Event OnAccept(ClientInfo As TypeClientInfo, Disconnect As Boolean)
+Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 
 Public Router As New cHttpServerRouter
 
@@ -51,15 +32,32 @@ End Function
 
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
-    Dim oCallback           As New cClientCallback
+    
     ' requestID 就是客户端的句柄 hSocket
     '    Debug.Print "m_oServer_ConnectionRequest, requestID=" & requestID & ", RemoteHostIP=" & m_oServer.RemoteHostIP & ", RemotePort=" & m_oServer.RemotePort, Timer
     'todo 实现 Disconnect,
+    Dim CI As New cHttpServerClientInfo, IsDiss As Boolean
+    With CI
+        .IP = m_oServer.RemoteHostIP
+        .Port = m_oServer.RemotePort
+        .ConnectAt = Now()
+    End With
+    RaiseEvent OnAccept(CI, IsDiss)
+    If IsDiss = True Then
+        Disconnect = True
+        Exit Sub
+    End If
+    Dim oCallback           As New cClientCallback
     m_cConnPool.Add oCallback
-    oCallback.Index = m_cConnPool.Count
-    Set oCallback.Parent = Me
-    Set oCallback.Socket = New cTlsReMaster
-    oCallback.Socket.Accept requestID
+    With oCallback
+        .Index = m_cConnPool.Count
+        Set .Parent = Me
+        Set .ClientInfo = CI
+        Set .Socket = New cTlsReMaster
+        Set .Context = New cHttpServerContext
+        Set .Context.ClientInfo = CI
+        .Socket.Accept requestID
+    End With
     '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
 End Sub
 

@@ -33,6 +33,6 @@ Private Sub Form_Load()
     HttpServer.Start 8000
 End Sub
 
-Private Sub HttpServer_OnAccept(ClientInfo As VBMAN.TypeClientInfo, Disconnect As Boolean)
+Private Sub HttpServer_OnAccept(ClientInfo As VBMAN.cHttpServerClientInfo, Disconnect As Boolean)
     '
 End Sub

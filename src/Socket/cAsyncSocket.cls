@@ -22,7 +22,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 Option Explicit
-DefObj A-Z
+    DefObj A-Z
 Private Const MODULE_NAME As String = "cAsyncSocket"
 
 #Const ImplUseShared = (ASYNCSOCKET_USE_SHARED <> 0)
@@ -80,57 +80,57 @@ Public Enum UcsAsyncSocketOptionLevelEnum
     ucsSolIGMP = 2
     ucsSolTCP = 6
     ucsSolUDP = 17
-    ucsSolSocket = &HFFFF&                  ' SOL_SOCKET
+    ucsSolSocket = &HFFFF&                                                      ' SOL_SOCKET
 End Enum
 
 Public Enum UcsAsyncSocketOptionNameEnum
-    ucsSsoDebug = &H1                       ' Debugging is enabled.
-    ucsSsoAcceptConnection = &H2            ' Socket is listening.
-    ucsSsoReuseAddress = &H4                ' The socket can be bound to an address which is already in use. Not applicable for ATM sockets.
-    ucsSsoKeepAlive = &H8                   ' Keep-alives are being sent. Not supported on ATM sockets.
-    ucsSsoDontRoute = &H10                  ' Routing is disabled. Not supported on ATM sockets.
-    ucsSsoBroadcast = &H20                  ' Socket is configured for the transmission of broadcast messages.
-    ucsSsoUseLoopback = &H40                ' Bypass hardware when possible.
-    ucsSsoLinger = &H80                     ' Linger on close if unsent data is present.
-    ucsSsoOutOfBandInline = &H100           ' Receives out-of-band data in the normal data stream.
-    ucsSsoDontLinger = Not ucsSsoLinger     ' Close socket gracefully without lingering.
-    ucsSsoExclusiveAddressUse = Not ucsSsoReuseAddress ' Enables a socket to be bound for exclusive access.
-    ucsSsoSendBuffer = &H1001               ' Buffer size for sends.
-    ucsSsoReceiveBuffer = &H1002            ' Buffer size for receives.
-    ucsSsoSendLowWater = &H1003             ' Specifies the total per-socket buffer space reserved for receives.
-    ucsSsoReceiveLowWater = &H1004          ' Receive low water mark.
-    ucsSsoSendTimeout = &H1005              ' Sends time-out (available in Microsoft implementation of Windows Sockets 2).
-    ucsSsoReceiveTimeout = &H1006           ' Receives time-out (available in Microsoft implementation of Windows Sockets 2).
-    ucsSsoError = &H1007                    ' Get error status and clear.
-    ucsSsoType = &H1008                     ' Get socket type.
-'    ucsSsoGroupId = &H2001                  ' Reserved.
-'    ucsSsoGroupPriority = &H2002            ' Reserved.
-    ucsSsoMaxMsgSize = &H2003               ' Maximum size of a message for message-oriented socket types (for example, SOCK_DGRAM). Has no meaning for stream oriented sockets.
-    ucsSsoProtocolInfo = &H2004             ' Description of protocol information for protocol that is bound to this socket.
-    ucsSsoReuseUnicastPort = &H3007         ' Defer ephemeral port allocation for outbound connections
-    ucsSsoMaxConnections = &H7FFFFFFF       ' Maximum queue length specifiable by listen.
+    ucsSsoDebug = &H1                                                           ' Debugging is enabled.
+    ucsSsoAcceptConnection = &H2                                                ' Socket is listening.
+    ucsSsoReuseAddress = &H4                                                    ' The socket can be bound to an address which is already in use. Not applicable for ATM sockets.
+    ucsSsoKeepAlive = &H8                                                       ' Keep-alives are being sent. Not supported on ATM sockets.
+    ucsSsoDontRoute = &H10                                                      ' Routing is disabled. Not supported on ATM sockets.
+    ucsSsoBroadcast = &H20                                                      ' Socket is configured for the transmission of broadcast messages.
+    ucsSsoUseLoopback = &H40                                                    ' Bypass hardware when possible.
+    ucsSsoLinger = &H80                                                         ' Linger on close if unsent data is present.
+    ucsSsoOutOfBandInline = &H100                                               ' Receives out-of-band data in the normal data stream.
+    ucsSsoDontLinger = Not ucsSsoLinger                                         ' Close socket gracefully without lingering.
+    ucsSsoExclusiveAddressUse = Not ucsSsoReuseAddress                          ' Enables a socket to be bound for exclusive access.
+    ucsSsoSendBuffer = &H1001                                                   ' Buffer size for sends.
+    ucsSsoReceiveBuffer = &H1002                                                ' Buffer size for receives.
+    ucsSsoSendLowWater = &H1003                                                 ' Specifies the total per-socket buffer space reserved for receives.
+    ucsSsoReceiveLowWater = &H1004                                              ' Receive low water mark.
+    ucsSsoSendTimeout = &H1005                                                  ' Sends time-out (available in Microsoft implementation of Windows Sockets 2).
+    ucsSsoReceiveTimeout = &H1006                                               ' Receives time-out (available in Microsoft implementation of Windows Sockets 2).
+    ucsSsoError = &H1007                                                        ' Get error status and clear.
+    ucsSsoType = &H1008                                                         ' Get socket type.
+    '    ucsSsoGroupId = &H2001                  ' Reserved.
+    '    ucsSsoGroupPriority = &H2002            ' Reserved.
+    ucsSsoMaxMsgSize = &H2003                                                   ' Maximum size of a message for message-oriented socket types (for example, SOCK_DGRAM). Has no meaning for stream oriented sockets.
+    ucsSsoProtocolInfo = &H2004                                                 ' Description of protocol information for protocol that is bound to this socket.
+    ucsSsoReuseUnicastPort = &H3007                                             ' Defer ephemeral port allocation for outbound connections
+    ucsSsoMaxConnections = &H7FFFFFFF                                           ' Maximum queue length specifiable by listen.
     '-- IP
-    ucsSsoIPOptions = 1                     ' IP options.
-    ucsSsoHeaderIncluded = 2                ' Header is included with data.
-    ucsSsoTypeOfService = 3                 ' IP type of service and preced.
-    ucsSsoIpTimeToLive = 4                  ' IP time to live.
-    ucsSsoMulticastInterface = 9            ' IP multicast interface.
-    ucsSsoMulticastTimeToLive = 10          ' IP multicast time to live.
-    ucsSsoMulticastLoopback = 11            ' IP Multicast loopback.
-    ucsSsoAddMembership = 12                ' Add an IP group membership.
-    ucsSsoDropMembership = 13               ' Drop an IP group membership.
-    ucsSsoDontFragment = 14                 ' Don't fragment IP datagrams.
-    ucsSsoAddSourceMembership = 15          ' Join IP group/source.
-    ucsSsoDropSourceMembership = 16         ' Leave IP group/source.
-    ucsSsoBlockSource = 17                  ' Block IP group/source.
-    ucsSsoUnblockSource = 18                ' Unblock IP group/source.
-    ucsSsoPacketInformation = 19            ' Receive packet information for ipv4.
+    ucsSsoIPOptions = 1                                                         ' IP options.
+    ucsSsoHeaderIncluded = 2                                                    ' Header is included with data.
+    ucsSsoTypeOfService = 3                                                     ' IP type of service and preced.
+    ucsSsoIpTimeToLive = 4                                                      ' IP time to live.
+    ucsSsoMulticastInterface = 9                                                ' IP multicast interface.
+    ucsSsoMulticastTimeToLive = 10                                              ' IP multicast time to live.
+    ucsSsoMulticastLoopback = 11                                                ' IP Multicast loopback.
+    ucsSsoAddMembership = 12                                                    ' Add an IP group membership.
+    ucsSsoDropMembership = 13                                                   ' Drop an IP group membership.
+    ucsSsoDontFragment = 14                                                     ' Don't fragment IP datagrams.
+    ucsSsoAddSourceMembership = 15                                              ' Join IP group/source.
+    ucsSsoDropSourceMembership = 16                                             ' Leave IP group/source.
+    ucsSsoBlockSource = 17                                                      ' Block IP group/source.
+    ucsSsoUnblockSource = 18                                                    ' Unblock IP group/source.
+    ucsSsoPacketInformation = 19                                                ' Receive packet information for ipv4.
     '-- TCP
-    ucsSsoNoDelay = 1                       ' Disables the Nagle algorithm for send coalescing.
+    ucsSsoNoDelay = 1                                                           ' Disables the Nagle algorithm for send coalescing.
     ucsSsoExpedited = 2
     '--- UDP
     ucsSsoNoChecksum = 1
-    ucsSsoChecksumCoverage = 20             ' Udp-Lite checksum coverage.
+    ucsSsoChecksumCoverage = 20                                                 ' Udp-Lite checksum coverage.
     ucsSsoUpdateAcceptContext = &H700B
     ucsSsoUpdateConnectContext = &H7010
 End Enum
@@ -139,8 +139,8 @@ Public Enum UcsAsyncSocketCodePageEnum
     ucsScpAcp = 0
     ucsScpOem = 1
     ucsScpUtf8 = 65001
-    ucsScpUnicode = -1                      '--- handled internally -> no conversion, keep text wide-char
-    ucsScpNone = ucsScpUnicode              '--- and some more aliases
+    ucsScpUnicode = -1                                                          '--- handled internally -> no conversion, keep text wide-char
+    ucsScpNone = ucsScpUnicode                                                  '--- and some more aliases
     ucsScpWideChar = ucsScpUnicode
 End Enum
 
@@ -233,27 +233,27 @@ Private Declare Function ws_inet_addr Lib "ws2_32" Alias "inet_addr" (ByVal sAdd
 Private Declare Function ws_gethostbyname Lib "ws2_32" Alias "gethostbyname" (ByVal sHostName As String) As Long
 Private Declare Function ws_gethostname Lib "ws2_32" Alias "gethostname" (ByVal sHostName As String, ByVal lNameLen As Long) As Long
 #If ImplSync Then
-    Private Declare Function PeekMessage Lib "user32" Alias "PeekMessageW" (lpMsg As APIMSG, ByVal hWnd As Long, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As Long) As Long
-    Private Declare Function DispatchMessage Lib "user32" Alias "DispatchMessageW" (lpMsg As APIMSG) As Long
-    Private Declare Function SetTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
-    Private Declare Function KillTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long) As Long
+Private Declare Function PeekMessage Lib "user32" Alias "PeekMessageW" (lpMsg As APIMSG, ByVal hWnd As Long, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As Long) As Long
+Private Declare Function DispatchMessage Lib "user32" Alias "DispatchMessageW" (lpMsg As APIMSG) As Long
+Private Declare Function SetTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
+Private Declare Function KillTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long) As Long
 '    Private Declare Function WaitMessage Lib "user32" () As Long
-    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 #End If
 #If Not ImplUseShared Then
-    Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
-    Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
-    '--- for Modern Subclassing Thunk (MST)
-    Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
-    Private Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcW" (ByVal lpPrevWndFunc As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-    Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleW" (ByVal lpModuleName As Long) As Long
-    Private Declare Function GetProcAddress Lib "kernel32" (ByVal hModule As Long, ByVal lpProcName As String) As Long
-    Private Declare Function GetProcByOrdinal Lib "kernel32" Alias "GetProcAddress" (ByVal hModule As Long, ByVal lpProcOrdinal As Long) As Long
-    Private Declare Function DefSubclassProc Lib "comctl32" Alias "#413" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-    Private Declare Function GetWindowThreadProcessId Lib "user32" (ByVal hWnd As Long, lpdwProcessId As Long) As Long
-    Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableW" (ByVal lpName As Long, ByVal lpBuffer As Long, ByVal nSize As Long) As Long
-    Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableW" (ByVal lpName As Long, ByVal lpValue As Long) As Long
-    '--- end MST
+Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
+Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
+'--- for Modern Subclassing Thunk (MST)
+Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+Private Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcW" (ByVal lpPrevWndFunc As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleW" (ByVal lpModuleName As Long) As Long
+Private Declare Function GetProcAddress Lib "kernel32" (ByVal hModule As Long, ByVal lpProcName As String) As Long
+Private Declare Function GetProcByOrdinal Lib "kernel32" Alias "GetProcAddress" (ByVal hModule As Long, ByVal lpProcOrdinal As Long) As Long
+Private Declare Function DefSubclassProc Lib "comctl32" Alias "#413" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Function GetWindowThreadProcessId Lib "user32" (ByVal hWnd As Long, lpdwProcessId As Long) As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableW" (ByVal lpName As Long, ByVal lpBuffer As Long, ByVal nSize As Long) As Long
+Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableW" (ByVal lpName As Long, ByVal lpValue As Long) As Long
+'--- end MST
 #End If
 
 Private Type SOCKADDR_IN
@@ -292,7 +292,7 @@ Private Type IP_ADAPTER_INFO
     AddressLength       As Long
     Address(0 To 7)     As Byte
     Index               As Long
-    Type                As Long
+Type                As Long
     DhcpEnabled         As Long
     CurrentIpAddress    As Long
     IpAddressList       As IP_ADDR_STRING
@@ -329,7 +329,7 @@ Private Const sizeof_MIB_IPFORWARDROW As Long = 56
 
 Private Const STR_HELPER_CLASS      As String = "STATIC"
 Private Const STR_HELPER_NAME       As String = "AsyncSocket Helper Window"
-Private Const STR_CHR1              As String = "" '--- CHAR(1)
+Private Const STR_CHR1              As String = ""                             '--- CHAR(1)
 Private Const DEF_TIMEOUT           As Long = 5000
 '--- helper window
 Private Const MAX_SOCKETS           As Long = &HC000& - WM_SOCKET_NOTIFY
@@ -343,8 +343,8 @@ Private m_lLastSendBytes        As Long
 Private m_uGetHostByName()      As UcsAsyncGetHostByNameType
 Private m_uWindowState()        As UcsHelperWindowStateType
 #If ImplSync Then
-    Private m_cMsgQueue         As VBA.Collection
-    Private m_bBlocking         As Boolean
+Private m_cMsgQueue         As VBA.Collection
+Private m_bBlocking         As Boolean
 #End If
 
 Private Type UcsAsyncGetHostByNameType

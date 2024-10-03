@@ -1,4 +1,4 @@
-Attribute VB_Name = "ToolHttpServer"
+Attribute VB_Name = "TooslHttpServer"
 Option Explicit
 
 

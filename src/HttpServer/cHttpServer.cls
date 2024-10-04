@@ -62,13 +62,12 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
 End Sub
 
 Friend Sub OnDataArrival(Index As Long)
-    Dim sRequest            As String
+    
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
-    '    Debug.Print "OnDataArrival, Index=" & Index & ", bytesTotal=" & oCallback.dataTotal, Timer
-    oCallback.Socket.GetData sRequest
     
-    Test oCallback, sRequest
+    Call Router.Entry(oCallback)
+    
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)
@@ -85,23 +84,4 @@ Friend Sub OnCloseSck(Index As Long)
 End Sub
 
 
-Private Sub Test(oCallback As cClientCallback, sRequest As String)
-    Dim Index As Long: Index = oCallback.Index
-    Dim vSplit              As Variant
-    Dim sBody               As String
-    vSplit = Split(sRequest, vbCrLf)
-    If UBound(vSplit) >= 0 Then
-        '        Debug.Print vSplit(0)
-        sBody = "<html><body><p>" & Join(vSplit, "</p>" & vbCrLf & "<p>" & Index & ": ") & "</p>" & vbCrLf & _
-        "<p>" & Index & ": Current time is " & Now & "</p>" & _
-        "<p>" & Index & ": RemoteHostIP is " & oCallback.Socket.RemoteHostIP & "</p>" & vbCrLf & _
-        "<p>" & Index & ": RemotePort is " & oCallback.Socket.RemotePort & "</p>" & vbCrLf & _
-        "</body></html>" & vbCrLf
-        oCallback.Socket.SendData "HTTP/1.1 200 OK" & vbCrLf & _
-"Content-Type: text/html" & vbCrLf & _
-"Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
-        sBody
-    End If
-    '    Debug.Print "OnDataArrival, Index=" & Index & ", done", Timer
-End Sub
 

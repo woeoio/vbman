@@ -13,10 +13,11 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-Public App As Object
+Public App As cHttpServerApp
 Public Server As Object                                                         'LastError
 Public ClientInfo As cHttpServerClientInfo
-Public Request As Object
-Public Response As Object
-Public Session As Object
-Public Cookies As Object
+Public Request As cHttpServerRequest
+Public Response As cHttpServerResponse
+Public Session As cHttpServerSession
+Public Cookies As cHttpServerCookies
+

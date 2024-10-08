@@ -21,12 +21,30 @@ Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean
 
 Public Router As New cHttpServerRouter
 
-Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "\www", Optional IP As String = "0.0.0.0") As Boolean
+Dim HttpApp As cHttpServerApp
+Dim HttpSvr As cHttpServerSvr
+
+'支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
+
+Public Property Get Version() As String
+    Version = "v" & App.Major & "." & App.Major & "." & App.Revision
+End Property
+
+Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
     Set m_oServer = New cTlsReMaster
-    m_oServer.Protocol = RemasterProtocolConstants.sckTCPProtocol
-    m_oServer.Bind Port, IP
-    m_oServer.Listen
+    With m_oServer
+        .Protocol = RemasterProtocolConstants.sckTCPProtocol
+        .Bind Port, IP
+        .Listen
+    End With
     '    Shell "cmd /c start http://localhost:8088/"
+    Set HttpApp = New cHttpServerApp
+    Set HttpSvr = New cHttpServerSvr
+    With HttpSvr
+        .IP = IP
+        .Port = Port
+        .WebRoot = WebRoot
+    End With
     Start = True
 End Function
 
@@ -56,6 +74,7 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
         Set .Socket = New cTlsReMaster
         Set .Context = New cHttpServerContext
         Set .Context.ClientInfo = CI
+        Set .Context.Server = HttpSvr
         .Socket.Accept requestID
     End With
     '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol

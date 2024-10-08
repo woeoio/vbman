@@ -50,6 +50,8 @@ Dim DicGet As New Scripting.Dictionary
 Dim DicPost As New Scripting.Dictionary
 Dim DicPut As New Scripting.Dictionary
 Dim DicDelete As New Scripting.Dictionary
+'路由组
+Dim DicGroup As New Scripting.Dictionary
 
 ''开发者定义的控制器字典注册函数
 Public Function Reg(ControllerName As String, Controller As Object) As Boolean

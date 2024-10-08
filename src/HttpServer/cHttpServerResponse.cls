@@ -103,13 +103,13 @@ End Sub
 '    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
 'End Sub
 Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
-    Dim D() As Byte
+    Dim d() As Byte
     If CodePage = 65001 Then
-        D = ToolsUtf8.Encode(Data)
+        d = ToolsUtf8.Encode(Data)
     Else
-        D = StrConv(Data, vbFromUnicode)
+        d = StrConv(Data, vbFromUnicode)
     End If
-    Call SendBodyByte(D, DataType, Status, StatusText)
+    Call SendBodyByte(d, DataType, Status, StatusText)
 End Sub
 Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Header("Content-Type") = DataType
@@ -122,7 +122,12 @@ End Sub
 Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As String = "OK", Optional HttpVersioin As String = "1.1")
     Dim Head As String: Head = "HTTP/" & HttpVersioin & " " & Status & " " & StatusText & vbCrLf
     '
-    Header("Server") = ServerName & " " & Client.Parent.Version
+    Dim UserVer As String: UserVer = "FREE"
+    Dim Ver As String: Ver = "[ " & UserVer & " ] "
+    Header("Server") = Ver & ServerName & " " & Client.Parent.Version
+    If UserVer = "FREE" Then
+        Header("PowerBy") = "www.vb6.pro"
+    End If
     Dim x, i As Long
     For Each x In Header.Keys()
         Head = Head & x & ": " & Header.Item(x) & vbCrLf

@@ -13,6 +13,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
+Dim IsRunning  As Boolean
+
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
@@ -29,10 +31,11 @@ Dim HttpSvr As cHttpServerSvr
 '支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
 
 Public Property Get Version() As String
-    Version = "v" & App.Major & "." & App.Major & "." & App.Revision
+    Version = "v" & App.Major & "." & App.Minor & "." & App.Revision
 End Property
 
 Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
+    If IsRunning = True Then Exit Function
     Set m_oServer = New cTlsReMaster
     With m_oServer
         .Protocol = RemasterProtocolConstants.sckTCPProtocol
@@ -47,6 +50,7 @@ Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "
         .Port = Port
         .WebRoot = WebRoot
     End With
+    IsRunning = True
     Start = True
 End Function
 

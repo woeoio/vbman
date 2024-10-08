@@ -46,7 +46,7 @@ Public Property Let WebRoot(v As String)
     Next
 End Property
 
-Public Function IsStaticFile(Path As String) As Boolean
+Friend Function IsStaticFile(Path As String) As Boolean
     Dim AppendFix As String: AppendFix = LCase(Right(Path, 4))
     If AppendFix = ".asp" Then Exit Function
     If AppendFix = ".vbs" Then Exit Function

@@ -20,6 +20,8 @@ Private m_cConnPool             As New Collection
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 
 Public Router As New cHttpServerRouter
+Public RouteBefore As cHttpServerRouteBefore
+Public RouteAfter As cHttpServerRouterAfter
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -48,6 +50,10 @@ Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "
     Start = True
 End Function
 
+
+Private Sub Class_Initialize()
+    Call Router.LinkObject(RouteBefore, RouteAfter)
+End Sub
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
     

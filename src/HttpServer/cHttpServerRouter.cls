@@ -65,7 +65,10 @@ Public Function Add(RouteName As String, Handler As String, Optional MethodLimit
     Add = True
 End Function
 
-
+Friend Sub LinkObject(Before As cHttpServerRouteBefore, After As cHttpServerRouterAfter)
+    Set Before = RouteBefore
+    Set After = RouteAfter
+End Sub
 '路由处理入口
 Friend Function Entry(Client As cClientCallback) As Boolean
     '    Debug.Print "OnDataArrival, Index=" & Index & ", bytesTotal=" & oCallback.dataTotal, Timer
@@ -114,10 +117,8 @@ Friend Function Entry(Client As cClientCallback) As Boolean
             If RunHandlerController(Request.PathInfoController, Request.PathInfoAction, Client.Context) = True Then GoTo QH
         End If
     End If
-    '输出 404 页面
-    Call Response.State404
-    '
-    Entry = True
+    '输出
+    Response.State404 "404 Not Found"
     Exit Function
 MatchController:
     ' 匹配脚本文件 asp/vbs
@@ -135,9 +136,12 @@ MatchController:
     End If
     GoTo EH
 QH:
-    If LastError <> "" Then GoTo EH
-    '执行后置路由
-    Call RouteAfter.Entry(Client.Context)
+    If LastError = "" Then
+        '执行后置路由
+        Call RouteAfter.Entry(Client.Context)
+    Else
+        GoTo EH
+    End If
     Entry = True
     Exit Function
 EH:
@@ -154,7 +158,7 @@ Private Function RunHandlerController(ControllerName As String, ActionName As St
         RunHandlerController = True
     Else
         '控制器不存在
-        LastError = "ControllerName not registered: " & ControllerName
+        LastError = "ControllerName not registered: 好好" & ControllerName
     End If
     Exit Function
 EH:
@@ -175,4 +179,5 @@ Private Sub Class_Initialize()
         .Add C_METHOD_PUT, DicPut
         .Add C_METHOD_DELETE, DicDelete
     End With
+    Controllers.CompareMode = TextCompare
 End Sub

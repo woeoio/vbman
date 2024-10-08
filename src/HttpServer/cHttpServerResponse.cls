@@ -47,13 +47,13 @@ End Property
 '    '
 'End Sub
 
-Public Sub Text()
-    '
+Public Sub Text(Data As String)
+    Call SendBodyText(Data, "text/plain")
 End Sub
-Public Sub Html()
-    '
+Public Sub Html(Data As String)
+    Call SendBodyText(Data, "text/html")
 End Sub
-Public Sub View()
+Public Sub View(TplPath As String)
     '
 End Sub
 
@@ -72,22 +72,21 @@ Public Sub File(Path As String)
     SendBodyByte Data, ToolsHttpMimeType.MapMimeType(sPath)
 End Sub
 
-Public Sub State(Code As Long, Optional Say As String = "没有找到页面")
+Public Sub State(Code As Long, Text As String, Optional Say As String = "未知状态")
     '自动判断是否ajax请求，决定返回页面还是json
-    Sck.SendData ""
+    SendBodyText Say, "text/html", Code, Text
 End Sub
-Public Sub State404(Optional Say As String = "没有找到页面")
+Public Sub State404(Optional Say As String)
     '自动判断是否ajax请求，决定返回页面还是json
-    Sck.SendData ""
+    State 404, "NotFound", Say                                                  '"没有找到页面" & vbCrLf & Say
 End Sub
-Public Sub State502(Optional Say As String = "没有找到页面")
+Public Sub State502(Optional Say As String)
     '自动判断是否ajax请求，决定返回页面还是json
-    Sck.SendData ""
+    State 502, "GatewayError", Say                                              '"网关错误" & vbCrLf & Say
 End Sub
-Public Sub State500(Optional Say As String = "没有找到页面")
+Public Sub State500(Optional Say As String)
     '自动判断是否ajax请求，决定返回页面还是json
-    SendHeader
-    SendBodyText Say, "text/html"
+    State 500, "InternalError", Say                                             '"内部错误" & vbCrLf & Say
 End Sub
 
 Private Sub Class_Initialize()
@@ -95,16 +94,27 @@ Private Sub Class_Initialize()
     JsonPackFieldNameData = "data"
     JsonPackFieldNameMsg = "msg"
     JsonPackFieldNameCount = "count"
+    '默认 utf8 ，可根据前端请求标头自动设置编码输出
+    CharSet = "utf-8"
+    CodePage = 65001
 End Sub
 
-
-Private Sub SendBodyText(Data As String, DataType As String)
-    '
+'Private Sub SendBodyTextAsUtf8(Data As String, DataType As String)
+'    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
+'End Sub
+Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
+    Dim D() As Byte
+    If CodePage = 65001 Then
+        D = ToolsUtf8.Encode(Data)
+    Else
+        D = StrConv(Data, vbFromUnicode)
+    End If
+    Call SendBodyByte(D, DataType, Status, StatusText)
 End Sub
-Private Sub SendBodyByte(Data() As Byte, DataType As String)
+Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Header("Content-Type") = DataType
     Header("Content-Length") = UBound(Data) + 1
-    SendHeader
+    SendHeader Status, StatusText
     Sck.SendData Data
     Header.RemoveAll
 End Sub

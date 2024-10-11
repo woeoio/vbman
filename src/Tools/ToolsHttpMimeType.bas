@@ -298,6 +298,7 @@ Public Function MapMimeType(FilePath As String) As String
         ' Microsoft Windows Media Video
         l_TypeInfo = "video/x-ms-wmv"
     Case "woff"
+    Case "woff2"
         ' Web Open Font Format
         l_TypeInfo = "application/x-font-woff"
     Case "xhtml"

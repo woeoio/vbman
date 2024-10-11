@@ -76,6 +76,18 @@ Public Sub State(Code As Long, Text As String, Optional Say As String = "Œ¥÷™◊¥Ã
     '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
     SendBodyText Say, "text/html", Code, Text
 End Sub
+Public Sub State400(Optional Say As String)
+    '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
+    State 400, "BadRequest", Say                                                  '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
+End Sub
+Public Sub State401(Optional Say As String)
+    '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
+    State 401, "Unauthorized", Say                                                    '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
+End Sub
+Public Sub State403(Optional Say As String)
+    '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
+    State 403, "Forbidden", Say                                                 '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
+End Sub
 Public Sub State404(Optional Say As String)
     '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
     State 404, "NotFound", Say                                                  '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
@@ -123,7 +135,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     Dim Head As String: Head = "HTTP/" & HttpVersioin & " " & Status & " " & StatusText & vbCrLf
     '
     Dim UserVer As String: UserVer = "FREE"
-    Dim Ver As String: Ver = "[ " & UserVer & " ] "
+    Dim Ver As String: Ver = "[" & UserVer & "] "
     Header("Server") = Ver & ServerName & " " & Client.Parent.Version
     If UserVer = "FREE" Then
         Header("PowerBy") = "www.vb6.pro"

@@ -25,3 +25,20 @@ EH:
     LastError = Err.Description & "#" & Err.Description
 End Function
 
+Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
+    On Error GoTo EH
+    LastError = ""
+    With Inst
+        If .State <> adStateClosed Then .Close
+        .Type = adTypeBinary
+        .Open
+        .Write OutData
+        .SaveToFile Path, adSaveCreateNotExist
+        .Close
+    End With
+    SaveFileAsBinary = True
+    Exit Function
+EH:
+    LastError = Err.Description & "#" & Err.Description
+End Function
+

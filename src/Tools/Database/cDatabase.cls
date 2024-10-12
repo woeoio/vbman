@@ -26,7 +26,7 @@ Public LastErrDescription As String
 'Save rs in class inst.
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
-Public Rows As New ADODB.Recordset
+Dim Rows() As New Scripting.Dictionary
 Public Row As New Scripting.Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection
@@ -37,12 +37,19 @@ Dim Connections As New Scripting.Dictionary
 Private isTrans As Boolean
 Private pvRawSqlString As String
 
+Dim IsAsync As Boolean
+
 Public Enum enumDbType
     Access
     mysql
     MsSql
     CSV
 End Enum
+
+Public Property Get Async() As cDataBase
+    IsAsync = True
+    Set Async = Me
+End Property
 
 Public Function ConnInst(ByVal InstName As String) As cDataBase
     If Connections.Exists(InstName) = False Then Connections.Add InstName, New cDataBase
@@ -152,9 +159,6 @@ Public Function Sql(ByVal RawSqlString As String) As cDataBase
 End Function
 
 '执行数据库操作语句
-Public Function ExecAsync(Optional RecordsAffected, Optional Options As Long = -1) As Boolean
-    ExecAsync = Exec(RecordsAffected, adAsyncExecute)
-End Function
 Public Function Exec(Optional RecordsAffected, Optional Options As Long = -1) As Boolean
     On Error GoTo eee
     '如果连接标记为假，标明已经断开连接，则直接返回
@@ -172,6 +176,13 @@ eee:
 End Function
 
 '执行数据库查询语句
+Public Function QueryToDic(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
+    QueryToDic = Query(CurType, LockType, Options)
+    If QueryToDic = True Then
+        Call ToolsDic.RsToDicArray(Rs, Rows)
+        If UBound(Rows) > -1 Then Set Row = Rows(0)
+    End If
+End Function
 Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
     On Error GoTo eee
     '如果连接标记为假，标明已经断开连接，则直接返回

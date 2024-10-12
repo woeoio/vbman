@@ -90,8 +90,10 @@ Public Function Connect( _
     If Conn.ConnectionString = "" Then
         Select Case DbType
         Case Access
+            DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Access Driver (*.mdb)};Dbq=" & DbAddress & ";"
         Case CSV
+            DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
         Case MsSql
             Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
@@ -110,8 +112,6 @@ Public Function Connect( _
         '如果连接不成功，则显示提示信息，退出程序
         Exit Function
     End If
-    '设置Exec_Cmd的ActiveConnection属性，指定与其关联的数据库连接
-    Set Cmd.ActiveConnection = Conn
     '设置rst的ActiveConnection属性，指定与其关联的数据库连接
     Set Rs.ActiveConnection = Conn
     '根据链接类型设置一些必要的查询缺省值，减少外部查询代码的累赘
@@ -135,6 +135,7 @@ eee:
     LastErr = "Connect Err[" & Err.Number & "]" & Err.Description & "{" & DbAddress & "}{" & DbType & "}{" & Username & "}{" & DefaultDataBase & "}"
     LastErrNumber = Err.Number
     LastErrDescription = Err.Description
+    Err.Raise LastErrNumber, , LastErr
 End Function
 
 '断开与数据库的连接
@@ -174,22 +175,22 @@ Public Function Exec(Optional RecordsAffected, Optional Options As Long = -1) As
     On Error GoTo eee
     '如果连接标记为假，标明已经断开连接，则直接返回
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
-    If RawSqlString = "" Then LastErr = "no have sql string": Exit Function
+    If pvRawSqlString = "" Then LastErr = "no have sql string": Exit Function
     '设置要执行的命令文本
-    Set Rs = Conn.Execute(RawSqlString, RecordsAffected, Options)
+    Set Rs = Conn.Execute(pvRawSqlString, RecordsAffected, Options)
     '返回记录集d对象
     Exec = True
     Exit Function
 eee:
-    LastErr = "Exec Err[" & Err.Number & "]" & Err.Description & "{" & RawSqlString & "}"
+    LastErr = "Exec Err[" & Err.Number & "]" & Err.Description & "{" & pvRawSqlString & "}"
     LastErrNumber = Err.Number
     LastErrDescription = Err.Description
 End Function
 
 '执行数据库查询语句
-Public Function QueryToDic(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
-    QueryToDic = Query(CurType, LockType, Options)
-    If QueryToDic = True Then
+Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
+    Fetch = Query(CurType, LockType, Options)
+    If Fetch = True Then
         Call ToolsDic.RsToDicArray(Rs, Rows)
         If UBound(Rows) > -1 Then Set Row = Rows(0)
     End If
@@ -200,11 +201,11 @@ Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     If Rs.State <> adStateClosed Then Rs.Close
     '打开记录集
-    Rs.Open RawSqlString, , CurType, LockType, Options
+    Rs.Open pvRawSqlString, , CurType, LockType, Options
     Query = True
     Exit Function
 eee:
-    LastErr = "Query Err[" & Err.Number & "]" & Err.Description & "{" & RawSqlString & "}"
+    LastErr = "Query Err[" & Err.Number & "]" & Err.Description & "{" & pvRawSqlString & "}"
     LastErrNumber = Err.Number
     LastErrDescription = Err.Description
 End Function

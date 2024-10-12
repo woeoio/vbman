@@ -45,15 +45,24 @@ Public Enum enumDbType
     MsSql
     CSV
 End Enum
+Public DatabaseType As enumDbType
 
 Public Property Get Async() As cDataBase
     IsAsync = True
     Set Async = Me
 End Property
 
-Public Function ConnInst(ByVal InstName As String) As cDataBase
-    If Connections.Exists(InstName) = False Then Connections.Add InstName, New cDataBase
-    Set ConnInst = Connections(InstName)
+Public Function ConnInst(ByVal InstName As String, Optional ByVal IsCloneMasterConnection As Boolean = True) As cDataBase
+    If Connections.Exists(InstName) = False Then
+        Connections.Add InstName, New cDataBase
+        Set ConnInst = Connections(InstName)
+        If IsCloneMasterConnection = True Then
+            ConnInst.Conn = Me.Conn
+            ConnInst.Connect DatabaseType
+        End If
+    Else
+        Set ConnInst = Connections(InstName)
+    End If
 End Function
 Public Sub ConnInstRemove(ByVal InstName As String)
     If Connections.Exists(InstName) = False Then Exit Sub
@@ -62,7 +71,7 @@ Public Sub ConnInstRemove(ByVal InstName As String)
 End Sub
 
 Public Function Connect( _
-    ByVal dbType As enumDbType, _
+    ByVal DbType As enumDbType, _
     Optional ByVal DbAddress As String = "127.0.0.1,1433", _
     Optional ByVal Username As String = "sa", _
     Optional ByVal Password As String = "Sa123456", _
@@ -76,22 +85,24 @@ Public Function Connect( _
         Connect = True
         Exit Function
     End If
-    
+    DatabaseType = DbType
     '设置连接字符串ConnectionString属性
-    Select Case dbType
-    Case Access
-        Conn.ConnectionString = "Driver={Microsoft Access Driver (*.mdb)};Dbq=" & DbAddress & ";"
-    Case CSV
-        Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
-    Case MsSql
-        Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
-    Case mysql
-        Dim Svr: Svr = Split(Server, ",")
-        Dim Address$: Address = Svr(0)
-        Dim Port$: Port = "3306"
-        If UBound(Svr) > 0 Then Port = Svr(1)
-        Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Port=" & Port & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";OPTION=3"
-    End Select
+    If Conn.ConnectionString = "" Then
+        Select Case DbType
+        Case Access
+            Conn.ConnectionString = "Driver={Microsoft Access Driver (*.mdb)};Dbq=" & DbAddress & ";"
+        Case CSV
+            Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
+        Case MsSql
+            Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
+        Case mysql
+            Dim Svr: Svr = Split(Server, ",")
+            Dim Address$: Address = Svr(0)
+            Dim Port$: Port = "3306"
+            If UBound(Svr) > 0 Then Port = Svr(1)
+            Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Port=" & Port & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";OPTION=3"
+        End Select
+    End If
     '打开到数据库的连接
     Conn.Open
     '判断连接的状态
@@ -104,7 +115,7 @@ Public Function Connect( _
     '设置rst的ActiveConnection属性，指定与其关联的数据库连接
     Set Rs.ActiveConnection = Conn
     '根据链接类型设置一些必要的查询缺省值，减少外部查询代码的累赘
-    Select Case dbType
+    Select Case DbType
     Case Access
         'todo
     Case CSV
@@ -121,7 +132,7 @@ Public Function Connect( _
     Connect = True
     Exit Function
 eee:
-    LastErr = "Connect Err[" & Err.Number & "]" & Err.Description & "{" & DbAddress & "}{" & dbType & "}{" & Username & "}{" & DefaultDataBase & "}"
+    LastErr = "Connect Err[" & Err.Number & "]" & Err.Description & "{" & DbAddress & "}{" & DbType & "}{" & Username & "}{" & DefaultDataBase & "}"
     LastErrNumber = Err.Number
     LastErrDescription = Err.Description
 End Function

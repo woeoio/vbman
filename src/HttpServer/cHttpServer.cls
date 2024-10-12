@@ -22,8 +22,9 @@ Private m_cConnPool             As New Collection
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 
 Public Router As New cHttpServerRouter
-Public RouteBefore As cHttpServerRouteBefore
-Public RouteAfter As cHttpServerRouterAfter
+Public RouteBefore As New cHttpServerRouteBefore
+Public RouteAfter As New cHttpServerRouterAfter
+Public Database As New cDataBase
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -56,7 +57,7 @@ End Function
 
 
 Private Sub Class_Initialize()
-    Call Router.LinkObject(RouteBefore, RouteAfter)
+    '
 End Sub
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)

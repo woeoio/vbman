@@ -33,6 +33,6 @@ EH:
 End Function
 
 Public Function Add(HandleName As String, Handle As Object) As Boolean
-    Dic.Add HandleName, Handle
+    Set Dic(HandleName) = Handle
 End Function
 

@@ -20,8 +20,8 @@ Option Explicit
 '3，如果没有路由成功，则判读是否静态文件
 
 
-Dim RouteBefore As New cHttpServerRouteBefore
-Dim RouteAfter As New cHttpServerRouterAfter
+Dim RouteBefore As cHttpServerRouteBefore
+Dim RouteAfter As cHttpServerRouterAfter
 
 Dim LastError As String
 
@@ -55,22 +55,19 @@ Dim DicGroup As New Scripting.Dictionary
 
 ''开发者定义的控制器字典注册函数
 Public Function Reg(ControllerName As String, Controller As Object) As Boolean
-    If Controllers.Exists(ControllerName) = True Then Err.Raise 1, , "ControllerName Exists：" & ControllerName
-    Controllers.Add ControllerName, Controller
-    Reg = True
+    '    If Controllers.Exists(ControllerName) = True Then Err.Raise 1, , "ControllerName Exists：" & ControllerName
+        Set Controllers(ControllerName) = Controller
+        Reg = True
 End Function
 '开发者定义的路由处理，如果没有用户路由，则执行自动路由
 Public Function Add(RouteName As String, Handler As String, Optional MethodLimit As EnumRouteMethod = Any_) As Boolean
     Dim n  As String: n = ToolsHttp.MapMethodName(MethodLimit)
-    If Dic(n).Exists(RouteName) = True Then Err.Raise 1, , "RouteName Exists：" & RouteName
-    Dic(n).Add RouteName, Handler
+    '    If Dic(n).Exists(RouteName) = True Then Err.Raise 1, , "RouteName Exists：" & RouteName
+    Dic(n)(RouteName) = Handler
+    '    Dic(n).Add RouteName, Handler
     Add = True
 End Function
 
-Friend Sub LinkObject(Before As cHttpServerRouteBefore, After As cHttpServerRouterAfter)
-    Set Before = RouteBefore
-    Set After = RouteAfter
-End Sub
 '路由处理入口
 Friend Function Entry(Client As cClientCallback) As Boolean
     '    Debug.Print "OnDataArrival, Index=" & Index & ", bytesTotal=" & oCallback.dataTotal, Timer
@@ -87,7 +84,10 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         Set .Response = Response
         Set .Session = Session
         Set .Cookies = Cookies
+        Set .Db = Client.Parent.Database
     End With
+    Set RouteBefore = Client.Parent.RouteBefore
+    Set RouteAfter = Client.Parent.RouteAfter
     '先解析 URI 信息
     Request.ParseUri sRequest
     '传入Client给输出对象
@@ -105,9 +105,9 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     '开始路由
     If Request.PathInfo = "/_dev" Then Response.Test: Exit Function
     '匹配用户路由
-    If Dic.Exists(Request.Method) = True Then
+    If Dic.Exists(Request.MethodName) = True Then
         Dim RD As Scripting.Dictionary, Handler As String
-        Set RD = Dic(Request.Method)
+        Set RD = Dic(Request.MethodName)
         If RD.Exists(Request.PathInfo) = True Then Handler = RD(Request.PathInfo): GoTo MatchController
         If DicAny.Exists(Request.PathInfo) = True Then Handler = DicAny(Request.PathInfo): GoTo MatchController
     End If

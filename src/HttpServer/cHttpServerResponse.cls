@@ -16,6 +16,8 @@ Option Explicit
 Dim Client As cClientCallback
 Dim Sck As cTlsReMaster
 
+Dim JsonInst As New cJson
+
 Const ServerName As String = "VBMAN"
 
 Public JsonPackFieldNameCode As String
@@ -59,8 +61,23 @@ End Sub
 
 '自定义对象
 
-Public Sub Json(Data As Variant, Optional Code As Long, Optional Msg As String, Optional Count As Long)
-    '
+Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional WhiteSpace As Variant)
+    '判断是否 Recordset 对象，是就先转换为集合
+    If TypeOf Data Is ADODB.Recordset Then
+        Set Data = ToolsList.RsToCollection(Data)
+    End If
+    If Code = -1 Then
+        Call SendBodyText(JsonInst.Encode(Data, WhiteSpace), "application/json")
+        Exit Sub
+    End If
+    Dim Dic As New Scripting.Dictionary
+    With Dic
+        .Add JsonPackFieldNameCode, Code
+        .Add JsonPackFieldNameMsg, Msg
+        .Add JsonPackFieldNameData, Data
+        .Add JsonPackFieldNameCount, Count
+    End With
+    Call SendBodyText(JsonInst.Encode(Dic, WhiteSpace), "application/json")
 End Sub
 
 Public Sub File(Path As String)

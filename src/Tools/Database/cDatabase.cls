@@ -26,7 +26,7 @@ Public LastErrDescription As String
 'Save rs in class inst.
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
-Dim Rows As New Collection
+Public Rows As New Collection
 Public Row As New Scripting.Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection

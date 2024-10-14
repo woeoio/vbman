@@ -26,7 +26,7 @@ Public LastErrDescription As String
 'Save rs in class inst.
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
-Dim Rows() As New Scripting.Dictionary
+Dim Rows As New Collection
 Public Row As New Scripting.Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection
@@ -40,10 +40,10 @@ Private pvRawSqlString As String
 Dim IsAsync As Boolean
 
 Public Enum enumDbType
-    Access
-    mysql
-    MsSql
-    CSV
+    Access = 1
+    Mysql = 2
+    MsSql = 3
+    CSV = 4
 End Enum
 Public DatabaseType As enumDbType
 
@@ -69,6 +69,27 @@ Public Sub ConnInstRemove(ByVal InstName As String)
     Set Connections(InstName) = Nothing
     Connections.Remove InstName
 End Sub
+
+Public Function TransBegin() As Boolean
+    '暂时先做个壳子, 后期扩展为自动回滚
+    Conn.BeginTrans
+    BeginTrans = True
+End Function
+Public Function TransCommit() As Boolean
+    '暂时先做个壳子, 后期扩展为自动回滚
+    Conn.CommitTrans
+    BeginTrans = True
+End Function
+Public Function TransRollback() As Boolean
+    '暂时先做个壳子, 后期扩展为自动回滚
+    Conn.RollbackTrans
+    BeginTrans = True
+End Function
+
+Public Function Page(Optional Num As Long = 1, Optional Limit As Long = 10) As cDataBase
+    Set Page = Me
+    '暂时先做个壳子
+End Function
 
 Public Function Connect( _
     ByVal DbType As enumDbType, _
@@ -97,7 +118,7 @@ Public Function Connect( _
             Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
         Case MsSql
             Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
-        Case mysql
+        Case Mysql
             Dim Svr: Svr = Split(Server, ",")
             Dim Address$: Address = Svr(0)
             Dim Port$: Port = "3306"
@@ -122,7 +143,7 @@ Public Function Connect( _
         'todo
     Case MsSql
         'todo
-    Case mysql
+    Case Mysql
         'todo
     End Select
     
@@ -191,8 +212,8 @@ End Function
 Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
     Fetch = Query(CurType, LockType, Options)
     If Fetch = True Then
-        Call ToolsDic.RsToDicArray(Rs, Rows)
-        If UBound(Rows) > -1 Then Set Row = Rows(0)
+        Set Rows = ToolsList.RsToCollection(Rs)
+        If Rows.Count > 0 Then Set Row = Rows(1)
     End If
 End Function
 Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean

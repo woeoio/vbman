@@ -23,6 +23,11 @@ Public Item As New Scripting.Dictionary
 Attribute Item.VB_VarUserMemId = 0
 Public Items As New Collection
 
+'    【20241014】
+'           由于 ToolsJsonVba.ConvertToJson 函数对数字类型值没有判断
+'           导致返回的数字值可能超过 js 可识别长度, 无法正常使用,
+'           因此应该修改源代码, 在 数字类型 的处理过程中把溢出值转字符串
+
 Dim AllNewItem As New Scripting.Dictionary
 
 Public WhiteSpaceSet As Variant

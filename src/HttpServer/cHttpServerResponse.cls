@@ -61,13 +61,13 @@ End Sub
 
 '自定义对象
 
-Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional WhiteSpace As Variant)
+Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional Whitespace As Variant)
     '判断是否 Recordset 对象，是就先转换为集合
     If TypeOf Data Is ADODB.Recordset Then
         Set Data = ToolsList.RsToCollection(Data)
     End If
     If Code = -1 Then
-        Call SendBodyText(JsonInst.Encode(Data, WhiteSpace), "application/json")
+        Call SendBodyText(JsonInst.Encode(Data, Whitespace), "application/json")
         Exit Sub
     End If
     Dim Dic As New Scripting.Dictionary
@@ -77,7 +77,7 @@ Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As Str
         .Add JsonPackFieldNameData, Data
         .Add JsonPackFieldNameCount, Count
     End With
-    Call SendBodyText(JsonInst.Encode(Dic, WhiteSpace), "application/json")
+    Call SendBodyText(JsonInst.Encode(Dic, Whitespace), "application/json")
 End Sub
 
 Public Sub File(Path As String)
@@ -141,7 +141,7 @@ Private Sub SendBodyText(Data As String, DataType As String, Optional Status As 
     Call SendBodyByte(d, DataType, Status, StatusText)
 End Sub
 Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
-    Header("Content-Type") = DataType
+    Header("Content-Type") = DataType & "; charset=" & CharSet
     Header("Content-Length") = UBound(Data) + 1
     SendHeader Status, StatusText
     Sck.SendData Data

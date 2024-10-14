@@ -1,4 +1,4 @@
-Attribute VB_Name = "mdTlsThunks"
+Attribute VB_Name = "ToolsTlsThunks"
 '=========================================================================
 '
 ' VbAsyncSocket Project (c) 2018-2023 by wqweto@gmail.com
@@ -34,13 +34,13 @@ Attribute VB_Name = "mdTlsThunks"
 '
 '=========================================================================
 Option Explicit
-DefObj A-Z
-Private Const MODULE_NAME As String = "mdTlsThunks"
+    DefObj A-Z
+Private Const MODULE_NAME As String = "ToolsTlsThunks"
 
 #Const ImplTlsServer = (ASYNCSOCKET_NO_TLSSERVER = 0)
 #Const ImplUseShared = (ASYNCSOCKET_USE_SHARED <> 0)
 #Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
-#Const ImplCaptureTraffic = CLng(ASYNCSOCKET_CAPTURE_TRAFFIC) '--- bitmask: 1 - traffic, 2 - derived secrets
+#Const ImplCaptureTraffic = CLng(ASYNCSOCKET_CAPTURE_TRAFFIC)                   '--- bitmask: 1 - traffic, 2 - derived secrets
 #Const ImplExoticCiphers = False
 #Const ImplTlsServerAllowInsecureRenegotiation = False
 #Const ImplTestCrypto = (ASYNCSOCKET_TEST_CRYPTO <> 0)
@@ -90,8 +90,8 @@ Private Const szOID_ECC_CURVE_P256                      As String = "1.2.840.100
 Private Const szOID_ECC_CURVE_P384                      As String = "1.3.132.0.34"
 Private Const szOID_ECC_CURVE_P521                      As String = "1.3.132.0.35"
 
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
-Private Declare Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal Length As Long, ByVal Fill As Byte)
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
+Private Declare Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal length As Long, ByVal Fill As Byte)
 Private Declare Function IsBadReadPtr Lib "kernel32" (ByVal lp As Long, ByVal ucb As Long) As Long
 Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
 Private Declare Function VirtualProtect Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flNewProtect As Long, lpflOldProtect As Long) As Long
@@ -178,7 +178,7 @@ Private Const STR_VL_ALERTS                             As String = "0|Close not
 Private Const STR_VL_STATES                             As String = "0|New|1|Closed|2|HandshakeStart|3|ExpectServerHello|4|ExpectExtensions|5|ExpectServerFinished|6|ExpectClientHello|7|ExpectClientKeyExchange|8|ExpectClientFinished|9|PostHandshake|10|Shutdown"
 Private Const STR_VL_MESSAGE_NAMES                      As String = "1|client_hello|2|server_hello|4|new_session_ticket|5|end_of_early_data|8|encrypted_extensions|11|certificate|12|server_key_exchange|13|certificate_request|14|server_hello_done|15|certificate_verify|16|client_key_exchange|20|finished|21|certificate_url|22|certificate_status|24|key_update|25|compressed_certificate|254|message_hash"
 Private Const STR_VL_EXTENSION_NAMES                    As String = "0|server_name|1|max_fragment_length|2|client_certificate_url|3|trusted_ca_keys|4|truncated_hmac|5|status_request|6|user_mapping|7|client_authz|8|server_authz|9|cert_type|10|supported_groups|11|ec_point_formats|12|srp|13|signature_algorithms|14|use_srtp|15|heartbeat|16|application_layer_protocol_negotiation|17|status_request_v2|18|signed_certificate_timestamp|19|client_certificate_type|20|server_certificate_type|21|padding|22|encrypt_then_mac|23|extended_master_secret|24|token_binding|25|cached_info|26|tls_lts|27|compress_certificate|28|record_size_limit|29|pwd_protect|30|pwd_clear|31|password_salt|32|ticket_pinning|33|tls_cert_with_extern_psk|34|delegated_credentials|35|session_ticket|41|pre_shared_key|42|early_data|43|supported_versions|44|cookie|45|psk_key_exchange_modes|47|certificate_authorities|48|oid_filters|49|post_handshake_auth|" & _
-                                                                    "50|signature_algorithms_cert|51|key_share|52|transparency_info|53|connection_id|55|external_id_hash|56|external_session_id"
+    "50|signature_algorithms_cert|51|key_share|52|transparency_info|53|connection_id|55|external_id_hash|56|external_session_id"
 Private Const STR_UNKNOWN                               As String = "Unknown (%1)"
 Private Const STR_FORMAT_ALERT                          As String = "%1."
 '--- TLS
@@ -268,13 +268,13 @@ Private Const TLS_GROUP_FFDHE_PRIVATE_USE_LAST          As Long = &H1FF
 Private Const TLS_GROUP_ECDHE_PRIVATE_USE_FIRST         As Long = &HFE00&
 Private Const TLS_GROUP_ECDHE_PRIVATE_USE_LAST          As Long = &HFEFF&
 '--- TLS Signature Scheme from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme
-Private Const TLS_SIGNATURE_RSA_PKCS1_SHA1              As Long = &H201 '--- TLS 1.2
+Private Const TLS_SIGNATURE_RSA_PKCS1_SHA1              As Long = &H201         '--- TLS 1.2
 Private Const TLS_SIGNATURE_ECDSA_SHA1                  As Long = &H203
 Private Const TLS_SIGNATURE_RSA_PKCS1_SHA224            As Long = &H301
 Private Const TLS_SIGNATURE_RSA_PKCS1_SHA256            As Long = &H401
 Private Const TLS_SIGNATURE_RSA_PKCS1_SHA384            As Long = &H501
 Private Const TLS_SIGNATURE_RSA_PKCS1_SHA512            As Long = &H601
-Private Const TLS_SIGNATURE_ECDSA_SECP256R1_SHA256      As Long = &H403 '--- TLS 1.3
+Private Const TLS_SIGNATURE_ECDSA_SECP256R1_SHA256      As Long = &H403         '--- TLS 1.3
 Private Const TLS_SIGNATURE_ECDSA_SECP384R1_SHA384      As Long = &H503
 Private Const TLS_SIGNATURE_ECDSA_SECP521R1_SHA512      As Long = &H603
 Private Const TLS_SIGNATURE_RSA_PSS_RSAE_SHA256         As Long = &H804
@@ -294,8 +294,8 @@ Private Const TLS_MAX_ENCRYPTED_RECORD_SIZE             As Long = TLS_MAX_PLAINT
 Private Const TLS_HELLO_RANDOM_SIZE                     As Long = 32
 Private Const TLS_LEGACY_SECRET_SIZE                    As Long = 48
 Private Const TLS_LEGACY_SESSIONID_SIZE                 As Long = 32
-Private Const TLS_AAD_SIZE                              As Long = 5     '--- size of additional authenticated data for TLS 1.3
-Private Const TLS_LEGACY_AAD_SIZE                       As Long = 13    '--- for TLS 1.2
+Private Const TLS_AAD_SIZE                              As Long = 5             '--- size of additional authenticated data for TLS 1.3
+Private Const TLS_LEGACY_AAD_SIZE                       As Long = 13            '--- for TLS 1.2
 Private Const TLS_VERIFY_DATA_SIZE                      As Long = 12
 'Private Const TLS_PSK_KE_MODE_PSK_DHE                   As Long = 1
 '--- crypto constants
@@ -382,7 +382,7 @@ Private m_uData                     As UcsCryptoData
 Private m_baHelloRetryRandom()      As Byte
 Public g_oRequestSocket             As Object
 
-Private Enum UcsTlsLocalFeaturesEnum '--- bitmask
+Private Enum UcsTlsLocalFeaturesEnum                                            '--- bitmask
     ucsTlsSupportTls10 = 2 ^ 0
     ucsTlsSupportTls11 = 2 ^ 1
     ucsTlsSupportTls12 = 2 ^ 2
@@ -391,16 +391,16 @@ Private Enum UcsTlsLocalFeaturesEnum '--- bitmask
     ucsTlsSupportAll = ucsTlsSupportTls10 Or ucsTlsSupportTls11 Or ucsTlsSupportTls12 Or ucsTlsSupportTls13
 End Enum
 
-Private Enum UcsTlsStatesEnum '--- sync w/ STR_VL_STATES
+Private Enum UcsTlsStatesEnum                                                   '--- sync w/ STR_VL_STATES
     ucsTlsStateNew = 0
     ucsTlsStateClosed = 1
     ucsTlsStateHandshakeStart = 2
     ucsTlsStateExpectServerHello = 3
     ucsTlsStateExpectEncryptedExtensions = 4
-    ucsTlsStateExpectServerFinished = 5     '--- not used in TLS 1.3
+    ucsTlsStateExpectServerFinished = 5                                         '--- not used in TLS 1.3
 #If ImplTlsServer Then
     ucsTlsStateExpectClientHello = 6
-    ucsTlsStateExpectClientKeyExchange = 7  '--- not used in TLS 1.3
+    ucsTlsStateExpectClientKeyExchange = 7                                      '--- not used in TLS 1.3
     ucsTlsStateExpectClientFinished = 8
 #End If
     ucsTlsStatePostHandshake = 9
@@ -408,17 +408,17 @@ Private Enum UcsTlsStatesEnum '--- sync w/ STR_VL_STATES
 End Enum
 
 Private Enum UcsTlsCryptoAlgorithmsEnum
-    '--- key exchange
+'--- key exchange
     ucsTlsAlgoExchX25519 = 1
     ucsTlsAlgoExchSecp256r1
     ucsTlsAlgoExchSecp384r1
     ucsTlsAlgoExchSecp521r1
     ucsTlsAlgoExchCertificate
     '--- ciphers
-    ucsTlsAlgoBulkChacha20Poly1305 = 11 '--- next 3 are authenticated encryption w/ additional data
+    ucsTlsAlgoBulkChacha20Poly1305 = 11                                         '--- next 3 are authenticated encryption w/ additional data
     ucsTlsAlgoBulkAesGcm128
     ucsTlsAlgoBulkAesGcm256
-    ucsTlsAlgoBulkAesCbc128             '--- next 2 are legacy non-AEAD
+    ucsTlsAlgoBulkAesCbc128                                                     '--- next 2 are legacy non-AEAD
     ucsTlsAlgoBulkAesCbc256
     '--- hash
     ucsTlsAlgoDigestMd5 = 21
@@ -465,7 +465,7 @@ Private Type UcsBuffer
 End Type
 
 Public Type UcsTlsContext
-    '--- config
+'--- config
     IsServer            As Boolean
     RemoteHostName      As String
     LocalFeatures       As UcsTlsLocalFeaturesEnum
@@ -508,22 +508,22 @@ Public Type UcsTlsContext
     ExchAlgo            As UcsTlsCryptoAlgorithmsEnum
     CipherSuite         As Long
     SignatureScheme     As Long
-    MacAlgo             As UcsTlsCryptoAlgorithmsEnum   '--- not used w/ AEAD ciphers
-    MacSize             As Long                         '--- not used w/ AEAD ciphers
+    MacAlgo             As UcsTlsCryptoAlgorithmsEnum                           '--- not used w/ AEAD ciphers
+    MacSize             As Long                                                 '--- not used w/ AEAD ciphers
     BulkAlgo            As UcsTlsCryptoAlgorithmsEnum
     KeySize             As Long
     IvSize              As Long
-    IvExplicitSize      As Long                         '--- only for AES in TLS 1.2
+    IvExplicitSize      As Long                                                 '--- only for AES in TLS 1.2
     TagSize             As Long
     DigestAlgo          As UcsTlsCryptoAlgorithmsEnum
     DigestSize          As Long
     UseRsaKeyTransport  As Boolean
     '--- bulk secrets
-    HandshakeMessages   As UcsBuffer                    '--- ToDo: reduce to HandshakeHash only
+    HandshakeMessages   As UcsBuffer                                            '--- ToDo: reduce to HandshakeHash only
     HandshakeSecret()   As Byte
     MasterSecret()      As Byte
-    LocalMacKey()       As Byte                         '--- not used w/ AEAD ciphers
-    RemoteMacKey()      As Byte                         '--- not used w/ AEAD ciphers
+    LocalMacKey()       As Byte                                                 '--- not used w/ AEAD ciphers
+    RemoteMacKey()      As Byte                                                 '--- not used w/ AEAD ciphers
     RemoteTrafficSecret() As Byte
     RemoteTrafficKey()  As Byte
     RemoteTrafficIV()   As Byte
@@ -5233,14 +5233,14 @@ Private Sub pvArraySwap(baBuffer() As Byte, lBufferPos As Long, baInput() As Byt
     lInputPos = lTemp
 End Sub
 
-Private Sub pvArrayByte(baRetVal() As Byte, ParamArray A() As Variant)
+Private Sub pvArrayByte(baRetVal() As Byte, ParamArray a() As Variant)
     Const FUNC_NAME     As String = "pvArrayByte"
     Dim vElem           As Variant
     Dim lIdx            As Long
     
-    If UBound(A) >= 0 Then
-        pvArrayAllocate baRetVal, UBound(A) + 1, FUNC_NAME & ".baRetVal"
-        For Each vElem In A
+    If UBound(a) >= 0 Then
+        pvArrayAllocate baRetVal, UBound(a) + 1, FUNC_NAME & ".baRetVal"
+        For Each vElem In a
             baRetVal(lIdx) = vElem And &HFF
             lIdx = lIdx + 1
         Next
@@ -6823,14 +6823,14 @@ End Function
 Private Function pvCallCollectionItem(ByVal oCol As Collection, Index As Variant, Optional RetVal As Variant) As Long
     Const IDX_COLLECTION_ITEM As Long = 7
     
-    pvPatchMethodTrampoline AddressOf mdTlsThunks.pvCallCollectionItem, IDX_COLLECTION_ITEM
+    pvPatchMethodTrampoline AddressOf ToolsTlsThunks.pvCallCollectionItem, IDX_COLLECTION_ITEM
     pvCallCollectionItem = pvCallCollectionItem(oCol, Index, RetVal)
 End Function
 
 Private Function pvCallCollectionRemove(ByVal oCol As Collection, Index As Variant) As Long
     Const IDX_COLLECTION_REMOVE As Long = 10
     
-    pvPatchMethodTrampoline AddressOf mdTlsThunks.pvCallCollectionRemove, IDX_COLLECTION_REMOVE
+    pvPatchMethodTrampoline AddressOf ToolsTlsThunks.pvCallCollectionRemove, IDX_COLLECTION_REMOVE
     pvCallCollectionRemove = pvCallCollectionRemove(oCol, Index)
 End Function
 

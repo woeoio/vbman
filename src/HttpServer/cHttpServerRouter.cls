@@ -29,10 +29,10 @@ Public AutoRoute As Boolean
 
 Public Enum EnumRouteMethod
     Any_ = 0
-    Post = 1
-    Get_ = 2
-    Put_ = 3
-    Delete = 4
+    LimitPost = 1
+    LimitGet = 2
+    LimitPut = 3
+    LimitDelete = 4
 End Enum
 
 Private Const C_METHOD_ANY As String = "ANY"

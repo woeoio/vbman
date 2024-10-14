@@ -14,11 +14,11 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Public Enum EnumRequestMethod
-    Post = 1
-    Get_ = 2
-    Put_ = 3
-    Delete = 4
-    Option_ = 5
+    ReqPost = 1
+    ReqGet = 2
+    ReqPut = 3
+    ReqDelete = 4
+    ReqOption = 5
 End Enum
 
 Public Method As EnumRequestMethod
@@ -54,12 +54,12 @@ Friend Function ParseHeaderAndBody(sRequest As String) As Boolean
     If Header.Exists("Content-Length") = True Then HeaderContentLength = Header("Content-Length")
     If Header.Exists("Host") = True Then
         HeaderHost = Header("Host")
-        Dim a: a = Split(HeaderHost & ":", ":")
-        HeaderHostDomain = a(0)
-        If a(1) = "" Then
+        Dim A: A = Split(HeaderHost & ":", ":")
+        HeaderHostDomain = A(0)
+        If A(1) = "" Then
             HeaderHostPort = 80
         Else
-            HeaderHostPort = CLng(a(1))
+            HeaderHostPort = CLng(A(1))
         End If
     End If
     '
@@ -84,12 +84,12 @@ End Function
 Friend Function ParseUri(sRequest As String) As Boolean
     RawContent = sRequest
     Dim oneLine: oneLine = Split(sRequest, vbCrLf, 2)
-    Dim a: a = Split(oneLine(0), " ")
-    MethodName = UCase(a(0))
+    Dim A: A = Split(oneLine(0), " ")
+    MethodName = UCase(A(0))
     Method = ToolsHttp.MapMethod(MethodName)
-    HttpVersion = a(2)
-    If a(1) = "/" Then PathInfo = "/": GoTo QH
-    Url = ToolsHttp.UrlDecodeUtf8(a(1))
+    HttpVersion = A(2)
+    If A(1) = "/" Then PathInfo = "/": GoTo QH
+    Url = ToolsHttp.UrlDecodeUtf8(A(1))
     Dim PQ: PQ = Split(Url, "?", 2)
     PathInfo = PQ(0)
     If UBound(PQ) > 0 Then QueryInfo = PQ(1)

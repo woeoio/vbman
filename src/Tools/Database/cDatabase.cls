@@ -33,8 +33,10 @@ Public WithEvents Conn As ADODB.Connection
 Attribute Conn.VB_VarHelpID = -1
 'cDatabase pool, 多个数据库对象池，主要用于动态根据字符串key使用数据库对象的场景
 Dim Connections As New Scripting.Dictionary
+
 '
-Private isTrans As Boolean
+Private IsPage As Boolean
+Private IsTrans As Boolean
 Private pvRawSqlString As String
 
 Dim IsAsync As Boolean
@@ -64,7 +66,8 @@ Public Function ConnInst(ByVal InstName As String, Optional ByVal IsCloneMasterC
         Set ConnInst = Connections(InstName)
     End If
 End Function
-Public Sub ConnInstRemove(ByVal InstName As String)
+Public Sub ConnInstRemove(Optional ByVal InstName As String)
+    If InstName = "" Then Connections.RemoveAll: Exit Sub
     If Connections.Exists(InstName) = False Then Exit Sub
     Set Connections(InstName) = Nothing
     Connections.Remove InstName
@@ -88,6 +91,7 @@ End Function
 
 Public Function Page(Optional Num As Long = 1, Optional Limit As Long = 10) As cDataBase
     Set Page = Me
+    IsPage = True
     '暂时先做个壳子
 End Function
 
@@ -194,6 +198,7 @@ End Function
 '执行数据库操作语句
 Public Function Exec(Optional RecordsAffected, Optional Options As Long = -1) As Boolean
     On Error GoTo eee
+    IsPage = False
     '如果连接标记为假，标明已经断开连接，则直接返回
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     If pvRawSqlString = "" Then LastErr = "no have sql string": Exit Function
@@ -218,6 +223,7 @@ Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
 End Function
 Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean
     On Error GoTo eee
+    IsPage = False
     '如果连接标记为假，标明已经断开连接，则直接返回
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     If Rs.State <> adStateClosed Then Rs.Close

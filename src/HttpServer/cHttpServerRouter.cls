@@ -84,12 +84,16 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         Set .Response = Response
         Set .Session = Session
         Set .Cookies = Cookies
-        Set .Db = Client.Parent.Database
+        Set .db = Client.Parent.Database
     End With
     Set RouteBefore = Client.Parent.RouteBefore
     Set RouteAfter = Client.Parent.RouteAfter
     '先解析 URI 信息
     Request.ParseUri sRequest
+    '解析请求头
+    Request.ParseHeader sRequest
+    '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
+    Request.ParseBody sRequest
     '传入Client给输出对象
     Set Response.fClient = Client
     '判断是否静态文件

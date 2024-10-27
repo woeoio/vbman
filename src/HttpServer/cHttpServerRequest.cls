@@ -32,7 +32,7 @@ Public PathInfoAction As String
 Public QueryInfo As String
 Public QueryString As New Scripting.Dictionary
 Public Form As New Scripting.Dictionary
-Public Json As New Scripting.Dictionary
+Public Json As New cJson
 Public Header As New Scripting.Dictionary
 Public HeaderUserAgent As String
 Public HeaderAccept As String
@@ -42,11 +42,13 @@ Public HeaderHostPort As Long
 Public HeaderContentType As String
 Public HeaderContentLength As Long
 
+Dim BodyRaw As Variant
 
-Friend Function ParseHeaderAndBody(sRequest As String) As Boolean
+Friend Function ParseHeader(sRequest As String) As Boolean
     Dim HB: HB = Split(sRequest, vbCrLf & vbCrLf, 2)
     Dim UH: UH = Split(HB(0), vbCrLf, 2)
     Dim H As String: H = Trim(UH(1))
+    BodyRaw = HB(1)
     Call ToolsHttp.ParseKeyValue(H, Header)
     If Header.Exists("User-Agent") = True Then HeaderUserAgent = Header("User-Agent")
     If Header.Exists("Accept") = True Then HeaderAccept = Header("Accept")
@@ -54,16 +56,21 @@ Friend Function ParseHeaderAndBody(sRequest As String) As Boolean
     If Header.Exists("Content-Length") = True Then HeaderContentLength = Header("Content-Length")
     If Header.Exists("Host") = True Then
         HeaderHost = Header("Host")
-        Dim A: A = Split(HeaderHost & ":", ":")
-        HeaderHostDomain = A(0)
-        If A(1) = "" Then
+        Dim a: a = Split(HeaderHost & ":", ":")
+        HeaderHostDomain = a(0)
+        If a(1) = "" Then
             HeaderHostPort = 80
         Else
-            HeaderHostPort = CLng(A(1))
+            HeaderHostPort = CLng(a(1))
         End If
     End If
-    '
-    Dim b As String: b = Trim(HB(1))
+QH:
+    ParseHeader = True
+    Exit Function
+End Function
+
+Friend Function ParseBody(sRequest As String) As Boolean
+    Dim b As String: b = BodyRaw
     If b = "" Then GoTo QH
     '先进行编码转换
     b = ToolsHttp.UrlDecodeUtf8(b)
@@ -73,23 +80,23 @@ Friend Function ParseHeaderAndBody(sRequest As String) As Boolean
     End If
     '解析json
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
-        
+        Call Json.Decode(b)
     End If
     '解析
 QH:
-    ParseHeaderAndBody = True
+    ParseBody = True
     Exit Function
 End Function
 
 Friend Function ParseUri(sRequest As String) As Boolean
     RawContent = sRequest
     Dim oneLine: oneLine = Split(sRequest, vbCrLf, 2)
-    Dim A: A = Split(oneLine(0), " ")
-    MethodName = UCase(A(0))
+    Dim a: a = Split(oneLine(0), " ")
+    MethodName = UCase(a(0))
     Method = ToolsHttp.MapMethod(MethodName)
-    HttpVersion = A(2)
-    If A(1) = "/" Then PathInfo = "/": GoTo QH
-    Url = ToolsHttp.UrlDecodeUtf8(A(1))
+    HttpVersion = a(2)
+    If a(1) = "/" Then PathInfo = "/": GoTo QH
+    Url = ToolsHttp.UrlDecodeUtf8(a(1))
     Dim PQ: PQ = Split(Url, "?", 2)
     PathInfo = PQ(0)
     If UBound(PQ) > 0 Then QueryInfo = PQ(1)
@@ -105,3 +112,8 @@ QH:
 End Function
 
 
+Private Sub Class_Initialize()
+    Header.CompareMode = TextCompare
+    QueryString.CompareMode = TextCompare
+    Form.CompareMode = TextCompare
+End Sub

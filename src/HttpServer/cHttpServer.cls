@@ -82,6 +82,7 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
         .Index = m_cConnPool.Count
         Set .Parent = Me
         Set .ClientInfo = CI
+        'todo 这里可以优化为对象池子, 并发请求的时候处理更快
         Set .Socket = New cTlsReMaster
         Set .Context = New cHttpServerContext
         Set .Context.ClientInfo = CI
@@ -101,6 +102,7 @@ Friend Sub OnDataArrival(Index As Long)
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)
+    'todo 这里可能有内存泄漏
     m_cConnPool.Remove Index
     If m_cConnPool.Count >= Index Then
         m_cConnPool.Add Nothing, Before:=Index

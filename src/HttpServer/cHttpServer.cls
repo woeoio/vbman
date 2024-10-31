@@ -21,10 +21,14 @@ Private m_cConnPool             As New Collection
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 
+Public SSE As New cSSE
+
 Public Router As New cHttpServerRouter
 Public RouteBefore As New cHttpServerRouteBefore
 Public RouteAfter As New cHttpServerRouterAfter
 Public Database As New cDataBase
+
+Public CrossDomain As New cHttpCrossDomain
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr

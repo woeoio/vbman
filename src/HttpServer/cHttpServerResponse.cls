@@ -15,6 +15,7 @@ Option Explicit
 
 Dim Client As cClientCallback
 Dim Sck As cTlsReMaster
+Dim CrossDomain As cHttpCrossDomain
 
 Dim JsonInst As New cJson
 
@@ -42,6 +43,7 @@ Public Status  As String
 Friend Property Set fClient(o As Object)
     Set Client = o
     Set Sck = Client.Socket
+    Set CrossDomain = Client.Parent.CrossDomain
 End Property
 
 
@@ -156,6 +158,9 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     Header("Server") = Ver & ServerName & " " & Client.Parent.Version
     If UserVer = "FREE" Then
         Header("PowerBy") = "www.vb6.pro"
+    End If
+    If CrossDomain.Enable = True Then
+        CrossDomain.AddTo Header
     End If
     Dim x, i As Long
     For Each x In Header.Keys()

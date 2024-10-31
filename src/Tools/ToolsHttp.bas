@@ -201,11 +201,11 @@ Public Function ParseKeyValue(Content As String, Obj As Scripting.Dictionary) As
 End Function
 
 Public Function MapMethod(Name As String) As Long
-    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTION")
+    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
     MapMethod = ToolsArray.GetIndexByValue(Arr, Name)
 End Function
 Public Function MapMethodName(Index As Long) As String
-    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTION")
+    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
     MapMethodName = Arr(Index)
 End Function
 

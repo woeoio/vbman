@@ -18,7 +18,7 @@ Public Enum EnumRequestMethod
     ReqGet = 2
     ReqPut = 3
     ReqDelete = 4
-    ReqOption = 5
+    ReqOptions = 5
 End Enum
 
 Public Method As EnumRequestMethod

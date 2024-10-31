@@ -87,26 +87,27 @@ End Function
 '    PushNewItemTo = True
 'End Function
 
-Public Function Encode(Optional obj As Variant, Optional Whitespace As Variant) As String
+Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant) As String
     ' [using]: ToolsJsonVba.ConvertToJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
-    If IsMissing(obj) Then
-        If RootItems.Count > 0 Then Set obj = RootItems
-        If RootItem.Count > 0 Then Set obj = RootItem
+    If IsMissing(Obj) = True Then
+        If RootItems.Count > 0 Then Set Obj = RootItems
+        If RootItem.Count > 0 Then Set Obj = RootItem
     End If
-    If IsObject(obj) = False Then RootText = obj: GoTo RET
-    '
+    If IsMissing(Obj) = True Then GoTo RET
+    If IsObject(Obj) = False Then RootText = Obj: GoTo RET
     '    If TypeOf Obj Is ADODB.Recordset Then
     '        Set Obj = ToolsList.RsToCollection(Obj)
     '    End If
-    If TypeOf obj Is cJson Then
-        Set obj = obj.Root
+    If TypeOf Obj Is cJson Then
+        Set Obj = Obj.Root
     End If
+    If Obj.Count = 0 Then GoTo RET
     If IsEmpty(WhiteSpaceSet) = False Then
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
     End If
-    RootText = ConvertToJson(obj, Whitespace)
+    RootText = ConvertToJson(Obj, Whitespace)
     Set RootItem = Nothing
     Set RootItems = Nothing
     AllNewItem.RemoveAll

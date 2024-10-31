@@ -21,6 +21,7 @@ Public Context As cHttpServerContext
 Public Parent               As cHttpServer
 Public WithEvents Socket    As cTlsReMaster
 Attribute Socket.VB_VarHelpID = -1
+Public IsSSE As Boolean
 
 Private Sub Socket_DataArrival(ByVal bytesTotal As Long)
     dataTotal = bytesTotal

@@ -92,6 +92,7 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
         Set .Context.ClientInfo = CI
         Set .Context.Server = HttpSvr
         .Socket.Accept requestID
+        .hSocket = .Socket.SocketHandle
     End With
     '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
 End Sub
@@ -101,12 +102,61 @@ Friend Sub OnDataArrival(Index As Long)
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
     
+    Dim sRequest            As String
+    oCallback.Socket.GetData sRequest
+    
+    '写入对象到上下文
+    Dim Request As New cHttpServerRequest
+    Dim Response As New cHttpServerResponse
+    '传入Client给输出对象
+    Set Response.fClient = oCallback
+    '先解析 URI 信息
+    Request.ParseUri sRequest
+    '解析请求头
+    Request.ParseHeader sRequest
+    '开始 sse 流程
+    If Request.HeaderAccept = "text/event-stream" Then
+        oCallback.IsSSE = True
+        Set oCallback.Context.Request = Request
+        Call SSE.Entry(oCallback)
+        Exit Sub
+    End If
+    '是否 options 查询, 且没有中间件处理流程, 则这里简单处理下, 避免重入业务流程
+    If Request.Method = ReqOptions Then
+        If CrossDomain.Enable = True Then
+            Response.Text ""
+        Else
+            Response.State403
+        End If
+        Exit Sub
+    End If
+    '开始 http 流程
+    Dim Session As New cHttpServerSession
+    Dim Cookies As New cHttpServerCookies
+    With oCallback.Context
+        Set .Request = Request
+        Set .Response = Response
+        Set .Session = Session
+        Set .Cookies = Cookies
+        Set .db = oCallback.Parent.Database
+    End With
+    '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
+    Request.ParseBody sRequest
+    
+    '开始路由
     Call Router.Entry(oCallback)
     
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)
     'todo 这里可能有内存泄漏
+    Dim oCallback           As cClientCallback
+    Set oCallback = m_cConnPool.Item(Index)
+    If oCallback.IsSSE = True Then
+        SSE.Remove oCallback.hSocket
+    End If
+    Set oCallback = Nothing
+    '    Set m_cConnPool.Item(Index) = Nothing
     m_cConnPool.Remove Index
     If m_cConnPool.Count >= Index Then
         m_cConnPool.Add Nothing, Before:=Index

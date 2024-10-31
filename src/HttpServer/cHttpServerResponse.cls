@@ -135,6 +135,13 @@ End Sub
 'End Sub
 Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Dim d() As Byte
+    If Data = "" Then
+        Header("Content-Type") = "text/plain; charset=" & CharSet
+        Header("Content-Length") = 0
+        SendHeader Status, StatusText
+        Header.RemoveAll
+        Exit Sub
+    End If
     If CodePage = 65001 Then
         d = ToolsUtf8.Encode(Data)
     Else
@@ -144,7 +151,7 @@ Private Sub SendBodyText(Data As String, DataType As String, Optional Status As 
 End Sub
 Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Header("Content-Type") = DataType & "; charset=" & CharSet
-    Header("Content-Length") = UBound(Data) + 1
+    Header("Content-Length") = UBound(Data) + 1                                 '×¢Òâ¿ÕÊý×é
     SendHeader Status, StatusText
     Sck.SendData Data
     Header.RemoveAll

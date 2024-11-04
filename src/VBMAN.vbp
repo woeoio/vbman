@@ -47,6 +47,7 @@ Class=cSSEserver; SSE\cSSEServer.cls
 Class=cSSEHandle; SSE\cSSEHandle.cls
 Class=cHttpClient; HttpClient\cHttpClient.cls
 Class=cTelnetServer; TelnetServer\cTelnetServer.cls
+Class=cTcpServer; TcpServer\cTcpServer.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

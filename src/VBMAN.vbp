@@ -46,6 +46,7 @@ Class=cMQTTClient; MQTTClient\cMQTTClient.cls
 Class=cHttpCrossDomain; Tools\cHttpCrossDomain.cls
 Class=cSSEserver; SSE\cSSEServer.cls
 Class=cSSEHandle; SSE\cSSEHandle.cls
+Class=cHttpClient; HttpClient\cHttpClient.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

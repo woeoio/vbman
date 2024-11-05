@@ -132,6 +132,7 @@ Public Function Decode(ByRef Text As String) As Boolean
     On Error GoTo EH
     LastError = ""
     RootText = Trim(Text)
+    If RootText = "" Then Exit Function
     If Left(RootText, 1) = "[" Then
         Set RootItems = ParseJson(RootText)
     Else

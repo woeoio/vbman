@@ -30,7 +30,7 @@ Dim Fso As New Scripting.FileSystemObject
 
 Public LastError As String
 Public Property Get LastSuccess() As Boolean
-    LastSuccess = LastError <> ""
+    LastSuccess = LastError = ""
 End Property
 
 '---------------------------------Property

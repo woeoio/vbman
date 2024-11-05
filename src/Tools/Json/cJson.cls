@@ -92,7 +92,7 @@ End Function
 '    PushNewItemTo = True
 'End Function
 
-Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant) As String
+Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As String
     ' [using]: ToolsJsonVba.ConvertToJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
@@ -118,7 +118,11 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant) 
     Set RootItems = Nothing
     AllNewItem.RemoveAll
 RET:
-    Encode = RootText
+    If FromUnicode = True Then
+        Encode = ToolsStr.DecodeUnicode(RootText)
+    Else
+        Encode = RootText
+    End If
 End Function
 
 Public Function Decode(ByRef Text As String) As Boolean
@@ -148,12 +152,12 @@ Public Function LoadFrom(ByVal Path As String) As Boolean
     TS.Close
 End Function
 '
-Public Function SaveTo(ByVal FileName As String, Optional Whitespace As Variant) As Variant
+Public Function SaveTo(ByVal FileName As String, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As Variant
     FileName = ToolsFso.AutoCompleteFullPath(FileName, True)
     Call ToolsFso.AutoMakeDir(FileName, True)
     Dim TS As Scripting.TextStream
     Set TS = Fso.OpenTextFile(FileName, ForWriting, True)
-    TS.Write Encode(Root, Whitespace)
+    TS.Write Encode(Root, Whitespace, FromUnicode)
     TS.Close
 End Function
 

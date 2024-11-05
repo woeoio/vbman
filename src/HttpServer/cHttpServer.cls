@@ -107,18 +107,25 @@ Friend Sub OnDataArrival(Index As Long)
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
     
-    Dim sRequest            As String
-    oCallback.Socket.GetData sRequest
-    
+    Dim vRequest As Variant
+    Dim sRequestHead            As String
+    Dim sRequestBody            As String
+    Dim aReq() As Byte
+    Dim aReqHead() As Byte
+    Dim aReqBody() As Byte
+    oCallback.Socket.GetData aReq, vbArray + vbByte
+    '分割请求头和请求体
+    vRequest = ToolsArray.SplitByteArrayByKeyword(aReq, vbCrLf & vbCrLf, 1)
+    aReqHead = vRequest(0)
+    '请求头转为字符串
+    sRequestHead = ToolsUtf8.Decode(aReqHead)
     '写入对象到上下文
     Dim Request As New cHttpServerRequest
     Dim Response As New cHttpServerResponse
     '传入Client给输出对象
     Set Response.fClient = oCallback
-    '先解析 URI 信息
-    If Request.ParseUri(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
     '解析请求头
-    If Request.ParseHeader(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
+    If Request.ParseHeader(sRequestHead) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
     '开始 sse 流程
     If Request.HeaderAccept = "text/event-stream" Then
         oCallback.IsSSE = True
@@ -146,7 +153,8 @@ Friend Sub OnDataArrival(Index As Long)
         Set .db = oCallback.Parent.Database
     End With
     '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
-    If Request.ParseBody(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
+    aReqBody = vRequest(1)
+    If Request.ParseBody(aReqBody) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
     
     '开始路由
     Call Router.Entry(oCallback)

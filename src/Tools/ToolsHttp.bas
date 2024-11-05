@@ -2,10 +2,13 @@ Attribute VB_Name = "ToolsHttp"
 Option Explicit
 
 Public Const C_CONTENT_TYPE_FORM_URLENCODED As String = "application/x-www-form-urlencoded"
+Public Const C_CONTENT_TYPE_FORM_MULTIPART As String = "multipart/form-data"
 Public Const C_CONTENT_TYPE_JSON As String = "application/json"
 Public Const C_CONTENT_TYPE_STREAM As String = "application/octet-stream"
+Public Const C_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain"
+Public Const C_CONTENT_TYPE_TEXT_HTML As String = "text/html"
 Public Const C_HEADER_FIELD_CONTENT_TYPE As String = "Content-Type"
-
+Public Const C_HEADER_FIELD_CONTENT_LENGHT As String = "Content-Lenght"
 
 
 '————————————————VB URL的编解码源码 GB2312 UTF-8编解码
@@ -19,7 +22,7 @@ Public Function UrlDecodeUtf8(ByVal Url As String) As String
     Dim aa, BB
     Dim UtfB                                                                    ''Utf-8单个字节
     Dim UtfB1, UtfB2, UtfB3                                                     ''Utf-8码的三个字节
-    Dim i, n, s
+    Dim i, n, S
     Dim str1 As String
     Dim str2 As String
     n = 0
@@ -28,7 +31,7 @@ Public Function UrlDecodeUtf8(ByVal Url As String) As String
         b = Mid(Url, i, 1)
         Select Case b
         Case "+"
-            s = s & " "
+            S = S & " "
         Case "%"
             ub = Mid(Url, i + 1, 2)
             If InStr(ub, vbLf) <= 0 And ub <> "" Then
@@ -41,7 +44,7 @@ Public Function UrlDecodeUtf8(ByVal Url As String) As String
             
             If UtfB < 128 Then
                 i = i + 2
-                s = s & ChrW(UtfB)
+                S = S & ChrW(UtfB)
             Else
                 UtfB1 = (UtfB And &HF) * &H1000                                 ''取第1个Utf-8字节的二进制后4位
                 str1 = Mid(Url, i + 4, 2)
@@ -62,15 +65,15 @@ Public Function UrlDecodeUtf8(ByVal Url As String) As String
                         End If
                     End If
                 End If
-                s = s & ChrW(UtfB1 Or UtfB2 Or UtfB3)
+                S = S & ChrW(UtfB1 Or UtfB2 Or UtfB3)
                 i = i + 8
             End If
             
         Case Else                                                               ''Ascii码
-            s = s & b
+            S = S & b
         End Select
     Next
-    UrlDecodeUtf8 = s
+    UrlDecodeUtf8 = S
 End Function
 'UTF-8编码
 Public Function UrlEncodUtf8(ByVal szInput) As String
@@ -167,7 +170,26 @@ Sub Test()
     Debug.Print sResult
 End Sub
 
+Public Function AddToQueryString(ByVal Url As String, ByVal QS As String) As String
+    If InStr(Url, "?") > 0 Then
+        AddToQueryString = Url & "&ver=" & QS
+    Else
+        AddToQueryString = Url & "?ver=" & QS
+    End If
+End Function
 
+Public Function MakeContent(Dic As Scripting.Dictionary) As String
+    If Dic.Count > 0 Then
+        Dim Arr() As String
+        ReDim Arr(Dic.Count - 1)
+        Dim i As Long, x As Variant
+        For Each x In Dic.Keys()
+            Arr(i) = x & "=" & Dic(x)
+            i = i + 1
+        Next
+        MakeContent = Join(Arr, "&")
+    End If
+End Function
 
 Rem 解析Request内容，即原始键值对
 Public Function ParseContent(Content As String, Obj As Scripting.Dictionary) As Boolean

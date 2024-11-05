@@ -20,6 +20,13 @@ Public Enum EnumRequestMethod
     ReqDelete = 4
     ReqOptions = 5
 End Enum
+Public Enum EnumRequestContentType
+    JsonString = 1
+    FormEncode = 2
+    FormMultiPart = 3
+    TextPlain = 4
+    TextHtml = 5
+End Enum
 
 Public Method As EnumRequestMethod
 Public MethodName As String

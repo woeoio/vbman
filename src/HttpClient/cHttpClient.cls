@@ -27,338 +27,132 @@ Attribute VB_Exposed = True
 
 '2023-03-30 改大了同步请求的默认超时值为5分钟，后续增加超时参数给用户设置
 
-Dim WithEvents oHttp As WinHttp.WinHttpRequest
-Attribute oHttp.VB_VarHelpID = -1
-Public JsonInst As New cJson
-Public resJson As New Dictionary
+Dim WithEvents Inst As WinHttp.WinHttpRequest
+Attribute Inst.VB_VarHelpID = -1
+Dim Json As New cJson
 '缓存请求的返回内容
-Public Res As Variant
+Public ResponseRaw As Variant
 '模仿前几天写的php版ajax，做个完整处理过的 res.header+res.cookies+res.data
-Public Event HttpRep(ByVal Dat)
+Public Event OnResponseFinished()
 
-Public Enum ResDataEnum
-    Header = 0
-    Cookies = 1
-    Body = 2
-End Enum
+Public LastError As String
+Public RequestDataBody As New Scripting.Dictionary
+Public RequestDataQuery As New Scripting.Dictionary
+Public RequestHeaders As New Scripting.Dictionary
+Public RequestContentType As String
+Public RequestChartSet As String
+Public RequestTimeOut As Long
 
-Public Enum DataEnum
-    ResponseJson = 0
-    ResponseBody = 1
-    ResponseNoChange = 2
-    ResponseText = 3
-End Enum
+'链式调用函数参数变量区
+Dim DicCookies As New Scripting.Dictionary
 
-'Public Enum ActEnum
-'    optPOST = 0
-'    optGET = 1
-'End Enum
 
-Public Enum AsyncEnum
-    optSync = 0
-    optAsync = 1
-    optNoChange = 2
-End Enum
-
-Public Enum EnumPostContentType
-    FormData = 0
-    Multipart = 1
-    Json = 2
-End Enum
-
-Public waitSeconds As Integer
-Public LastErr As String
-    Rem 存储上次地址
-Public ioUrl As String
-    Rem 存储基础请求地址
-Public mBaseUrl As String
-Public mContetType As String
-Public repType As DataEnum
-Public isAsync As AsyncEnum
-Public addVer As Boolean
-Public reqQuery As New Scripting.Dictionary
-Private reqHeaders As New Scripting.Dictionary
-Public postBody As New Scripting.Dictionary
-Public postFilesPath As New Scripting.Dictionary
-Public postFilesBin As New Scripting.Dictionary
-Public postContentType As EnumPostContentType
-
-Private isLongAjax As Boolean
-Private LongAjaxReqType As String
-
-Public Function getPostContentType(Optional ByVal cType As EnumPostContentType) As String
-    On Error Resume Next
-    Dim a: a = Array( _
-    "application/x-www-form-urlencoded", _
-    "multipart/form-data", _
-    "application/json" _
+Public Function MapRequestContentType(ReqType As EnumRequestContentType) As String
+    Dim Arr: Arr = Array("", _
+    ToolsHttp.C_CONTENT_TYPE_JSON, _
+    ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, _
+    ToolsHttp.C_CONTENT_TYPE_FORM_MULTIPART, _
+    ToolsHttp.C_CONTENT_TYPE_TEXT_PLAIN, _
+    ToolsHttp.C_CONTENT_TYPE_TEXT_HTML _
     )
-    getPostContentType = a(cType)
-End Function
-Public Function makeReqData(Dic As Scripting.Dictionary) As String
-    If Dic.Count > 0 Then
-        If postContentType = Json Then
-            makeReqData = JsonInst.Encode(Dic)
-        Else
-            Dim Arr() As String
-            ReDim Arr(Dic.Count - 1)
-            Dim i%
-            For Each ii In Dic
-                Arr(i) = ii & "=" & Dic(ii)
-                i = i + 1
-            Next
-            makeReqData = Join(Arr, "&")
-        End If
-    Else
-        makeReqData = ""
-    End If
+    MapRequestContentType = Arr(ReqType)
 End Function
 
-Public Function Cancel()
-    If isLongAjax Then
-        Call LongAjax_stop
-    Else
-        oHttp.Abort
-    End If
-    d "请求被用户终止..."
-End Function
-'Public Function LongAjax_send(Dat) As Boolean  '更新一个版本,,独立设置一个长轮询对象,和短连接请求分开,以便一个类对象即可实现长轮询和短连接,用于发送和接受
-'
-'    If isLongAjax Then
-'        oHttp.Send Dat
-'        LongAjax_send = True
-'    Else
-'        LongAjax_send = False
-'    End If
-'    D "长轮询发送数据..." & LongAjax_send
-'End Function
-
-Public Function LongAjax_stop()
-    LongAjaxReqType = ""
-    isLongAjax = False
-    Call oHttp.Abort
-    d "长轮询终止..."
+Public Function SetRequestCookies(ByVal Value As String) As Boolean
+    If Trim(Value) = "" Then Exit Function
+    RequestHeaders("Cookie") = Value
+    SetRequestCookies = True
 End Function
 
-Public Function LongAjax_start(Optional ByVal isPost As Boolean, Optional ByVal Url As String, Optional ByVal Dat As String, Optional ByVal DataStic As DataEnum = ResponseNoChange) As Boolean
-    
-    If LongAjaxReqType = "" Then LongAjaxReqType = IIf(isPost, "POST", "GET")
-    '    waitSeconds = 28 '长轮询默认主动不关闭,,如果需要更长时间,请使用 ohttp.SetTimeouts(),,默认大约32秒主动关闭,,可修改
-    LongAjax_start = IO(LongAjaxReqType, Url, Dat, 0, DataStic, optAsync)
-    If LongAjax_start = True Then
-        isLongAjax = True
-        d "长轮询开始..."
-    Else
-        d "长轮询错误..." & LastErr
-    End If
-End Function
-
-Public Function GetData(Optional ByVal Url As String, Optional ByVal Dat As String, Optional ByVal waitSec As Integer, Optional ByVal DataStic As DataEnum = ResponseNoChange, Optional ByVal Async As AsyncEnum = optNoChange) As Boolean
-Attribute GetData.VB_UserMemId = 0
-    
-    GetData = IO("GET", Url, "", waitSec, DataStic, Async)
-    
-End Function
-
-Public Function PostData(Optional ByVal Url As String, Optional ByVal Dat As String, Optional ByVal waitSec As Integer, Optional ByVal DataStic As DataEnum = ResponseNoChange, Optional ByVal Async As AsyncEnum = optNoChange) As Boolean
-    
-    PostData = IO("POST", Url, Dat, waitSec, DataStic, Async)
-    
-End Function
-
-Private Function getContentType() As String
-    Select Case mContetType
-    Case "json"
-        getContentType = getPostContentType(Json)
-    Case "form"
-        getContentType = getPostContentType(FormData)
-    Case "file"
-        getContentType = getPostContentType(Multipart)
-    Case Else
-        getContentType = mContetType
-    End Select
-End Function
-
-Private Function IO(Act$, Url$, Dat$, waitSec%, DataStic As DataEnum, Async As AsyncEnum) As Boolean
+Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As Boolean
     On Error GoTo ERR:
-    reqHeaders("CONTENT-TYPE") = getContentType()
-    'reqHeaders("CONTENT-TYPE") = getPostContentType(postContentType)
-    LastErr = ""
-    '    JsonInst.Dic_de.RemoveAll
-    '    JsonInst.Dic_en.RemoveAll
-    '长轮询模式下不要在请求其他数据了
-    If isLongAjax Then
-        IO = False
-        LastErr = "请先停止长轮询模式后再请求!或者另外实例化一个cAjax对象处理!"
-        d LastErr
-        Exit Function
-    End If
+    Dim x As Variant: LastError = ""
     '检查url
-    If Url = "" Then
-        If ioUrl = "" Then
-            IO = False
-            LastErr = "请求的URL地址为空,请检查!"
-            d LastErr
-            Exit Function
-        Else
-            Url = ioUrl
-        End If
-    Else
-        If mBaseUrl = "" Then
-            '
-        Else
-            Url = mBaseUrl & Url
-        End If
-        ioUrl = Url
-    End If
-    
-    '    D "开始请求..."
-    '参数设置
-    If Async <> optNoChange Then isAsync = Async
-    If DataStic <> ResponseNoChange Then repType = DataStic
+    If Url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
-    If reqQuery.Count > 0 Then
-        If InStr(Url, "?") > 0 Then
-            Url = Url & "&" & makeReqData(reqQuery)
-        Else
-            Url = Url & "?" & makeReqData(reqQuery)
-        End If
-    End If
+    If RequestDataQuery.Count > 0 Then Url = ToolsHttp.AddToQueryString(Url, ToolsHttp.MakeContent(RequestDataQuery))
     '是否添加URL资源版本号
-    If addVer Then
-        If InStr(Url, "?") > 0 Then
-            Url = Url & "&ver=" & Rnd()                                         ' Timer()
-        Else
-            Url = Url & "?ver=" & Rnd()                                         ' Timer()
+    '    If addVer Then Url = ToolsHttp.AddToQueryString(Url, Rnd())
+    '打开链路
+    Inst.Open ToolsHttp.MapMethodName(Method), Url, True
+    '处理Header
+    With RequestHeaders
+        If .Exists("Cookie") = False Then
+            'todo
+        End If
+        If .Exists("Content-Type") = False Then
+            If RequestContentType = "" Then RequestContentType = ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED
+            .Add ToolsHttp.C_HEADER_FIELD_CONTENT_TYPE, RequestContentType
+        End If
+        If .Count > 0 Then
+            For Each x In .Keys()
+                If .Item(ii) <> "" Then Inst.SetRequestHeader x, .Item(ii)
+            Next
+        End If
+    End With
+    '处理POSTBODY
+    If Body = "" Then
+        If RequestContentType = ToolsHttp.C_CONTENT_TYPE_JSON Then
+            Body = Json.Encode(RequestDataBody)
+        ElseIf RequestContentType = ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED Then
+            Body = ToolsHttp.MakeContent(RequestDataBody)
         End If
     End If
-    '打开链路
-    oHttp.Open Act, Url, True
-    '处理Header
-    If reqHeaders.Count > 0 Then
-        For Each ii In reqHeaders
-            If reqHeaders(ii) <> "" Then oHttp.SetRequestHeader ii, reqHeaders(ii)
-        Next
+    Dim BodyByte() As Byte
+    If ToolsStr.HasStr("utf", RequestChartSet) > 0 Then
+        BodyByte = ToolsUtf8.Encode(Body)
+    Else
+        BodyByte = ToolsArray.StringToByteArray(Body)
     End If
-    '处理POSTBODY
-    If Dat = "" Then
-        Dat = makeReqData(postBody)
-    End If
+    Inst.SetRequestHeader ToolsHttp.C_HEADER_FIELD_CONTENT_LENGHT, UBound(BodyByte) + 1
     '忽略错误SSL证书
-    oHttp.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
+    Inst.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
     '发送数据
-    oHttp.Send Dat
-    '发送文件
-    '    If postFilesPath.Count > 0 Then
-    '        Dim xx
-    '        For Each xx In postFilesPath
-    '
-    '            oHttp.Send Dat
-    '        Next
-    '    End If
-    
+    Inst.Send BodyByte
     '返回
     
-    If isAsync = optSync Then
-        '设置等待超时
-        If waitSeconds < 5 Then waitSeconds = 300
-        If waitSec = 0 Then waitSec = waitSeconds
-        oHttp.WaitForResponse waitSec                                           '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
-        Res = repData()
-        If oHttp.Status <> 200 Or Res = False Then ERR.Raise oHttp.Status, , oHttp.Status & "#" & oHttp.StatusText & "#"
+    If IsAsync = optSync Then
+        '设置等待超时, '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
+        If RequestTimeOut < 5 Then RequestTimeOut = 5
+        If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
+        If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
     End If
-    IO = True
+    Fetch = True
 CLS:
     '清理body,但保留头部和get请求参数,头部和参数基本上是不变的,需要清理可以手工执行字典清楚方法
-    postFilesPath.RemoveAll
-    postFilesBin.RemoveAll
-    postBody.RemoveAll
-    reqQuery.RemoveAll
-    '    reqHeaders.RemoveAll
+    RequestDataBody.RemoveAll
+    RequestDataQuery.RemoveAll
+    '    RequestHeaders.RemoveAll
+    '    DicCookies.RemoveAll
     Exit Function
 ERR:
     Rem todo 这里可以优化一下，对超时错误代码进行准确描述
-    LastErr = ERR.Description
-    IO = False                                                                  '仅限同步模式
-    d "IO错误:" & LastErr
+    LastError = ERR.Description
     GoTo CLS
 End Function
 
-Public Function SetCookies(ByVal Val$) As Boolean
-    SetCookies = Me.SetResHeader("Cookie", Val)
+Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
+    Set ReturnJson = New cJson
+    Dim S As String: S = ReturnText(IsUtf8, IsConvert)
+    Call ReturnJson.Decode(Inst.ResponseText)
 End Function
 
-Public Function SetResHeader(ByVal Key$, ByVal Val$) As Boolean
-    If reqHeaders.Exists(Key) = False Then
-        reqHeaders.Add Key, Val
-    Else
-        reqHeaders(Key) = Val
+Public Function ReturnText(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As String
+    If IsUtf8 = True Then
+        ReturnText = ToolsUtf8.Decode(Inst.ResponseBody)
+        Exit Function
     End If
-    SetResHeader = True
-End Function
-
-
-Public Function GetResHeader(Key$, Optional isCookie As Boolean) As String
-    GetResHeader = oHttp.GetResponseHeader(Key)
-End Function
-
-Private Function repData() As Variant
-    On Error Resume Next
-    
-    '    If (oHttp.GetResponseHeader("Content-Type") Like "*application/json*" Or repType = ResponseJson) And repType <> ResponseNoChange Then
-    '        Call jsonInst.Decode(oHttp.ResponseText)
-    '        Set res = jsonInst.Dic_de
-    '        'D oHttp.ResponseText                                                    'jsonInst.Dic_de("ip")
-    '        repData = oHttp.ResponseText                                            '此处可以copy-dic
-    '    Else
-    
-    '    If repType = ResponseJson Then
-    '        If JsonInst.Decode(oHttp.ResponseText) = True Then Set resJson = JsonInst.Dic_de
-    '    End If
-    '
-    On Error GoTo ERR:
-    '-----------------------------函数返回,,
-    Select Case repType
-    Case ResponseText
-        '--------------------------------直接返回字符串
-        repData = oHttp.ResponseText
-    Case ResponseBody
-        '--------------------------------直接返回二进制
-        repData = oHttp.ResponseBody
-    Case ResponseBody + ResponseText
+    If IsConvert = True Then
         '---------------------------二进制转字符串[直接返回字串出现乱码时尝试]
-        repData = StrConv(oHttp.ResponseBody, vbUnicode)
-    Case Else
-        '--------------------------------无效的返回
-        repData = oHttp.ResponseText
-    End Select
-    
-    'End If
-    
-    Exit Function
-ERR:
-    LastErr = "请求已经超时,请调整等待时间!" & ERR.Description
-    repData = False                                                             '仅限同步模式
-    d "rep错误:" & LastErr
+        ReturnText = StrConv(Inst.ResponseBody, vbUnicode)
+    Else
+        ReturnText = Inst.ResponseText
+    End If
 End Function
-'Private Function BytesToStr(ByVal vIn) As String
-'  strReturn = ""
-'  For i = 1 To LenB(vIn)
-'    ThisCharCode = AscB(MidB(vIn, i, 1))
-'    If ThisCharCode < &H80 Then
-'      strReturn = strReturn & Chr(ThisCharCode)
-'    Else
-'      NextCharCode = AscB(MidB(vIn, i + 1, 1))
-'      strReturn = strReturn & Chr(CLng(ThisCharCode) * &H100 + CInt(NextCharCode))
-'      i = i + 1
-'    End If
-'  Next
-'  BytesToStr = strReturn
-'End Function
 
 Private Sub Class_Initialize()
     Set oHttp = New WinHttp.WinHttpRequest
-    oHttp.SetProxy 1
+    '    oHttp.SetProxy 1
     '    oHttp.SetTimeouts 2000, 2000, 6000, 20000
     'WinHttp.SetTimeouts 60000, 60000, 60000, 3000 '设置操作超时时间
     'WinHttp.SetTimeouts resolveTimeout, connectTimeout, sendTimeout, receiveTimeout
@@ -366,43 +160,21 @@ Private Sub Class_Initialize()
     'connectTimeout = 10000 '建立 Winsock 连接的超时时间，10000 毫秒。
     'sendTimeout = 120000 '发送数据的超时时间，120000 毫秒。
     'receiveTimeout = 60000 '接收 response 的超时时间，60000 毫秒。
-    '    reqHeaders.Add "Content-Length", Len(strdata)
-    mContetType = getPostContentType(FormData)
-    reqHeaders.Add "CONTENT-TYPE", mContetType
-    reqHeaders.Add "req-from", "vb ajax class by 215879458@qq.com"
+    
+    '    reqHeaders.Add ToolsHttp.C_HEADER_FIELD_CONTENT_TYPE, ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED
+    '    reqHeaders.Add "req-from", "vb ajax class by 215879458@qq.com"
     '    postBody.Add "ver", 1#
+    
+    RequestDataBody.CompareMode = TextCompare
+    RequestDataQuery.CompareMode = TextCompare
+    RequestHeaders.CompareMode = TextCompare
+    DicCookies.CompareMode = TextCompare
+    RequestTimeOut = 5
+    RequestChartSet = "utf-8"
 End Sub
 
 Private Sub Class_Terminate()
-    Set oHttp = Nothing
+    Set Inst = Nothing
 End Sub
 
-Private Sub oHttp_OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String)
-    d "WinHttp错误:[" & ErrorNumber & "]" & ErrorDescription
-    Call LongAjax_restart
-End Sub
 
-Private Sub oHttp_OnResponseDataAvailable(data() As Byte)
-    '本事件可用于传输进度
-    
-End Sub
-
-Private Sub oHttp_OnResponseFinished()
-'    D "http status: " & oHttp.Status
-    If isAsync = optAsync Then
-        RaiseEvent HttpRep(repData())
-    End If
-    Call LongAjax_restart
-End Sub
-
-Private Function LongAjax_restart() As Boolean
-    If isLongAjax Then
-        isLongAjax = False
-        LongAjax_restart = LongAjax_start()
-    Else
-        LongAjax_restart = False
-    End If
-End Function
-Public Sub d(ByVal S$)
-    Debug.Print Now() & vbTab & S
-End Sub

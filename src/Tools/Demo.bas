@@ -2,12 +2,13 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 Public Sub db()
-    Dim obj As New cJson
-    If TypeOf obj Is cJson Then
-        MsgBox 1
-    Else
-        MsgBox 0
-    End If
+    Dim Obj As New cJson
+    
+    '    If TypeOf Obj Is cJson Then
+    '        MsgBox 1
+    '    Else
+    '        MsgBox 0
+    '    End If
 End Sub
 
 

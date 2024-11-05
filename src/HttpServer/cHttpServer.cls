@@ -19,7 +19,10 @@ Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
 
+
+
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
+Public Event OnLogs(ByVal Level As String, ByVal Content As String)
 
 Public SSE As New cSSE
 
@@ -99,6 +102,8 @@ End Sub
 
 Friend Sub OnDataArrival(Index As Long)
     
+    On Error GoTo EH
+    
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
     
@@ -111,9 +116,9 @@ Friend Sub OnDataArrival(Index As Long)
     '传入Client给输出对象
     Set Response.fClient = oCallback
     '先解析 URI 信息
-    Request.ParseUri sRequest
+    If Request.ParseUri(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
     '解析请求头
-    Request.ParseHeader sRequest
+    If Request.ParseHeader(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
     '开始 sse 流程
     If Request.HeaderAccept = "text/event-stream" Then
         oCallback.IsSSE = True
@@ -141,10 +146,14 @@ Friend Sub OnDataArrival(Index As Long)
         Set .db = oCallback.Parent.Database
     End With
     '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
-    Request.ParseBody sRequest
+    If Request.ParseBody(sRequest) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
     
     '开始路由
     Call Router.Entry(oCallback)
+    Exit Sub
+EH:
+    
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
     
 End Sub
 

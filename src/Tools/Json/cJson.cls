@@ -28,30 +28,35 @@ Public WhiteSpaceSet As Variant
 
 Dim Fso As New Scripting.FileSystemObject
 
+Public LastError As String
+Public Property Get LastSuccess() As Boolean
+    LastSuccess = LastError <> ""
+End Property
+
 '---------------------------------Property
 Public Property Get Root() As Object
     If RootItems.Count > 0 Then Set Root = RootItems: Exit Property
     Set Root = RootItem
 End Property
 
-Public Property Get Item(ByVal key As String) As Variant
-    If RootItem.Exists(key) = False Then Exit Property
-    If IsObject(RootItem(key)) = True Then Set Item = RootItem(key): Exit Property
-    Item = RootItem(key)
+Public Property Get Item(ByVal Key As String) As Variant
+    If RootItem.Exists(Key) = False Then Exit Property
+    If IsObject(RootItem(Key)) = True Then Set Item = RootItem(Key): Exit Property
+    Item = RootItem(Key)
 End Property
 Public Property Get Items(ByVal Index As Long) As Variant
     If RootItems.Count < Index Then Exit Property
     If IsObject(RootItems(Index)) = True Then Set Items = RootItems(Index): Exit Property
     Items = RootItems(Index)
 End Property
-Public Property Set Item(ByVal key As String, Dat As Variant)
-    Set RootItem(key) = Dat
+Public Property Set Item(ByVal Key As String, Dat As Variant)
+    Set RootItem(Key) = Dat
 End Property
 Public Property Set Items(ByVal Index As Long, Dat As Variant)
     Set RootItems(Index) = Dat
 End Property
-Public Property Let Item(ByVal key As String, Dat As Variant)
-    RootItem(key) = Dat
+Public Property Let Item(ByVal Key As String, Dat As Variant)
+    RootItem(Key) = Dat
 End Property
 Public Property Let uuItems(ByVal Index As Long, Dat As Variant)
     RootItems(Index) = Dat
@@ -91,6 +96,7 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant) 
     ' [using]: ToolsJsonVba.ConvertToJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
+    LastError = ""
     If IsMissing(Obj) = True Then
         If RootItems.Count > 0 Then Set Obj = RootItems
         If RootItem.Count > 0 Then Set Obj = RootItem
@@ -119,6 +125,8 @@ Public Function Decode(ByRef Text As String) As Boolean
     ' [using]: ToolsJsonVba.ParseJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
+    On Error GoTo EH
+    LastError = ""
     RootText = Trim(Text)
     If Left(RootText, 1) = "[" Then
         Set RootItems = ParseJson(RootText)
@@ -126,6 +134,9 @@ Public Function Decode(ByRef Text As String) As Boolean
         Set RootItem = ParseJson(RootText)
     End If
     Decode = True
+    Exit Function
+EH:
+    LastError = "[DECODE ERROR]" & ERR.Number & "#" & ERR.Description & "#" & Text
 End Function
 
 
@@ -137,14 +148,12 @@ Public Function LoadFrom(ByVal Path As String) As Boolean
     TS.Close
 End Function
 '
-Public Function SaveTo(ByVal FileName As String, Optional IsJsonArray As Boolean) As Variant
+Public Function SaveTo(ByVal FileName As String, Optional Whitespace As Variant) As Variant
+    FileName = ToolsFso.AutoCompleteFullPath(FileName, True)
+    Call ToolsFso.AutoMakeDir(FileName, True)
     Dim TS As Scripting.TextStream
     Set TS = Fso.OpenTextFile(FileName, ForWriting, True)
-    If IsJsonArray = True Then
-        TS.Write Encode(RootItems)
-    Else
-        TS.Write Encode(RootItem)
-    End If
+    TS.Write Encode(Root, Whitespace)
     TS.Close
 End Function
 

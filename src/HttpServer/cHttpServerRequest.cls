@@ -42,6 +42,8 @@ Public HeaderHostPort As Long
 Public HeaderContentType As String
 Public HeaderContentLength As Long
 
+Public LastError As String
+
 Dim BodyRaw As Variant
 
 Friend Function ParseHeader(sRequest As String) As Boolean
@@ -70,6 +72,7 @@ QH:
 End Function
 
 Friend Function ParseBody(sRequest As String) As Boolean
+    On Error GoTo EH
     Dim b As String: b = BodyRaw
     If b = "" Then GoTo QH
     '先进行编码转换
@@ -80,12 +83,14 @@ Friend Function ParseBody(sRequest As String) As Boolean
     End If
     '解析json
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
-        Call Json.Decode(b)
+        If Json.Decode(b) = False Then ERR.Raise 500, "JSON.DECODE", Json.LastError
     End If
     '解析
 QH:
     ParseBody = True
     Exit Function
+EH:
+    LastError = "[PARSE_BODY ERROR]" & ERR.Number & vbCrLf & sRequest & vbCrLf & ERR.Description
 End Function
 
 Friend Function ParseUri(sRequest As String) As Boolean

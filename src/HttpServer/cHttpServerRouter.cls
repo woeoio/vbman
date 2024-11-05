@@ -137,7 +137,7 @@ QH:
     Entry = True
     Exit Function
 EH:
-    If LastError = "" Then LastError = Err.Number & "#" & Err.Description
+    If LastError = "" Then LastError = ERR.Number & "#" & ERR.Description
     Call Client.Context.Response.State500(LastError)
     LastError = ""
     'log
@@ -150,11 +150,11 @@ Private Function RunHandlerController(ControllerName As String, ActionName As St
         RunHandlerController = True
     Else
         '控制器不存在
-        LastError = "ControllerName not registered: 好好" & ControllerName
+        LastError = "ControllerName not registered: " & ControllerName
     End If
     Exit Function
 EH:
-    LastError = Err.Number & "#" & Err.Description
+    LastError = ERR.Number & "#" & ERR.Description
 End Function
 Private Function RunHandlerAsp(Request As cHttpServerRequest) As Boolean
     '

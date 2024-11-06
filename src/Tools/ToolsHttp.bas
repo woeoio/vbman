@@ -110,12 +110,12 @@ End Function
 
 'GB2312 URL½âÂë
 Public Function UrlDecode(ByVal Url As String) As String
-    Dim i As Long, C As String, d As Long, GB_UrlDecode As String
+    Dim i As Long, c As String, d As Long, GB_UrlDecode As String
     i = 1
     While i <= Len(Url)
-        C = Mid$(Url, i, 1)
+        c = Mid$(Url, i, 1)
         i = i + 1
-        If C = "%" Then
+        If c = "%" Then
             d = Val("&H" & Mid$(Url, i, 2))
             If d >= 128 Then
                 d = d * 256 + Val("&H" & Mid$(Url, i + 3, 2))
@@ -125,7 +125,7 @@ Public Function UrlDecode(ByVal Url As String) As String
             End If
             GB_UrlDecode = GB_UrlDecode + Chr$(d)
         Else
-            GB_UrlDecode = GB_UrlDecode + C
+            GB_UrlDecode = GB_UrlDecode + c
         End If
     Wend
     UrlDecode = GB_UrlDecode
@@ -201,7 +201,7 @@ Public Function ParseContent(Content As String, Obj As Scripting.Dictionary) As 
             k = Trim(b(0))
             v = Trim(b(1))
             If k <> "" Then
-                Obj.Add k, v
+                Obj(k) = v
             End If
         Next
     End If
@@ -216,7 +216,7 @@ Public Function ParseKeyValue(Content As String, Obj As Scripting.Dictionary) As
             k = Trim(b(0))
             v = Trim(b(1))
             '            If k <> "" Then
-            Obj.Add k, v
+            Obj(k) = v
             '        End If
         Next
     End If

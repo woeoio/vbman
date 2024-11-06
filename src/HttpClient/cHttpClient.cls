@@ -45,6 +45,8 @@ Public RequestContentType As String
 Public RequestChartSet As String
 Public RequestTimeOut As Long
 
+Public ResponseHeaders As New Scripting.Dictionary
+
 Public DebugStart As Boolean
 Public DebugInfo As New cJson
 '链式调用函数参数变量区
@@ -133,6 +135,8 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         If RequestTimeOut < 5 Then RequestTimeOut = 5
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
         If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
+        '解析 返回头
+        Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
     End If
     '清理body,但保留头部和get请求参数,头部和参数基本上是不变的,需要清理可以手工执行字典清楚方法
     GoSub CLEAN
@@ -168,7 +172,7 @@ CLEAN:
                 With .NewItem("Response")
                     .Item("Status") = Inst.Status
                     .Item("StatusText") = Inst.StatusText
-                    .Item("Headers") = Inst.GetAllResponseHeaders()
+                    Set .Item("Headers") = ResponseHeaders
                     .Item("Content") = ReturnText(True)
                 End With
             End If
@@ -221,6 +225,7 @@ Private Sub Class_Initialize()
     RequestDataQuery.CompareMode = TextCompare
     RequestHeaders.CompareMode = TextCompare
     DicCookies.CompareMode = TextCompare
+    ResponseHeaders.CompareMode = TextCompare
     RequestTimeOut = 5
     RequestChartSet = "utf-8"
 End Sub

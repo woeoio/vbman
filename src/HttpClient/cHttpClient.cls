@@ -11,6 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+Option Explicit
 '作者：邓伟，QQ：215879458，可自由传播，但请勿删本签名
 
 '引用“Microsoft WinHTTP Services, version 5.1”组件
@@ -30,6 +31,7 @@ Attribute VB_Exposed = True
 Dim WithEvents Inst As WinHttp.WinHttpRequest
 Attribute Inst.VB_VarHelpID = -1
 Dim Json As New cJson
+
 '缓存请求的返回内容
 Public ResponseRaw As Variant
 '模仿前几天写的php版ajax，做个完整处理过的 res.header+res.cookies+res.data
@@ -43,9 +45,11 @@ Public RequestContentType As String
 Public RequestChartSet As String
 Public RequestTimeOut As Long
 
+Public DebugStart As Boolean
+Public DebugInfo As New cJson
 '链式调用函数参数变量区
 Dim DicCookies As New Scripting.Dictionary
-
+Dim IsAsync As Boolean
 
 Public Function MapRequestContentType(ReqType As EnumRequestContentType) As String
     Dim Arr: Arr = Array("", _
@@ -65,10 +69,15 @@ Public Function SetRequestCookies(ByVal Value As String) As Boolean
     SetRequestCookies = True
 End Function
 
+Public Function Async(Bool As Boolean) As cHttpClient
+    Set Async = Me
+    IsAsync = Bool
+End Function
+
 Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As cHttpClient
     Set Fetch = Me
     On Error GoTo ERR:
-    Dim x As Variant: LastError = ""
+    Dim x As Variant: LastError = "": Set DebugInfo = Nothing
     '检查url
     If Url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
@@ -76,7 +85,8 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
     '是否添加URL资源版本号
     '    If addVer Then Url = ToolsHttp.AddToQueryString(Url, Rnd())
     '打开链路
-    Inst.Open ToolsHttp.MapMethodName(Method), Url, True
+    Dim MethodName As String: MethodName = ToolsHttp.MapMethodName(Method)
+    Inst.Open MethodName, Url, True
     '处理Header
     With RequestHeaders
         If .Exists("Cookie") = False Then
@@ -88,7 +98,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         End If
         If .Count > 0 Then
             For Each x In .Keys()
-                If .Item(ii) <> "" Then Inst.SetRequestHeader x, .Item(ii)
+                If .Item(x) <> "" Then Inst.SetRequestHeader x, .Item(x)
             Next
         End If
     End With
@@ -118,29 +128,60 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
     End If
     '返回
     
-    If IsAsync = optSync Then
+    If IsAsync = False Then
         '设置等待超时, '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
         If RequestTimeOut < 5 Then RequestTimeOut = 5
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
         If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
     End If
-CLS:
     '清理body,但保留头部和get请求参数,头部和参数基本上是不变的,需要清理可以手工执行字典清楚方法
-    ClearData
+    GoSub CLEAN
     Exit Function
 ERR:
     Rem todo 这里可以优化一下，对超时错误代码进行准确描述
+    If DebugStart = True Then
+        With DebugInfo
+            With .NewItem("Error")
+                .Item("Number") = ERR.Number
+                .Item("Source") = ERR.Source
+                .Item("Description") = ERR.Description
+            End With
+        End With
+    End If
     LastError = ERR.Description
-    ClearData
+    GoSub CLEAN
     ERR.Raise ERR.Number, ERR.Source, ERR.Description, ERR.HelpFile, ERR.HelpContext
-End Function
-
-Private Sub ClearData()
+    Exit Function
+CLEAN:
+    If DebugStart = True Then
+        With DebugInfo
+            With .NewItem("Request")
+                .Item("IsAsync") = IsAsync
+                .Item("Method") = MethodName
+                .Item("Url") = Url
+                .Item("Body") = Body
+                Set .Item("Headers") = RequestHeaders
+                .Item("TimeOut") = RequestTimeOut
+                .Item("ChartSet") = RequestChartSet
+            End With
+            If IsAsync = False Then
+                With .NewItem("Response")
+                    .Item("Status") = Inst.Status
+                    .Item("StatusText") = Inst.StatusText
+                    .Item("Headers") = Inst.GetAllResponseHeaders()
+                    .Item("Content") = ReturnText(True)
+                End With
+            End If
+        End With
+    End If
+    IsAsync = False
+    DebugStart = False
     RequestDataBody.RemoveAll
     RequestDataQuery.RemoveAll
     '    RequestHeaders.RemoveAll
     '    DicCookies.RemoveAll
-End Sub
+    Return
+End Function
 
 Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
     Set ReturnJson = New cJson

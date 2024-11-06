@@ -2,15 +2,11 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 
-
-Public Sub db()
-    Dim Obj As New cJson
-    
-    '    If TypeOf Obj Is cJson Then
-    '        MsgBox 1
-    '    Else
-    '        MsgBox 0
-    '    End If
+Public Sub Fetch()
+    Dim c As New cHttpClient
+    c.DebugStart = True
+    Debug.Print c.Fetch(ReqGet, "http://a-vi.com/home/hello").ReturnText()
+    Debug.Print c.DebugInfo.Encode(, 2, True)
 End Sub
 
 
@@ -113,7 +109,4 @@ End Sub
 '    Debug.Print Data.Encode(Data.Item)
 'End Sub
 
-Public Sub Fetch()
-    Dim c As New cHttpClient
-    Debug.Print c.Fetch(ReqGet, "http://a-vi.com/home/hello").ReturnText()
-End Sub
+

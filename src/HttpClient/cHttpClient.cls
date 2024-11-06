@@ -55,7 +55,8 @@ Public Function MapRequestContentType(ReqType As EnumRequestContentType) As Stri
     ToolsHttp.C_CONTENT_TYPE_TEXT_PLAIN, _
     ToolsHttp.C_CONTENT_TYPE_TEXT_HTML _
     )
-    MapRequestContentType = Arr(ReqType)
+    RequestContentType = Arr(ReqType)
+    MapRequestContentType = RequestContentType
 End Function
 
 Public Function SetRequestCookies(ByVal Value As String) As Boolean
@@ -64,7 +65,8 @@ Public Function SetRequestCookies(ByVal Value As String) As Boolean
     SetRequestCookies = True
 End Function
 
-Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As Boolean
+Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As cHttpClient
+    Set Fetch = Me
     On Error GoTo ERR:
     Dim x As Variant: LastError = ""
     '检查url
@@ -90,6 +92,8 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
             Next
         End If
     End With
+    '忽略错误SSL证书
+    Inst.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
     '处理POSTBODY
     If Body = "" Then
         If RequestContentType = ToolsHttp.C_CONTENT_TYPE_JSON Then
@@ -98,17 +102,20 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
             Body = ToolsHttp.MakeContent(RequestDataBody)
         End If
     End If
-    Dim BodyByte() As Byte
-    If ToolsStr.HasStr("utf", RequestChartSet) > 0 Then
-        BodyByte = ToolsUtf8.Encode(Body)
+    If Body = "" Then
+        '发送数据
+        Inst.Send
     Else
-        BodyByte = ToolsArray.StringToByteArray(Body)
+        Dim BodyByte() As Byte
+        If ToolsStr.HasStr("utf", RequestChartSet) > 0 Then
+            BodyByte = ToolsUtf8.Encode(Body)
+        Else
+            BodyByte = ToolsArray.StringToByteArray(Body)
+        End If
+        Inst.SetRequestHeader ToolsHttp.C_HEADER_FIELD_CONTENT_LENGHT, UBound(BodyByte) + 1
+        '发送数据
+        Inst.Send BodyByte
     End If
-    Inst.SetRequestHeader ToolsHttp.C_HEADER_FIELD_CONTENT_LENGHT, UBound(BodyByte) + 1
-    '忽略错误SSL证书
-    Inst.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
-    '发送数据
-    Inst.Send BodyByte
     '返回
     
     If IsAsync = optSync Then
@@ -117,19 +124,23 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
         If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
     End If
-    Fetch = True
 CLS:
     '清理body,但保留头部和get请求参数,头部和参数基本上是不变的,需要清理可以手工执行字典清楚方法
-    RequestDataBody.RemoveAll
-    RequestDataQuery.RemoveAll
-    '    RequestHeaders.RemoveAll
-    '    DicCookies.RemoveAll
+    ClearData
     Exit Function
 ERR:
     Rem todo 这里可以优化一下，对超时错误代码进行准确描述
     LastError = ERR.Description
-    GoTo CLS
+    ClearData
+    ERR.Raise ERR.Number, ERR.Source, ERR.Description, ERR.HelpFile, ERR.HelpContext
 End Function
+
+Private Sub ClearData()
+    RequestDataBody.RemoveAll
+    RequestDataQuery.RemoveAll
+    '    RequestHeaders.RemoveAll
+    '    DicCookies.RemoveAll
+End Sub
 
 Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
     Set ReturnJson = New cJson
@@ -151,7 +162,7 @@ Public Function ReturnText(Optional IsUtf8 As Boolean = True, Optional IsConvert
 End Function
 
 Private Sub Class_Initialize()
-    Set oHttp = New WinHttp.WinHttpRequest
+    Set Inst = New WinHttp.WinHttpRequest
     '    oHttp.SetProxy 1
     '    oHttp.SetTimeouts 2000, 2000, 6000, 20000
     'WinHttp.SetTimeouts 60000, 60000, 60000, 3000 '设置操作超时时间

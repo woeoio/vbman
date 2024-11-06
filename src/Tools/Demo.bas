@@ -1,6 +1,8 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+
+
 Public Sub db()
     Dim Obj As New cJson
     
@@ -110,3 +112,8 @@ End Sub
 '    End With
 '    Debug.Print Data.Encode(Data.Item)
 'End Sub
+
+Public Sub Fetch()
+    Dim c As New cHttpClient
+    Debug.Print c.Fetch(ReqGet, "http://a-vi.com/home/hello").ReturnText()
+End Sub

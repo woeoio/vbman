@@ -17,7 +17,8 @@ Public Json As New cJson
 Public Layer As New cLayer
 Public Db As New cDataBase
 Public HttpClient As New cHttpClient
-
+Public Csv As New cCsv
+Public Ini As New cIni
 
 Public Function Version(Optional HostApp As Object) As String
     Version = Common.Version(HostApp)

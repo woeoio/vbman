@@ -200,7 +200,7 @@ End Function
 Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
     Set ReturnJson = New cJson
     Dim S As String: S = ReturnText(IsUtf8, IsConvert)
-    Call ReturnJson.Decode(Inst.ResponseText)
+    Call ReturnJson.Decode(S)
 End Function
 
 Public Function ReturnText(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As String

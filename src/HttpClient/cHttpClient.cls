@@ -46,11 +46,11 @@ Public RequestChartSet As String
 Public RequestTimeOut As Long
 
 Public ResponseHeaders As New Scripting.Dictionary
+Public Cookies As New Scripting.Dictionary
 
 Public DebugStart As Boolean
 Public DebugInfo As New cJson
 '链式调用函数参数变量区
-Dim DicCookies As New Scripting.Dictionary
 Dim IsAsync As Boolean
 
 Public Function MapRequestContentType(ReqType As EnumRequestContentType) As String
@@ -67,6 +67,8 @@ End Function
 
 Public Function SetRequestCookies(ByVal Value As String) As Boolean
     If Trim(Value) = "" Then Exit Function
+    'todo 此处应该实现字符串解析到 Cookies 对象,
+    '并且返回头如果有 set-cookies 也要自动处理, 而且可能有多个 set-Cookies
     RequestHeaders("Cookie") = Value
     SetRequestCookies = True
 End Function
@@ -183,8 +185,16 @@ CLEAN:
     RequestDataBody.RemoveAll
     RequestDataQuery.RemoveAll
     '    RequestHeaders.RemoveAll
-    '    DicCookies.RemoveAll
+    '    Cookies.RemoveAll
     Return
+End Function
+
+Public Function ReturnStream() As Variant
+    ReturnStream = Inst.ResponseStream
+End Function
+
+Public Function ReturnBody() As Byte()
+    ReturnBody = Inst.ResponseBody
 End Function
 
 Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
@@ -224,7 +234,7 @@ Private Sub Class_Initialize()
     RequestDataBody.CompareMode = TextCompare
     RequestDataQuery.CompareMode = TextCompare
     RequestHeaders.CompareMode = TextCompare
-    DicCookies.CompareMode = TextCompare
+    Cookies.CompareMode = TextCompare
     ResponseHeaders.CompareMode = TextCompare
     RequestTimeOut = 5
     RequestChartSet = "utf-8"

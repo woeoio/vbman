@@ -99,11 +99,14 @@ End Sub
 
 Friend Sub OnDataArrival(Index As Long)
     
-    On Error GoTo Eh
-    
+    '    On Error GoTo Eh
+    '写入对象到上下文
+    Dim Request As New cHttpServerRequest
+    Dim Response As New cHttpServerResponse
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
-    
+    '传入Client给输出对象
+    Set Response.fClient = oCallback
     Dim vRequest As Variant
     Dim sRequestHead            As String
     Dim sRequestBody            As String
@@ -116,11 +119,7 @@ Friend Sub OnDataArrival(Index As Long)
     aReqHead = vRequest(0)
     '请求头转为字符串
     sRequestHead = ToolsUtf8.Decode(aReqHead)
-    '写入对象到上下文
-    Dim Request As New cHttpServerRequest
-    Dim Response As New cHttpServerResponse
-    '传入Client给输出对象
-    Set Response.fClient = oCallback
+    
     '解析请求头
     If Request.ParseHeader(sRequestHead) = False Then ERR.Raise 500, "REQUEST", Request.LastError
     '开始 sse 流程

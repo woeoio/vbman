@@ -76,7 +76,7 @@ QH:
 End Function
 
 Friend Function ParseHeader(sRequest As String) As Boolean
-    On Error GoTo EH
+    On Error GoTo Eh
     HeaderRaw = sRequest
     Dim UH: UH = Split(sRequest, vbCrLf, 2)
     Dim UI As String: UI = Trim(UH(0))
@@ -100,12 +100,12 @@ Friend Function ParseHeader(sRequest As String) As Boolean
 QH:
     ParseHeader = True
     Exit Function
-EH:
+Eh:
     LastError = "[PARSE_HEADER ERROR]" & ERR.Number & vbCrLf & sRequest & vbCrLf & ERR.Description
 End Function
 
 Friend Function ParseBody(aReqBody() As Byte) As Boolean
-    On Error GoTo EH
+    On Error GoTo Eh
     Dim b As String
     '解析表单
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
@@ -119,13 +119,13 @@ Friend Function ParseBody(aReqBody() As Byte) As Boolean
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
         '先进行编码转换
         b = ToolsUtf8.Decode(aReqBody)
-        If Json.Decode(b) = False Then ERR.Raise 500, "JSON.DECODE", Json.LastError
+        Call Json.Decode(b)
     End If
     '解析
 QH:
     ParseBody = True
     Exit Function
-EH:
+Eh:
     LastError = "[PARSE_BODY ERROR]" & ERR.Number & vbCrLf & ERR.Description
 End Function
 

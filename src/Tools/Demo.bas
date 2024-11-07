@@ -1,6 +1,13 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+Public Sub Test()
+    Debug.Print VBMAN.Version()
+    Debug.Print VBMAN.Version(App)
+    Debug.Print VBMAN.Csv.LoadFrom("D:\code\上海vb\csv处理器\data\1.csv").Value(4, 2)
+    Debug.Print VBMAN.HttpClient.Fetch(ReqGet, "http://a-vi.com/home/hello").ReturnText()
+End Sub
+
 
 Public Sub Fetch()
     Dim c As New cHttpClient

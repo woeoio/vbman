@@ -35,6 +35,7 @@ End Property
 
 '---------------------------------Property
 Public Property Get Root() As Object
+Attribute Root.VB_UserMemId = 0
     If RootItems.Count > 0 Then Set Root = RootItems: Exit Property
     Set Root = RootItem
 End Property

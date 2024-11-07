@@ -19,3 +19,6 @@ Public Db As New cDataBase
 Public HttpClient As New cHttpClient
 
 
+Public Function Version(Optional HostApp As Object) As String
+    Version = Common.Version(HostApp)
+End Function

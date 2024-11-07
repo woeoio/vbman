@@ -51,11 +51,11 @@ End Property
 '    '
 'End Sub
 
-Public Sub Text(data As String)
-    Call SendBodyText(data, "text/plain")
+Public Sub Text(Data As String)
+    Call SendBodyText(Data, "text/plain")
 End Sub
-Public Sub Html(data As String)
-    Call SendBodyText(data, "text/html")
+Public Sub Html(Data As String)
+    Call SendBodyText(Data, "text/html")
 End Sub
 Public Sub View(TplPath As String)
     '
@@ -63,20 +63,20 @@ End Sub
 
 '自定义对象
 
-Public Sub Json(data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional Whitespace As Variant)
+Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional Whitespace As Variant)
     '判断是否 Recordset 对象，是就先转换为集合
-    If TypeOf data Is ADODB.Recordset Then
-        Set data = ToolsList.RsToCollection(data)
+    If TypeOf Data Is ADODB.Recordset Then
+        Set Data = ToolsList.RsToCollection(Data)
     End If
     If Code = -1 Then
-        Call SendBodyText(JsonInst.Encode(data, Whitespace), "application/json")
+        Call SendBodyText(JsonInst.Encode(Data, Whitespace), "application/json")
         Exit Sub
     End If
     Dim Dic As New Scripting.Dictionary
     With Dic
         .Add JsonPackFieldNameCode, Code
         .Add JsonPackFieldNameMsg, Msg
-        .Add JsonPackFieldNameData, data
+        .Add JsonPackFieldNameData, Data
         .Add JsonPackFieldNameCount, Count
     End With
     Call SendBodyText(JsonInst.Encode(Dic, Whitespace), "application/json")
@@ -86,9 +86,9 @@ Public Sub File(Path As String)
     '自动判断是否ajax请求，决定返回页面还是json
     Dim sPath As String: sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
     If ToolsFso.Inst.FileExists(sPath) = False Then Call State404: Exit Sub
-    Dim data() As Byte
-    If ToolsStream.LoadFileAsBinary(sPath, data) = False Then Call State404: Exit Sub
-    SendBodyByte data, ToolsHttpMimeType.MapMimeType(sPath)
+    Dim Data() As Byte
+    If ToolsStream.LoadFileAsBinary(sPath, Data) = False Then Call State404: Exit Sub
+    SendBodyByte Data, ToolsHttpMimeType.MapMimeType(sPath)
 End Sub
 
 Public Sub State(Code As Long, Text As String, Optional Say As String = "未知状态")
@@ -133,9 +133,9 @@ End Sub
 'Private Sub SendBodyTextAsUtf8(Data As String, DataType As String)
 '    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
 'End Sub
-Private Sub SendBodyText(data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
+Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Dim d() As Byte
-    If data = "" Then
+    If Data = "" Then
         Header("Content-Type") = "text/plain; charset=" & CharSet
         Header("Content-Length") = 0
         SendHeader Status, StatusText
@@ -143,17 +143,17 @@ Private Sub SendBodyText(data As String, DataType As String, Optional Status As 
         Exit Sub
     End If
     If CodePage = 65001 Then
-        d = ToolsUtf8.Encode(data)
+        d = ToolsUtf8.Encode(Data)
     Else
-        d = StrConv(data, vbFromUnicode)
+        d = StrConv(Data, vbFromUnicode)
     End If
     Call SendBodyByte(d, DataType, Status, StatusText)
 End Sub
-Private Sub SendBodyByte(data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
+Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Header("Content-Type") = DataType & "; charset=" & CharSet
-    Header("Content-Length") = UBound(data) + 1                                 '注意空数组
+    Header("Content-Length") = UBound(Data) + 1                                 '注意空数组
     SendHeader Status, StatusText
-    Sck.SendData data
+    Sck.SendData Data
     Header.RemoveAll
 End Sub
 
@@ -162,7 +162,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     '
     Dim UserVer As String: UserVer = "FREE"
     Dim Ver As String: Ver = "[" & UserVer & "] "
-    Header("Server") = Ver & ServerName & " " & Client.Parent.Version
+    Header("Server") = Ver & ServerName & " " & Common.Version()
     If UserVer = "FREE" Then
         Header("PowerBy") = "www.vb6.pro"
     End If

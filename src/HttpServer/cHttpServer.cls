@@ -38,9 +38,6 @@ Dim HttpSvr As cHttpServerSvr
 
 '支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
 
-Public Property Get Version() As String
-    Version = "v" & App.Major & "." & App.Minor & "." & App.Revision
-End Property
 
 Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
     If IsRunning = True Then Exit Function
@@ -150,7 +147,7 @@ Friend Sub OnDataArrival(Index As Long)
         Set .Response = Response
         Set .Session = Session
         Set .Cookies = Cookies
-        Set .db = oCallback.Parent.Database
+        Set .Db = oCallback.Parent.Database
     End With
     '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
     aReqBody = vRequest(1)

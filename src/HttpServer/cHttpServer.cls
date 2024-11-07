@@ -99,7 +99,7 @@ End Sub
 
 Friend Sub OnDataArrival(Index As Long)
     
-    On Error GoTo EH
+    On Error GoTo Eh
     
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
@@ -122,7 +122,7 @@ Friend Sub OnDataArrival(Index As Long)
     '传入Client给输出对象
     Set Response.fClient = oCallback
     '解析请求头
-    If Request.ParseHeader(sRequestHead) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_WARN, Request.LastError)
+    If Request.ParseHeader(sRequestHead) = False Then ERR.Raise 500, "REQUEST", Request.LastError
     '开始 sse 流程
     If Request.HeaderAccept = "text/event-stream" Then
         oCallback.IsSSE = True
@@ -151,15 +151,16 @@ Friend Sub OnDataArrival(Index As Long)
     End With
     '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
     aReqBody = vRequest(1)
-    If Request.ParseBody(aReqBody) = False Then RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
+    If Request.ParseBody(aReqBody) = False Then ERR.Raise 500, "REQUEST", Request.LastError
     
     '开始路由
     Call Router.Entry(oCallback)
     Exit Sub
-EH:
-    
-    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, Request.LastError)
-    
+Eh:
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, ErrInfo)
+    'todo 如果开发者定义了全局错误处理，就执行，否则执行默认错误处理函数
+    Response.State500 ErrInfo
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)

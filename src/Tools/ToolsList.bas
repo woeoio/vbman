@@ -5,7 +5,7 @@ Option Explicit
 Public Function RsToCollection(Obj As Variant) As Collection
     '把记录集转为字典数组
     Dim Rs As New ADODB.Recordset
-    Dim fd As ADODB.Field
+    Dim fd As ADODB.field
     Dim i As Long, ii As Long
     Dim RsArr As New VBA.Collection
     Dim RsRow As Scripting.Dictionary
@@ -20,8 +20,8 @@ Public Function RsToCollection(Obj As Variant) As Collection
         '注意分页，不知道为啥分页参数不能控制rs记录集数量了，有空研究下
         If Rs.AbsolutePage <> p Then Exit Do
         Set RsRow = New Scripting.Dictionary
-        For i = 0 To Rs.Fields.Count - 1
-            Set fd = Rs.Fields(i)
+        For i = 0 To Rs.fields.Count - 1
+            Set fd = Rs.fields(i)
             RsRow.Add fd.Name, fd.Value
         Next
         RsArr.Add RsRow

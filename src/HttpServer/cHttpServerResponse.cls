@@ -97,11 +97,11 @@ Public Sub State(Code As Long, Text As String, Optional Say As String = "Œ¥÷™◊¥Ã
 End Sub
 Public Sub State400(Optional Say As String)
     '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
-    State 400, "BadRequest", Say                                                  '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
+    State 400, "BadRequest", Say                                                '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
 End Sub
 Public Sub State401(Optional Say As String)
     '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json
-    State 401, "Unauthorized", Say                                                    '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
+    State 401, "Unauthorized", Say                                              '"√ª”–’“µΩ“≥√Ê" & vbCrLf & Say
 End Sub
 Public Sub State403(Optional Say As String)
     '◊‘∂Ø≈–∂œ «∑Òajax«Î«Û£¨æˆ∂®∑µªÿ“≥√Êªπ «json

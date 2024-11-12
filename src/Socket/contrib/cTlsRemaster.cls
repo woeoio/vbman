@@ -55,7 +55,7 @@ Public Event SendProgress(ByVal bytesSent As Long, ByVal bytesRemaining As Long)
 
 Private Const DUPLICATE_SAME_ACCESS         As Long = 2
 
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
 Private Declare Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHandle As Long, ByVal hSourceHandle As Long, ByVal hTargetProcessHandle As Long, lpTargetHandle As Long, ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwOptions As Long) As Long
 Private Declare Function GetCurrentProcess Lib "kernel32" () As Long
 
@@ -83,14 +83,14 @@ Private m_sTag                  As String
 
 Private Sub PrintError(sFunction As String)
     #If ImplUseDebugLog Then
-        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", ERR.Description & " &H" & Hex$(ERR.Number), vbLogEventTypeError
     #Else
-        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+        Debug.Print "Critical error: " & ERR.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
 End Sub
 
 Private Sub ErrRaise(ByVal Number As Long, Optional Source As Variant, Optional Description As Variant)
-    Err.Raise Number, Source, Description
+    ERR.Raise Number, Source, Description
 End Sub
 
 '=========================================================================
@@ -239,7 +239,7 @@ Public Sub Accept(requestID As Long)
     If m_oSocket Is Nothing Then
         If DuplicateHandle(GetCurrentProcess(), requestID, GetCurrentProcess(), hDuplicate, 0, 0, DUPLICATE_SAME_ACCESS) = 0 Then
             On Error GoTo 0
-            pvSetError LastDllError:=Err.LastDllError, RaiseError:=True
+            pvSetError LastDllError:=ERR.LastDllError, RaiseError:=True
             GoTo QH
         End If
         Set m_oSocket = New cTlsSocket
@@ -253,7 +253,7 @@ Public Sub Accept(requestID As Long)
 QH:
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub Bind(Optional LocalPort As Variant, Optional LocalIP As Variant)
@@ -271,7 +271,7 @@ Public Sub Bind(Optional LocalPort As Variant, Optional LocalIP As Variant)
 QH:
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub CloseSck()
@@ -286,7 +286,7 @@ Public Sub CloseSck()
     End If
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub Connect(Optional RemoteHost As Variant, Optional RemotePort As Variant)
@@ -309,7 +309,7 @@ Public Sub Connect(Optional RemoteHost As Variant, Optional RemotePort As Varian
 QH:
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub GetData(Data As Variant, Optional varType As Variant, Optional maxLen As Variant)
@@ -362,17 +362,17 @@ Public Sub GetData(Data As Variant, Optional varType As Variant, Optional maxLen
     End Select
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub Listen( _
-            Optional CertFile As String, _
-            Optional Password As String, _
-            Optional CertSubject As String, _
-            Optional Certificates As Collection, _
-            Optional PrivateKey As Collection, _
-            Optional AlpnProtocols As String, _
-            Optional ByVal LocalFeatures As Long)
+    Optional CertFile As String, _
+    Optional Password As String, _
+    Optional CertSubject As String, _
+    Optional Certificates As Collection, _
+    Optional PrivateKey As Collection, _
+    Optional AlpnProtocols As String, _
+    Optional ByVal LocalFeatures As Long)
     On Error GoTo EH
     If m_eProtocol = sckTLSProtocol Then
         If Not pvSocket.InitServerTls(CertFile, Password, CertSubject, Certificates, PrivateKey, AlpnProtocols, LocalFeatures) Then
@@ -390,7 +390,7 @@ Public Sub Listen( _
 QH:
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub PeekData(Data As Variant, Optional varType As Variant, Optional maxLen As Variant)
@@ -430,7 +430,7 @@ Public Sub PeekData(Data As Variant, Optional varType As Variant, Optional maxLe
     End If
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Public Sub SendData(Data As Variant)
@@ -467,7 +467,7 @@ Public Sub SendData(Data As Variant)
     End If
     Exit Sub
 EH:
-    pvSetError LastError:=Err, RaiseError:=True
+    pvSetError LastError:=ERR, RaiseError:=True
 End Sub
 
 Private Sub pvSetError(Optional ByVal LastDllError As Long, Optional LastError As VBA.ErrObject, Optional ByVal RaiseError As Boolean)

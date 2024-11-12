@@ -56,8 +56,8 @@ Dim DicGroup As New Scripting.Dictionary
 ''开发者定义的控制器字典注册函数
 Public Function Reg(ControllerName As String, Controller As Object) As Boolean
     '    If Controllers.Exists(ControllerName) = True Then Err.Raise 1, , "ControllerName Exists：" & ControllerName
-        Set Controllers(ControllerName) = Controller
-        Reg = True
+    Set Controllers(ControllerName) = Controller
+    Reg = True
 End Function
 '开发者定义的路由处理，如果没有用户路由，则执行自动路由
 Public Function Add(RouteName As String, Handler As String, Optional MethodLimit As EnumRouteMethod = Any_) As Boolean
@@ -145,8 +145,8 @@ End Function
 Private Function RunHandlerController(ControllerName As String, ActionName As String, ctx As cHttpServerContext) As Boolean
     On Error GoTo EH
     If Controllers.Exists(ControllerName) = True Then
-        Dim C As Object: Set C = Controllers(ControllerName)
-        CallByName C, ActionName, VbMethod, ctx
+        Dim c As Object: Set c = Controllers(ControllerName)
+        CallByName c, ActionName, VbMethod, ctx
         RunHandlerController = True
     Else
         '控制器不存在

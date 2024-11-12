@@ -28,7 +28,7 @@ Public Function SaveFileAsText(ByVal FileName As String, Data As String, Optiona
 End Function
 
 Public Function LoadFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
-    On Error GoTo Eh
+    On Error GoTo EH
     LastError = ""
     With Inst
         If .State <> adStateClosed Then .Close
@@ -40,12 +40,12 @@ Public Function LoadFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     End With
     LoadFileAsBinary = True
     Exit Function
-Eh:
+EH:
     LastError = ERR.Description & "#" & ERR.Description
 End Function
 
 Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
-    On Error GoTo Eh
+    On Error GoTo EH
     LastError = ""
     With Inst
         If .State <> adStateClosed Then .Close
@@ -57,7 +57,7 @@ Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     End With
     SaveFileAsBinary = True
     Exit Function
-Eh:
+EH:
     LastError = ERR.Description & "#" & ERR.Description
 End Function
 

@@ -29,18 +29,18 @@ End Sub
 
 Public Function SaveTo(Optional ByVal Path As String) As Boolean
     '把字段对象转为 ini 节点数据文本并写入 path 路径的文本文件
-    On Error GoTo Eh
+    On Error GoTo EH
     Dim Text As String, Value As String
     Dim Section, Key
-    Dim dic As Scripting.Dictionary: Set dic = Root
-    If dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
+    Dim Dic As Scripting.Dictionary: Set Dic = Root
+    If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
     FixFileExtName Path
     ToolsFso.AutoMakeDir Path
     Set FileStream = Fso.OpenTextFile(Path, ForWriting, True)
-    For Each Section In dic.Keys
+    For Each Section In Dic.Keys
         Text = Text & "[" & Section & "]" & vbCrLf
-        For Each Key In dic(Section).Keys
-            Value = dic(Section)(Key)
+        For Each Key In Dic(Section).Keys
+            Value = Dic(Section)(Key)
             Text = Text & Key & "=" & Value & vbCrLf
         Next
         Text = Text & vbCrLf
@@ -50,16 +50,16 @@ Public Function SaveTo(Optional ByVal Path As String) As Boolean
     LastError = ""
     SaveTo = True
     Exit Function
-Eh:
+EH:
     LastError = "【iniTools.SaveTo错误】" & ERR.Number & "#" & ERR.Description
 End Function
 
 Public Function LoadFrom(ByVal Path As String) As cIni
     Set LoadFrom = Me
-    On Error GoTo Eh
+    On Error GoTo EH
     Dim Section As String
     Dim TextLine As String
-    Dim dic As Scripting.Dictionary: Set dic = Root
+    Dim Dic As Scripting.Dictionary: Set Dic = Root
     FixFileExtName Path
     Set FileStream = Fso.OpenTextFile(Path, ForReading)
     Do Until FileStream.AtEndOfStream
@@ -89,10 +89,10 @@ Public Function LoadFrom(ByVal Path As String) As cIni
                     End If
                     
                     ' 将键值对存储到字典中
-                    If Not dic.Exists(Section) Then
-                        dic.Add Section, New Scripting.Dictionary
+                    If Not Dic.Exists(Section) Then
+                        Dic.Add Section, New Scripting.Dictionary
                     End If
-                    dic(Section)(Key) = Value
+                    Dic(Section)(Key) = Value
                 End If
             End If
         End If
@@ -101,7 +101,7 @@ Public Function LoadFrom(ByVal Path As String) As cIni
     LastError = ""
     LoadFrom = True
     Exit Function
-Eh:
+EH:
     LastError = "【iniTools.LoadFrom错误】" & ERR.Number & "#" & ERR.Description & ": " & Path
 End Function
 

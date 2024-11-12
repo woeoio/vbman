@@ -29,7 +29,7 @@ Public HeadTitleWidthAuto As Boolean                                            
 Public HeadTitleWidthWord As Long                                               '单个双字节字符宽度
 Public IsFirstLineToHead As Boolean                                             '是否首行作为标题
 'tmp
-Dim x, y, z, i As Long, ii As Long
+Dim x, Y, z, i As Long, ii As Long
 
 Public Sub Reset(Optional OnlyData As Boolean)
     Data.RemoveAll
@@ -77,9 +77,9 @@ End Sub
 '    LastError = ERR.Number & "#" & ERR.Description
 'End Function
 
-Public Function SetHeadTitleWidthByDic(ByVal dic As Scripting.Dictionary) As Boolean
-    For Each x In dic.Keys()
-        If HeadTitleWidth.Exists(x) = True Then HeadTitleWidth(x) = dic(x)
+Public Function SetHeadTitleWidthByDic(ByVal Dic As Scripting.Dictionary) As Boolean
+    For Each x In Dic.Keys()
+        If HeadTitleWidth.Exists(x) = True Then HeadTitleWidth(x) = Dic(x)
     Next
 End Function
 Public Function SetHeadTitleWidth(ByVal ColumnNumber As Long, ByVal ColumnWidth As Long) As Boolean
@@ -101,13 +101,13 @@ Public Function DeleteColumn(Optional ColumnNumber As Long) As Boolean
     DeleteColumn = True
 End Function
 Public Function NewColumn(ByVal Title As String, Optional Width As Long, Optional Content As String) As Boolean
-    Dim cn As Long, ln As Long, L, c As String
+    Dim CN As Long, ln As Long, l, c As String
     Dim f As Scripting.Dictionary
     If IsMissing(Content) = True Or IsNull(Content) Or IsEmpty(Content) Then Content = ""
-    For Each L In Data.Keys()
+    For Each l In Data.Keys()
         ln = ln + 1
-        Set f = Data(L)
-        cn = f.Count + 1
+        Set f = Data(l)
+        CN = f.Count + 1
         GoSub AddColumn
     Next
     Exit Function
@@ -118,10 +118,10 @@ AddColumn:
         c = Content
     End If
     If Width = 0 Then Width = HeadTitleWidthDefault
-    f.Add cn, c
+    f.Add CN, c
     'add width and title
-    HeadTitle(cn) = Title
-    HeadTitleWidth(cn) = Width
+    HeadTitle(CN) = Title
+    HeadTitleWidth(CN) = Width
     Return
 End Function
 Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
@@ -132,11 +132,11 @@ Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
         Dim ff As Scripting.Dictionary: Set ff = d(0)
         Set f = ToolsDic.DeepCopy(ff)
     Else
-        Dim cn As Long, x
+        Dim CN As Long, x
         For Each x In d
-            cn = cn + 1
+            CN = CN + 1
             If IsMissing(x) = True Or IsNull(x) Or IsEmpty(x) Then x = ""
-            f.Add cn, x
+            f.Add CN, x
         Next
     End If
     SyncColumnLength f
@@ -223,7 +223,7 @@ End Function
 
 Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boolean = True) As cCsv
     '20240828 可能需要同步处理 headtitle 和 headwidth'
-    On Error GoTo Eh
+    On Error GoTo EH
     Set LoadFrom = Me
     Dim Dict As New Dictionary
     
@@ -250,7 +250,7 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
     
     Call SyncColumnWidth
     Exit Function
-Eh:
+EH:
     LastError = ERR.Number & "#" & ERR.Description & "：" & FilePath
 End Function
 
@@ -312,7 +312,7 @@ End Function
 '----
 
 Public Function SaveTo(ByVal FilePath As String) As Boolean
-    On Error GoTo Eh
+    On Error GoTo EH
     Dim Fso As New Scripting.FileSystemObject
     
     Dim File As Scripting.TextStream
@@ -331,7 +331,7 @@ Public Function SaveTo(ByVal FilePath As String) As Boolean
     File.Close
     SaveTo = True
     Exit Function
-Eh:
+EH:
     LastError = ERR.Number & "#" & ERR.Description
 End Function
 

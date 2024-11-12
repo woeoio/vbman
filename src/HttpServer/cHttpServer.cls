@@ -155,7 +155,7 @@ Friend Sub OnDataArrival(Index As Long)
     '开始路由
     Call Router.Entry(oCallback)
     Exit Sub
-Eh:
+EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, ErrInfo)
     'todo 如果开发者定义了全局错误处理，就执行，否则执行默认错误处理函数

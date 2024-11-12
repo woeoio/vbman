@@ -189,7 +189,7 @@ Private Const MEM_COMMIT                    As Long = &H1000
 Private Const PAGE_EXECUTE_READWRITE        As Long = &H40
 Private Const SIGN_BIT                      As Long = &H80000000
 
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
 Private Declare Function ArrPtr Lib "msvbvm60" Alias "VarPtr" (Ptr() As Any) As Long
 Private Declare Function lstrlenA Lib "kernel32" (ByVal lpStr As Long) As Long
 Private Declare Function FindWindowEx Lib "user32" Alias "FindWindowExW" (ByVal hWndParent As Long, ByVal hWndChildAfter As Long, ByVal lpszClass As Long, ByVal lpszWindow As Long) As Long
@@ -264,7 +264,7 @@ Private Type SOCKADDR_IN
 End Type
 
 Private Type APIPOINT
-    X                   As Long
+    x                   As Long
     Y                   As Long
 End Type
 
@@ -368,9 +368,9 @@ End Type
 
 Private Sub PrintError(sFunction As String)
     #If ImplUseDebugLog Then
-        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", ERR.Description & " &H" & Hex$(ERR.Number), vbLogEventTypeError
     #Else
-        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+        Debug.Print "Critical error: " & ERR.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
 End Sub
 
@@ -383,7 +383,7 @@ Public Property Get SocketHandle() As Long
 End Property
 
 Public Property Get LastError() As VBA.ErrObject
-    Set LastError = Err
+    Set LastError = ERR
     With LastError
         .Description = GetErrorDescription(m_lLastError)
         .Number = m_lLastError
@@ -393,12 +393,12 @@ End Property
 
 Public Property Get SockOpt(ByVal OptionName As UcsAsyncSocketOptionNameEnum, Optional ByVal Level As UcsAsyncSocketOptionLevelEnum = ucsSolSocket) As Long
     Call ws_getsockopt(m_hSocket, Level, OptionName, SockOpt, LenB(SockOpt))
-    m_lLastError = Err.LastDllError
+    m_lLastError = ERR.LastDllError
 End Property
 
 Public Property Let SockOpt(ByVal OptionName As UcsAsyncSocketOptionNameEnum, Optional ByVal Level As UcsAsyncSocketOptionLevelEnum = ucsSolSocket, ByVal Value As Long)
     Call ws_setsockopt(m_hSocket, Level, OptionName, Value, LenB(Value))
-    m_lLastError = Err.LastDllError
+    m_lLastError = ERR.LastDllError
 End Property
 
 Public Property Get AvailableBytes() As Long
@@ -451,11 +451,11 @@ End Property
 '=========================================================================
 
 Public Function Create( _
-            Optional ByVal SocketPort As Long, _
-            Optional ByVal SocketType As UcsAsyncSocketTypeEnum = ucsSckStream, _
-            Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll, _
-            Optional SocketAddress As String, _
-            Optional ByVal SocketProtocol As UcsAsyncSocketProtocolEnum) As Boolean
+    Optional ByVal SocketPort As Long, _
+    Optional ByVal SocketType As UcsAsyncSocketTypeEnum = ucsSckStream, _
+    Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll, _
+    Optional SocketAddress As String, _
+    Optional ByVal SocketProtocol As UcsAsyncSocketProtocolEnum) As Boolean
     Const FUNC_NAME     As String = "Create"
     Const WSA_FLAG_NO_HANDLE_INHERIT As Long = &H80
     
@@ -473,7 +473,7 @@ Public Function Create( _
         '--- try w/o WSA_FLAG_NO_HANDLE_INHERIT flag which is supported on Win7+ only
         m_hSocket = WSASocket(AF_INET, SocketType, SocketProtocol, 0, 0, 0)
         If m_hSocket = INVALID_SOCKET Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             GoTo QH
         End If
     End If
@@ -495,7 +495,7 @@ Public Function Create( _
     End If
     '--- disable Nagle algorithm
     If ws_setsockopt(m_hSocket, ucsSolTCP, ucsSsoNoDelay, 1&, 4) <> 0 Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         pvClose
         GoTo QH
     End If
@@ -509,10 +509,10 @@ EH:
 End Function
 
 Public Function Attach( _
-            ByVal SocketHandle As Long, _
-            Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll) As Boolean
+    ByVal SocketHandle As Long, _
+    Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll) As Boolean
     Const FUNC_NAME     As String = "Attach"
-
+    
     On Error GoTo EH
     If m_hSocket <> INVALID_SOCKET Then
         m_lLastError = WSAEALREADY
@@ -539,7 +539,7 @@ End Function
 
 Public Function Detach() As Long
     Const FUNC_NAME     As String = "Detach"
-
+    
     On Error GoTo EH
     m_lLastError = 0
     Detach = m_hSocket
@@ -559,7 +559,7 @@ Public Function GetPeerName(PeerAddress As String, PeerPort As Long) As Boolean
     
     On Error GoTo EH
     If ws_getpeername(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     pvFromSockAddr uAddr, PeerAddress, PeerPort
@@ -578,7 +578,7 @@ Public Function GetSockName(SocketAddress As String, SocketPort As Long) As Bool
     
     On Error GoTo EH
     If ws_getsockname(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     pvFromSockAddr uAddr, SocketAddress, SocketPort
@@ -599,7 +599,7 @@ Public Function GetLocalHost(HostName As String, HostAddress As String, Optional
     On Error GoTo EH
     sBuffer = String$(256, 0)
     If ws_gethostname(sBuffer, Len(sBuffer) - 1) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     HostName = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
@@ -633,7 +633,7 @@ Public Function Accept(ConnectedSocket As cAsyncSocket, Optional SocketAddress A
         hTemp = ws_accept(m_hSocket, uAddr, LenB(uAddr))
     End If
     If hTemp = INVALID_SOCKET Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     If ConnectedSocket Is Nothing Then
@@ -657,7 +657,7 @@ Public Function AsyncSelect(Optional ByVal EventMask As UcsAsyncSocketEventMaskE
     
     On Error GoTo EH
     If WSAAsyncSelect(m_hSocket, m_oHelperWindow.frMessageHWnd, WM_SOCKET_NOTIFY + m_lIndex, EventMask) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -678,7 +678,7 @@ Public Function Bind(Optional SocketAddress As String, Optional ByVal SocketPort
         GoTo QH
     End If
     If ws_bind(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -721,7 +721,7 @@ Public Function Connect(HostAddress As String, ByVal HostPort As Long) As Boolea
         '--- note: concat "" to prevent passing NULL for HostAddress
         m_uGetHostByName(0).Handle = WSAAsyncGetHostByName(m_oHelperWindow.frMessageHWnd, WM_SOCKET_RESOLVE, HostAddress & "", m_uGetHostByName(0).Buffer(0), MAXGETHOSTSTRUCT)
         If m_uGetHostByName(0).Handle = 0 Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             Erase m_uGetHostByName
             GoTo QH
         End If
@@ -729,7 +729,7 @@ Public Function Connect(HostAddress As String, ByVal HostPort As Long) As Boolea
     Else
         If SockOpt(ucsSsoType) = ucsSckStream Then
             If ws_connect(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-                m_lLastError = Err.LastDllError
+                m_lLastError = ERR.LastDllError
                 If m_lLastError <> WSAEWOULDBLOCK Then
                     GoTo QH
                 End If
@@ -754,7 +754,7 @@ Public Function IOCtl(ByVal Command As Long, Argument As Long) As Boolean
     
     On Error GoTo EH
     If ws_ioctlsocket(m_hSocket, Command, Argument) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -771,7 +771,7 @@ Public Function Listen(Optional ByVal ConnectionBacklog As Long = 5) As Boolean
     
     On Error GoTo EH
     If ws_listen(m_hSocket, ConnectionBacklog) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -784,9 +784,9 @@ EH:
 End Function
 
 Public Function ReceiveText( _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As String
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As String
     Const FUNC_NAME     As String = "ReceiveText"
     Dim baBuffer()      As Byte
     
@@ -800,10 +800,10 @@ EH:
 End Function
 
 Public Function ReceiveArray( _
-            Buffer() As Byte, _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    Buffer() As Byte, _
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "ReceiveArray"
     Dim uAddr           As SOCKADDR_IN
     Dim lBytes          As Long
@@ -824,7 +824,7 @@ Public Function ReceiveArray( _
                 lSize = ws_recv(m_hSocket, Buffer(lPos), lBytes - lPos, Flags)
             End If
             If lSize = SOCKET_ERROR Then
-                m_lLastError = Err.LastDllError
+                m_lLastError = ERR.LastDllError
                 GoTo QH
             ElseIf lSize = 0 Or SockOpt(ucsSsoType) <> ucsSckStream Then
                 If lPos + lSize = 0 Then
@@ -849,11 +849,11 @@ EH:
 End Function
 
 Public Function Receive( _
-            ByVal BufPtr As Long, _
-            ByVal BufLen As Long, _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Long
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Long
     Const FUNC_NAME     As String = "Receive"
     Dim uAddr           As SOCKADDR_IN
     
@@ -864,7 +864,7 @@ Public Function Receive( _
         Receive = ws_recv(m_hSocket, ByVal BufPtr, BufLen, Flags)
     End If
     If Receive = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     If uAddr.sin_family <> 0 Then
@@ -879,10 +879,10 @@ EH:
 End Function
 
 Public Function SendText( _
-            Text As String, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As Boolean
+    Text As String, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As Boolean
     Const FUNC_NAME     As String = "SendText"
     
     On Error GoTo EH
@@ -893,10 +893,10 @@ EH:
 End Function
 
 Public Function SendArray( _
-            Buffer() As Byte, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    Buffer() As Byte, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "SendArray"
     Dim uAddr           As SOCKADDR_IN
     Dim lBytes          As Long
@@ -919,7 +919,7 @@ Public Function SendArray( _
             lResult = ws_send(m_hSocket, ByVal lPtr, UBound(Buffer) + 1 - lBytes, Flags)
         End If
         If lResult < 0 Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             GoTo QH
         End If
         lBytes = lBytes + lResult
@@ -934,11 +934,11 @@ EH:
 End Function
 
 Public Function Send( _
-            ByVal BufPtr As Long, _
-            ByVal BufLen As Long, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Long
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Long
     Const FUNC_NAME     As String = "Send"
     Dim uAddr           As SOCKADDR_IN
     
@@ -956,7 +956,7 @@ Public Function Send( _
         Send = ws_send(m_hSocket, ByVal BufPtr, BufLen, Flags)
     End If
     If Send = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -972,7 +972,7 @@ Public Function ShutDown(Optional ByVal How As Long = 1) As Boolean
     
     On Error GoTo EH
     If ws_shutdown(m_hSocket, How) = SOCKET_ERROR Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     '--- success
@@ -1102,7 +1102,7 @@ Private Sub pvDoNotify(ByVal wParam As Long, ByVal lParam As Long)
     Dim eEvent          As UcsAsyncSocketEventMaskEnum
     Dim bCancel         As Boolean
     Dim lBytes          As Long
-
+    
     If m_hSocket <> wParam Then
         GoTo QH
     End If
@@ -1171,7 +1171,7 @@ Private Sub pvDoResolve(ByVal wParam As Long, ByVal lParam As Long)
     If SockOpt(ucsSsoType) = ucsSckStream Then
         '--- note uAddr is prepared above, before m_uGetHostByName being erased
         If ws_connect(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             If m_lLastError <> WSAEWOULDBLOCK Then
                 RaiseEvent OnError(m_lLastError, ucsSfdConnect)
             End If
@@ -1185,10 +1185,10 @@ QH:
 End Sub
 
 Private Function pvToSockAddr( _
-            Address As String, _
-            ByVal Port As Long, _
-            uAddr As SOCKADDR_IN, _
-            Optional ByVal Resolve As Boolean = True) As Boolean
+    Address As String, _
+    ByVal Port As Long, _
+    uAddr As SOCKADDR_IN, _
+    Optional ByVal Resolve As Boolean = True) As Boolean
     Dim lPtr            As Long
     
     uAddr.sin_family = AF_INET
@@ -1258,7 +1258,7 @@ Private Sub pvGetAdaptersInfo(vOutput As Variant)
     End If
     ReDim baBuffer(0 To lSize - 1) As Byte
     If GetAdaptersInfo(baBuffer(0), lSize) <> 0 Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     lPtr = VarPtr(baBuffer(0))
@@ -1272,7 +1272,7 @@ Private Sub pvGetAdaptersInfo(vOutput As Variant)
         For Each vElem In vIpAddress
             ReDim Preserve vOutput(UBound(vOutput) + 1)
             vOutput(UBound(vOutput)) = Array(vElem(0), vElem(1), vGateway, Replace(StrConv(uInfo.AdapterName, vbUnicode), vbNullChar, vbNullString), _
-                Replace(StrConv(uInfo.Description, vbUnicode), vbNullChar, vbNullString), uInfo.Index, uInfo.Type)
+            Replace(StrConv(uInfo.Description, vbUnicode), vbNullChar, vbNullString), uInfo.Index, uInfo.Type)
         Next
         lPtr = uInfo.Next
     Loop
@@ -1311,7 +1311,7 @@ Private Sub pvGetForwardTable(vOutput As Variant)
     End If
     ReDim baBuffer(0 To lSize - 1) As Byte
     If GetIpForwardTable(baBuffer(0), lSize, 0) <> 0 Then
-        m_lLastError = Err.LastDllError
+        m_lLastError = ERR.LastDllError
         GoTo QH
     End If
     Call CopyMemory(lSize, baBuffer(0), LenB(lSize))
@@ -1358,11 +1358,11 @@ EH:
 End Function
 
 Public Function SyncReceiveText( _
-            Optional ByVal NeedLen As Long = 1, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As String
+    Optional ByVal NeedLen As Long = 1, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As String
     Const FUNC_NAME     As String = "SyncReceiveText"
     Dim baText()        As Byte
     Dim dblTimerEx      As Double
@@ -1403,12 +1403,12 @@ EH:
 End Function
 
 Public Function SyncReceiveArray( _
-            Buffer() As Byte, _
-            Optional ByVal NeedLen As Long, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    Buffer() As Byte, _
+    Optional ByVal NeedLen As Long, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "SyncReceiveArray"
     Dim lAvailable      As Long
     Dim dblTimerEx      As Double
@@ -1440,7 +1440,7 @@ Public Function SyncReceiveArray( _
             lResult = ws_recv(m_hSocket, Buffer(lBytes), lAvailable - lBytes, Flags)
         End If
         If lResult = SOCKET_ERROR Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             If m_lLastError <> WSAEWOULDBLOCK Then
                 GoTo QH
             End If
@@ -1481,13 +1481,13 @@ EH:
 End Function
 
 Public Function SyncReceive( _
-            ByVal BufPtr As Long, _
-            ByVal BufLen As Long, _
-            Received As Long, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String = STR_CHR1, _
-            Optional HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    Received As Long, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String = STR_CHR1, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "SyncReceive"
     Dim lResult         As Long
     Dim uAddr           As SOCKADDR_IN
@@ -1503,7 +1503,7 @@ Public Function SyncReceive( _
             lResult = ws_recv(m_hSocket, ByVal BufPtr, BufLen, Flags)
         End If
         If lResult = SOCKET_ERROR Then
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             If m_lLastError <> WSAEWOULDBLOCK Then
                 GoTo QH
             End If
@@ -1532,11 +1532,11 @@ EH:
 End Function
 
 Public Function SyncSendText( _
-            Text As String, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As Boolean
+    Text As String, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpUtf8) As Boolean
     Const FUNC_NAME     As String = "SyncSendText"
     
     On Error GoTo EH
@@ -1547,11 +1547,11 @@ EH:
 End Function
 
 Public Function SyncSendArray( _
-            Buffer() As Byte, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    Buffer() As Byte, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "SyncSendArray"
     
     On Error GoTo EH
@@ -1566,12 +1566,12 @@ EH:
 End Function
 
 Public Function SyncSend( _
-            ByVal BufPtr As Long, _
-            ByVal BufLen As Long, _
-            Optional ByVal Timeout As Long, _
-            Optional HostAddress As String, _
-            Optional ByVal HostPort As Long, _
-            Optional ByVal Flags As Long = 0) As Boolean
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    Optional ByVal Timeout As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
     Const FUNC_NAME     As String = "SyncSend"
     Dim uAddr           As SOCKADDR_IN
     Dim lResult         As Long
@@ -1596,7 +1596,7 @@ Public Function SyncSend( _
             If lResult >= 0 Then
                 Exit Do
             End If
-            m_lLastError = Err.LastDllError
+            m_lLastError = ERR.LastDllError
             If m_lLastError <> WSAEWOULDBLOCK Then
                 GoTo QH
             End If
@@ -1620,8 +1620,8 @@ EH:
 End Function
 
 Public Function SyncWaitForEvent( _
-            ByVal Timeout As Long, _
-            Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll) As Boolean
+    ByVal Timeout As Long, _
+    Optional ByVal EventMask As UcsAsyncSocketEventMaskEnum = ucsSfdAll) As Boolean
     Const FUNC_NAME     As String = "SyncWaitForEvent"
     Dim hWnd            As Long
     Dim uMsg            As APIMSG
@@ -1711,12 +1711,12 @@ Public Function SyncWaitForEvent( _
                 End If
                 bPeek = False
             Else
-'                Call WaitMessage
+                '                Call WaitMessage
                 Call Sleep(1)
                 bPeek = True
             End If
         Else
-'            Call WaitMessage
+            '            Call WaitMessage
             Call Sleep(1)
             bPeek = True
         End If
@@ -1941,7 +1941,7 @@ Private Function InitAsyncSelectNotifyThunk(ByVal hWnd As Long, pObj As Object, 
     Static hThunk       As Long
     Dim aParams(0 To 10) As Long
     Dim lSize           As Long
-
+    
     aParams(0) = ObjPtr(pObj)
     aParams(1) = pfnCallback
     If hThunk = 0 Then
@@ -1949,10 +1949,10 @@ Private Function InitAsyncSelectNotifyThunk(ByVal hWnd As Long, pObj As Object, 
     End If
     If hThunk = 0 Then
         hThunk = pvThunkAllocate(STR_THUNK, THUNK_SIZE)
-        Call DefSubclassProc(0, 0, 0, 0)                                            '--- load comctl32
-        aParams(2) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 410)      '--- 410 = SetWindowSubclass ordinal
-        aParams(3) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 412)      '--- 412 = RemoveWindowSubclass ordinal
-        aParams(4) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 413)      '--- 413 = DefSubclassProc ordinal
+        Call DefSubclassProc(0, 0, 0, 0)                                        '--- load comctl32
+        aParams(2) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 410) '--- 410 = SetWindowSubclass ordinal
+        aParams(3) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 412) '--- 412 = RemoveWindowSubclass ordinal
+        aParams(4) = GetProcByOrdinal(GetModuleHandle(StrPtr("comctl32")), 413) '--- 413 = DefSubclassProc ordinal
         aParams(5) = GetProcAddress(GetModuleHandle(StrPtr("user32")), "SetTimer")
         aParams(6) = GetProcAddress(GetModuleHandle(StrPtr("user32")), "KillTimer")
         '--- for IDE protection
@@ -2085,7 +2085,7 @@ Private Sub Class_Initialize()
     hWndParent = HWND_MESSAGE
     Do
         hWndHelper = FindWindowEx(hWndParent, 0, StrPtr(STR_HELPER_CLASS), StrPtr(sHelperName))
-        If hWndHelper = 0 And Err.LastDllError = ERR_INVALID_WINDOW_HANDLE Then
+        If hWndHelper = 0 And ERR.LastDllError = ERR_INVALID_WINDOW_HANDLE Then
             hWndParent = 0
         Else
             Exit Do

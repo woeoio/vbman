@@ -76,7 +76,7 @@ QH:
 End Function
 
 Friend Function ParseHeader(sRequest As String) As Boolean
-    On Error GoTo Eh
+    On Error GoTo EH
     HeaderRaw = sRequest
     Dim UH: UH = Split(sRequest, vbCrLf, 2)
     Dim UI As String: UI = Trim(UH(0))
@@ -100,12 +100,12 @@ Friend Function ParseHeader(sRequest As String) As Boolean
 QH:
     ParseHeader = True
     Exit Function
-Eh:
+EH:
     LastError = "[PARSE_HEADER ERROR]" & ERR.Number & vbCrLf & sRequest & vbCrLf & ERR.Description
 End Function
 
 Friend Function ParseBody(aReqBody() As Byte) As Boolean
-    On Error GoTo Eh
+    On Error GoTo EH
     Dim b As String
     '½âÎö±íµ¥
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
@@ -125,7 +125,7 @@ Friend Function ParseBody(aReqBody() As Byte) As Boolean
 QH:
     ParseBody = True
     Exit Function
-Eh:
+EH:
     LastError = "[PARSE_BODY ERROR]" & ERR.Number & vbCrLf & ERR.Description
 End Function
 

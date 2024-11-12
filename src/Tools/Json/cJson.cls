@@ -131,7 +131,7 @@ Public Function Decode(ByRef Text As String) As cJson
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     Set Decode = Me
-    On Error GoTo Eh
+    On Error GoTo EH
     LastError = ""
     RootText = Trim(Text)
     If RootText = "" Then Exit Function
@@ -141,27 +141,26 @@ Public Function Decode(ByRef Text As String) As cJson
         Set RootItem = ParseJson(RootText)
     End If
     Exit Function
-Eh:
+EH:
     ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & Text
 End Function
 
 
-Public Function LoadFrom(ByVal Path As String) As cJson
-    Dim TS As Scripting.TextStream
-    Set TS = Fso.OpenTextFile(Path)
-    Dim Txt As String: Txt = TS.ReadAll()
+Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF-8") As cJson
+    Dim Txt As String: Txt = ToolsStream.LoadFileAsText(Path, CharSet)
     Set LoadFrom = Decode(Txt)
-    TS.Close
 End Function
 '
-Public Function SaveTo(ByVal FileName As String, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As Boolean
+Public Function SaveTo( _
+    ByVal FileName As String, _
+    Optional CharSet As String = "UTF-8", _
+    Optional Whitespace As Variant, _
+    Optional FromUnicode As Boolean) As String
     FileName = ToolsFso.AutoCompleteFullPath(FileName, True)
     Call ToolsFso.AutoMakeDir(FileName, True)
-    Dim TS As Scripting.TextStream
-    Set TS = Fso.OpenTextFile(FileName, ForWriting, True)
-    TS.Write Encode(Root, Whitespace, FromUnicode)
-    TS.Close
-    SaveTo = True
+    Dim Content As String: Content = Encode(Root, Whitespace, FromUnicode)
+    ToolsStream.SaveFileAsText FileName, Content, CharSet
+    SaveTo = Content
 End Function
 
 Public Function ToArray() As Variant

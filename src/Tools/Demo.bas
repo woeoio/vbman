@@ -12,7 +12,7 @@ End Sub
 Public Sub Fetch()
     Dim c As New cHttpClient
     c.DebugStart = True
-    c.SetRequestCookies "a=1"
+    c.SetCookies "a=1"
     Debug.Print c.Fetch(ReqGet, "http://a-vi.com/home/hello?name=µËÎ°").ReturnJson().Encode(, 2, True)
     Debug.Print c.DebugInfo.Encode(, 2, True)
 End Sub

@@ -65,12 +65,12 @@ Public Function MapRequestContentType(ReqType As EnumRequestContentType) As Stri
     MapRequestContentType = RequestContentType
 End Function
 
-Public Function SetRequestCookies(ByVal Value As String) As Boolean
+Public Function SetCookies(ByVal Value As String) As cHttpClient
+    Set SetCookies = Me
     If Trim(Value) = "" Then Exit Function
     'todo 此处应该实现字符串解析到 Cookies 对象,
     '并且返回头如果有 set-cookies 也要自动处理, 而且可能有多个 set-Cookies
     RequestHeaders("Cookie") = Value
-    SetRequestCookies = True
 End Function
 
 Public Function Async(Bool As Boolean) As cHttpClient

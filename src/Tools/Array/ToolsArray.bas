@@ -3,6 +3,31 @@ Option Explicit
 
 ' ÉùÃ÷ CopyMemory API
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
+Private Declare Function SplitLongToBytes Lib "msvbvm60" Alias "#644" (ByVal lngNum As Long) As longByteType
+Private Type longType
+    v As Long
+End Type
+Private Type longByteType
+    a1 As Byte
+    a2 As Byte
+    a3 As Byte
+    a4 As Byte
+End Type
+
+Private Sub Command1_Click()
+    
+    Dim lngNum As longType
+    Dim lngByte As longByteType
+    
+    lngNum.v = &H11223344
+    
+    LSet lngByte = lngNum
+    
+    Debug.Print Hex(lngByte.a1), Hex(lngByte.a2), Hex(lngByte.a3), Hex(lngByte.a4)
+    
+End Sub
+
+
 
 Public Property Let Extend(Vars, Value As Variant)
     'Î´Íê´ýÐø

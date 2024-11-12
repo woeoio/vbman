@@ -58,6 +58,7 @@ Form=Layer\FLayer.frm
 Class=cIni; Tools\Ini\cIni.cls
 Class=cCsv; Tools\Csv\cCsv.cls
 Module=ToolsArray; Tools\Array\ToolsArray.bas
+Class=cJson2; Tools\Json\cJson2.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

@@ -99,7 +99,7 @@ End Sub
 
 Friend Sub OnDataArrival(Index As Long)
     
-    '    On Error GoTo Eh
+    On Error GoTo EH
     '写入对象到上下文
     Dim Request As New cHttpServerRequest
     Dim Response As New cHttpServerResponse

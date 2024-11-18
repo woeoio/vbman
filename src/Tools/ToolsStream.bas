@@ -22,7 +22,7 @@ Public Function SaveFileAsText(ByVal FileName As String, Data As String, Optiona
         .Open
         .CharSet = CharSet
         .WriteText Data
-        .SaveToFile FileName, adSaveCreateNotExist + adSaveCreateOverWrite
+        .SaveToFile FileName, adSaveCreateOverWrite
         .Close
     End With
 End Function
@@ -52,7 +52,7 @@ Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
         .Type = adTypeBinary
         .Open
         .Write OutData
-        .SaveToFile Path, adSaveCreateNotExist + adSaveCreateOverWrite
+        .SaveToFile Path, adSaveCreateOverWrite
         .Close
     End With
     SaveFileAsBinary = True

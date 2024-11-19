@@ -22,7 +22,7 @@ Public RootItems As New Collection
 '           导致返回的数字值可能超过 js 可识别长度, 无法正常使用,
 '           因此应该修改源代码, 在 数字类型 的处理过程中把溢出值转字符串
 
-Dim AllNewItem As New Scripting.Dictionary
+'Dim AllNewItem As New Scripting.Dictionary
 
 Public WhiteSpaceSet As Variant
 
@@ -38,6 +38,9 @@ Public Property Get Root() As Object
 Attribute Root.VB_UserMemId = 0
     If RootItems.Count > 0 Then Set Root = RootItems: Exit Property
     Set Root = RootItem
+End Property
+Public Property Get RootIsEmpty() As Boolean
+    If RootItems.Count = 0 And RootItem.Count = 0 Then RootIsEmpty = True
 End Property
 
 Public Property Get Item(ByVal Key As String) As Variant
@@ -117,7 +120,7 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     RootText = ConvertToJson(Obj, Whitespace)
     Set RootItem = Nothing
     Set RootItems = Nothing
-    AllNewItem.RemoveAll
+'    AllNewItem.RemoveAll
 RET:
     If FromUnicode = True Then
         Encode = ToolsStr.DecodeUnicode(RootText)
@@ -172,6 +175,6 @@ End Function
 
 
 Private Sub Class_Initialize()
-    AllNewItem.CompareMode = TextCompare
+    '    AllNewItem.CompareMode = TextCompare
 End Sub
 

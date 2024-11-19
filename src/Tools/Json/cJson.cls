@@ -68,6 +68,14 @@ End Property
 
 '--------------------------------Property end
 
+Public Sub Clear()
+    RootText = ""
+    Set RootItem = Nothing
+    Set RootItems = Nothing
+    LastError = ""
+    '    AllNewItem.RemoveAll
+End Sub
+
 Public Function NewItem(Optional ParentKey As String) As cJson
     Set NewItem = New cJson
     If ParentKey = "" Then
@@ -118,9 +126,6 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
     End If
     RootText = ConvertToJson(Obj, Whitespace)
-    Set RootItem = Nothing
-    Set RootItems = Nothing
-'    AllNewItem.RemoveAll
 RET:
     If FromUnicode = True Then
         Encode = ToolsStr.DecodeUnicode(RootText)

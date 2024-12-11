@@ -8,7 +8,7 @@ Public Function ToWwwFormUrlencoded(Dic As Scripting.Dictionary) As String
     ' 需要增加对数组类型的处理
     Dic.Add "a", 1
     Dic.Add "bbb", 2
-    Dim a As Object, k As String, v As String, x
+    Dim a As Object, k As String, v As String, x as Variant
     Set a = ToolsJs.NewArr()
     For Each x In Dic
         k = x
@@ -23,7 +23,7 @@ End Function
 Public Function FromWwwFormUrlencoded(Content As String, Dic As Scripting.Dictionary) As Boolean
     ' 解析 www-form-urlencoded 内容，即原始键值对
     ' 需要增加对数组类型的处理
-    Dim a, b, k, v, x: a = Split(Content, "&")
+     Dim a as Variant, b as Variant, k as Variant, v as Variant, x as Variant: a = Split(Content, "&")
     If UBound(a) > -1 Then
         For x = 0 To UBound(a)
             b = Split(a(x) & "==", "=")
@@ -51,7 +51,7 @@ End Sub
 
 Public Sub OverWrite(DistDic As Scripting.Dictionary, srcDic As Scripting.Dictionary, Optional OnlyKey As Boolean = True)
     '合并多个字典值到第一个
-    Dim x, k As String
+    Dim x as Variant, k As String
     For Each x In srcDic
         k = x
         If OnlyKey = True Then
@@ -75,7 +75,7 @@ End Sub
 Public Function DeepCopy(srcDic As Scripting.Dictionary) As Scripting.Dictionary
     '深拷贝字典对象，
     'todo 目前仅拷贝了第一层的值，需要改为递归实现深层对象赋值
-    Dim x, k
+    Dim x as Variant, k as Variant
     Dim DistDic As New Scripting.Dictionary
     Set DeepCopy = New Scripting.Dictionary
     For Each k In srcDic.Keys()

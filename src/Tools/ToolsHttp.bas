@@ -18,13 +18,13 @@ Public Const C_HEADER_FIELD_CONTENT_LENGHT As String = "Content-Lenght"
 '原文链接：https://blog.csdn.net/gs1069405343/article/details/50471825
 
 Public Function UrlDecodeUtf8(ByVal Url As String) As String
-    Dim b, ub                                                                   ''中文字的Unicode码(2字节)
-    Dim aa, BB
-    Dim UtfB                                                                    ''Utf-8单个字节
-    Dim UtfB1, UtfB2, UtfB3                                                     ''Utf-8码的三个字节
-    Dim i, n, S
-    Dim str1 As String
-    Dim str2 As String
+	Dim b As Variant, ub As Long                                                                       ''中文字的Unicode码(2字节)
+	Dim aa As Variant, BB As Variant
+	Dim UtfB As Variant                                                                    ''Utf-8单个字节
+	Dim UtfB1 As Variant, UtfB2 As Variant, UtfB3 As Variant                                                     ''Utf-8码的三个字节
+	Dim i As Long, n As Long, S As String
+	Dim str1 As String
+	Dim str2 As String
     n = 0
     ub = 0
     For i = 1 To Len(Url)
@@ -76,10 +76,10 @@ Public Function UrlDecodeUtf8(ByVal Url As String) As String
     UrlDecodeUtf8 = S
 End Function
 'UTF-8编码
-Public Function UrlEncodUtf8(ByVal szInput) As String
-    Dim wch, uch, szRet
-    Dim x
-    Dim nAsc, nAsc2, nAsc3
+Public Function UrlEncodUtf8(ByVal szInput As Variant) As String
+	Dim wch As Variant, uch As Variant, szRet As Variant
+	Dim x As Variant
+	Dim nAsc As Variant, nAsc2 As Variant, nAsc3 As Variant
     If szInput = "" Then
         UrlEncodUtf8 = szInput
         Exit Function
@@ -132,8 +132,8 @@ Public Function UrlDecode(ByVal Url As String) As String
 End Function
 'GB2312 URL编码
 Public Function UrlEncode(ByRef strURL As String) As String
-    Dim i, GB_URLEncode As String
-    Dim tempStr
+    Dim i as Long, GB_URLEncode As String
+    Dim tempStr as Variant
     For i = 1 To Len(strURL)
         If InStr("-,.0123456789/", Mid(strURL, i, 1)) Then
             GB_URLEncode = GB_URLEncode & Mid(strURL, i, 1)
@@ -194,7 +194,7 @@ End Function
 Rem 解析Request内容，即原始键值对
 Public Function ParseContent(Content As String, Obj As Scripting.Dictionary) As Boolean
     Rem 需要增加对数组类型的处理
-    Dim a, b, k, v, x: a = Split(Content, "&")
+    Dim a As Variant, b As Variant, k As Variant, v As Variant, x As Variant: a = Split(Content, "&")
     If UBound(a) > -1 Then
         For x = 0 To UBound(a)
             b = Split(a(x) & "==", "=")
@@ -209,7 +209,7 @@ End Function
 Rem 解析Request.Header内容，即标头键值对
 Public Function ParseKeyValue(Content As String, Obj As Scripting.Dictionary) As Boolean
     Rem 需要增加对数组类型的处理
-    Dim a, b, k, v, x: a = Split(Content, vbCrLf)
+    Dim a As Variant, b As Variant, k As Variant, v As Variant, x As Variant: a = Split(Content, vbCrLf)
     If UBound(a) > -1 Then
         For x = 0 To UBound(a)
             b = Split(a(x) & "::", ":")
@@ -223,11 +223,11 @@ Public Function ParseKeyValue(Content As String, Obj As Scripting.Dictionary) As
 End Function
 
 Public Function MapMethod(Name As String) As Long
-    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
+    Dim Arr as Variant: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
     MapMethod = ToolsArray.GetIndexByValue(Arr, Name)
 End Function
 Public Function MapMethodName(Index As Long) As String
-    Dim Arr: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
+    Dim Arr as Variant: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
     MapMethodName = Arr(Index)
 End Function
 

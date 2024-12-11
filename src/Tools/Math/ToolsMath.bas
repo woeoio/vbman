@@ -1,7 +1,7 @@
 Attribute VB_Name = "ToolsMath"
 Option Explicit
 
-Public Function Ceil(ByVal Num, Optional ByVal Dot As Long) As Double
+Public Function Ceil(ByVal Num as Variant, Optional ByVal Dot As Long) As Double
     If Dot <> 0 Then Num = Num * (10 ^ Dot)
     Ceil = 0 - Int(0 - Num)
     If Dot <> 0 Then Ceil = Ceil / (10 ^ Dot)

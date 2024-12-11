@@ -47,7 +47,7 @@ Public Sub Test()
     Set r = Inst.GetFolder("D:\code\_html\easyweb\spa-3.1.8")
     Set rDirs = r.SubFolders
     Set rFiles = r.Files
-    Dim x
+    Dim x as Variant
     For Each x In rDirs
         Debug.Print x.Name
     Next

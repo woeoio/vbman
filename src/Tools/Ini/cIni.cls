@@ -31,7 +31,7 @@ Public Function SaveTo(Optional ByVal Path As String) As Boolean
     '把字段对象转为 ini 节点数据文本并写入 path 路径的文本文件
     On Error GoTo EH
     Dim Text As String, Value As String
-    Dim Section, Key
+    Dim Section As Variant, Key As Variant
     Dim Dic As Scripting.Dictionary: Set Dic = Root
     If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
     FixFileExtName Path

@@ -29,7 +29,7 @@ End Sub
 
 
 
-Public Property Let Extend(Vars, Value As Variant)
+Public Property Let Extend(Vars as Variant, Value As Variant)
     '未完待续
     Dim Min As Long: Min = LBound(Value)
     Dim Max As Long: Max = UBound(Value)
@@ -60,7 +60,7 @@ End Sub
 '    DeArray Split("a/b/c", "/"), a,,c
 '    Debug.Print a
 'End Sub
-Public Sub DeArray(Arr, ParamArray OutVars())
+Public Sub DeArray(Arr as Variant, ParamArray OutVars())
     '未处理 下标 不为零 的情况
     Dim Min As Long: Min = LBound(Arr)
     Dim Max As Long: Max = UBound(Arr)
@@ -73,7 +73,7 @@ Public Sub DeArray(Arr, ParamArray OutVars())
     Next
 End Sub
 
-Public Function IsArrayEmpty(Arr) As Boolean
+Public Function IsArrayEmpty(Arr as Variant) As Boolean
     On Error Resume Next                                                        ' 忽略错误
     IsArrayEmpty = (LBound(Arr) > UBound(Arr))                                  ' 如果数组为空，会引发错误，此时LBound(arr) > UBound(arr)的值为True
     If ERR.Number <> 0 Then
@@ -231,7 +231,7 @@ Public Function StringToByteArray(ByVal St As String) As Byte()
     StringToByteArray = StrConv(St, vbFromUnicode)
 End Function
 
-Public Function GetArrayLength(Arr()) As Long
+Public Function GetArrayLength(Arr() as Variant) As Long
     GetArrayLength = UBound(Arr) - LBound(Arr) + 1
 End Function
 

@@ -28,6 +28,9 @@ Option Explicit
 
 '2023-03-30 改大了同步请求的默认超时值为5分钟，后续增加超时参数给用户设置
 
+'todo 增加集合对象, 实现并发异步请求池子
+'todo 增加集合对象, 实现串行异步请求队列
+
 Dim WithEvents Inst As WinHttp.WinHttpRequest
 Attribute Inst.VB_VarHelpID = -1
 Dim Json As New cJson

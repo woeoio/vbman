@@ -41,7 +41,7 @@ Public Function LoadFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     LoadFileAsBinary = True
     Exit Function
 EH:
-    LastError = ERR.Description & "#" & ERR.Description
+    LastError = Err.Description & "#" & Err.Description
 End Function
 
 Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
@@ -58,6 +58,6 @@ Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     SaveFileAsBinary = True
     Exit Function
 EH:
-    LastError = ERR.Description & "#" & ERR.Description
+    LastError = Err.Description & "#" & Err.Description
 End Function
 

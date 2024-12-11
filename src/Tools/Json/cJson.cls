@@ -42,6 +42,9 @@ End Property
 Public Property Get RootIsEmpty() As Boolean
     If RootItems.Count = 0 And RootItem.Count = 0 Then RootIsEmpty = True
 End Property
+Public Property Get RootIsArray() As Boolean
+    If RootItems.Count > 0 Then RootIsArray = True: Exit Property
+End Property
 
 Public Property Get Item(ByVal Key As String) As Variant
     If RootItem.Exists(Key) = False Then Exit Property
@@ -128,7 +131,7 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     RootText = ConvertToJson(Obj, Whitespace)
 RET:
     If FromUnicode = True Then
-        Encode = ToolsStr.DecodeUnicode(RootText)
+        Encode = ToolsStr.UnicodeDecode(RootText)
     Else
         Encode = RootText
     End If

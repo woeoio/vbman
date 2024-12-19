@@ -2,6 +2,10 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 Public Sub Test()
+    With New cJson
+        Debug.Print .Decode("sdhg({""a"":1});").Encode()
+        
+    End With
     '    Debug.Print VBMAN.Version()
     '    Debug.Print VBMAN.Version(App)
     '    Debug.Print VBMAN.Csv.LoadFrom("D:\code\上海vb\csv处理器\data\1.csv").Value(4, 2)

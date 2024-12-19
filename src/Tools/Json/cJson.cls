@@ -36,14 +36,14 @@ End Property
 '---------------------------------Property
 Public Property Get Root() As Object
 Attribute Root.VB_UserMemId = 0
-    If RootItems.Count > 0 Then Set Root = RootItems: Exit Property
+    If RootItems.count > 0 Then Set Root = RootItems: Exit Property
     Set Root = RootItem
 End Property
 Public Property Get RootIsEmpty() As Boolean
-    If RootItems.Count = 0 And RootItem.Count = 0 Then RootIsEmpty = True
+    If RootItems.count = 0 And RootItem.count = 0 Then RootIsEmpty = True
 End Property
 Public Property Get RootIsArray() As Boolean
-    If RootItems.Count > 0 Then RootIsArray = True: Exit Property
+    If RootItems.count > 0 Then RootIsArray = True: Exit Property
 End Property
 
 Public Property Get Item(ByVal Key As String) As Variant
@@ -51,22 +51,22 @@ Public Property Get Item(ByVal Key As String) As Variant
     If IsObject(RootItem(Key)) = True Then Set Item = RootItem(Key): Exit Property
     Item = RootItem(Key)
 End Property
-Public Property Get Items(ByVal Index As Long) As Variant
-    If RootItems.Count < Index Then Exit Property
-    If IsObject(RootItems(Index)) = True Then Set Items = RootItems(Index): Exit Property
-    Items = RootItems(Index)
+Public Property Get Items(ByVal index As Long) As Variant
+    If RootItems.count < index Then Exit Property
+    If IsObject(RootItems(index)) = True Then Set Items = RootItems(index): Exit Property
+    Items = RootItems(index)
 End Property
 Public Property Set Item(ByVal Key As String, Dat As Variant)
     Set RootItem(Key) = Dat
 End Property
-Public Property Set Items(ByVal Index As Long, Dat As Variant)
-    Set RootItems(Index) = Dat
+Public Property Set Items(ByVal index As Long, Dat As Variant)
+    Set RootItems(index) = Dat
 End Property
 Public Property Let Item(ByVal Key As String, Dat As Variant)
     RootItem(Key) = Dat
 End Property
-Public Property Let uuItems(ByVal Index As Long, Dat As Variant)
-    RootItems(Index) = Dat
+Public Property Let uuItems(ByVal index As Long, Dat As Variant)
+    RootItems(index) = Dat
 End Property
 
 '--------------------------------Property end
@@ -113,23 +113,23 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     LastError = ""
     If IsMissing(Obj) = True Then
-        If RootItems.Count > 0 Then Set Obj = RootItems
-        If RootItem.Count > 0 Then Set Obj = RootItem
+        If RootItems.count > 0 Then Set Obj = RootItems
+        If RootItem.count > 0 Then Set Obj = RootItem
     End If
-    If IsMissing(Obj) = True Then GoTo RET
-    If IsObject(Obj) = False Then RootText = Obj: GoTo RET
+    If IsMissing(Obj) = True Then GoTo ret
+    If IsObject(Obj) = False Then RootText = Obj: GoTo ret
     '    If TypeOf Obj Is ADODB.Recordset Then
     '        Set Obj = ToolsList.RsToCollection(Obj)
     '    End If
     If TypeOf Obj Is cJson Then
         Set Obj = Obj.Root
     End If
-    If Obj.Count = 0 Then GoTo RET
+    If Obj.count = 0 Then GoTo ret
     If IsEmpty(WhiteSpaceSet) = False Then
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
     End If
     RootText = ConvertToJson(Obj, Whitespace)
-RET:
+ret:
     If FromUnicode = True Then
         Encode = ToolsStr.UnicodeDecode(RootText)
     Else
@@ -144,12 +144,22 @@ Public Function Decode(ByRef Text As String) As cJson
     Set Decode = Me
     On Error GoTo EH
     LastError = ""
-    RootText = Trim(Text)
-    If RootText = "" Then Exit Function
+    RootText = ToolsStr.TrimEx(Text)
+Start:
+    If RootText = "" Then ERR.Raise 1, "", "No JSON data."
     If Left(RootText, 1) = "[" Then
         Set RootItems = ParseJson(RootText)
-    Else
+    ElseIf Left(RootText, 1) = "{" Then
         Set RootItem = ParseJson(RootText)
+    Else
+        ' check if JSONP
+        Dim LeftK As String: LeftK = ToolsStr.HasStr("(", RootText)
+        Dim RightK As String: RightK = ToolsStr.HasStrFromRight(");", RootText & ";")
+        If LeftK = 0 Or RightK = 0 Then ERR.Raise 1, "", "Not stand JSON data."
+        Dim LastChar As String: LastChar = Right(RootText, 1)
+        If LastChar = ";" Then LastChar = ");"
+        RootText = ToolsStr.SubStr(RootText, "(", LastChar, False, vbBinaryCompare, True)
+        GoTo Start
     End If
     Exit Function
 EH:
@@ -175,10 +185,10 @@ Public Function SaveTo( _
 End Function
 
 Public Function ToArray() As Variant
-    If RootItems.Count > 0 Then
+    If RootItems.count > 0 Then
         
     End If
-    If RootItem.Count > 0 Then ToArray = Array(RootItem)
+    If RootItem.count > 0 Then ToArray = Array(RootItem)
 End Function
 
 

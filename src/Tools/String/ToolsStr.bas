@@ -424,7 +424,7 @@ End Function
 
 Public Function GetFirstChar(Txt As String, Optional Length As Long = 1) As String
     Dim T As String: T = TrimEx(Txt, True, False)
-    GetFirstChar = Left(T, lenght)
+    GetFirstChar = Left(T, Length)
     '    Dim Pos As Long, CharStr As String, CharDec As Long
     '    Do Until (CharDec >= 33 And CharDec <= 126)
     '        Pos = Pos + 1
@@ -440,7 +440,7 @@ End Function
 
 Public Function GetLastChar(Txt As String, Optional Length As Long = 1) As String
     Dim T As String: T = TrimEx(Txt, False, True)
-    GetLastChar = Right(T, lenght)
+    GetLastChar = Right(T, Length)
     '    Dim Pos As Long, CharStr As String, CharDec As Long
     '    Dim TxtLength As Long
     '

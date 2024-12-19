@@ -7,7 +7,7 @@ Function ParseNumbers(inputString As String, Optional decimalPlaces As Integer =
     Dim matches As Object
     Dim match As Object
     Dim result As New Collection
-    Dim num As Double
+    Dim Num As Double
     Dim i As Integer
     
     ' 创建正则表达式对象
@@ -22,15 +22,15 @@ Function ParseNumbers(inputString As String, Optional decimalPlaces As Integer =
     ' 遍历匹配结果并处理
     For i = 0 To matches.count - 1
         Set match = matches.Item(i)
-        num = CDbl(match.Value)
+        Num = CDbl(match.value)
         
         ' 如果指定了小数位数，进行四舍五入
         If decimalPlaces >= 0 Then
-            num = Round(num, decimalPlaces)
+            Num = Round(Num, decimalPlaces)
         End If
         
         ' 将数字添加到集合
-        result.Add num
+        result.Add Num
         
         ' 如果指定了个数，达到个数时停止
         If count > 0 And result.count >= count Then Exit For
@@ -69,7 +69,7 @@ Public Function RightEx(Text As Variant, Length As Long) As String
     RightEx = Right(Trim(Text), Length)
 End Function
 Public Function LeftEx(Text As Variant, Length As Long) As String
-    LeftEx = left(Trim(Text), Length)
+    LeftEx = Left(Trim(Text), Length)
 End Function
 Public Function InsertSpan(ByRef inputStr As String, ByVal span As String, ByVal SetpNum As Long, Optional HeadFoot As Boolean) As String
     Dim resultStr As String
@@ -100,7 +100,7 @@ Public Function InsertSpan(ByRef inputStr As String, ByVal span As String, ByVal
 End Function
 
 
-Public Function TrimEx(ByRef Text As String) As String
+Public Function TrimEx(ByRef Text As String, Optional IsLeft As Boolean = True, Optional IsRight As Boolean = True) As String
     '确保移除不可见字符, 回车, 空格
     Dim i As Integer
     Dim startIdx As Integer
@@ -113,17 +113,21 @@ Public Function TrimEx(ByRef Text As String) As String
     Next i
     
     ' 去除前面的空格、回车、换行及不可见字符
-    startIdx = 1
-    Do While startIdx <= Len(Text) And InStr(TSZF, Mid(Text, startIdx, 1)) > 0
-        startIdx = startIdx + 1
-    Loop
+    If IsLeft = True Then
+        startIdx = 1
+        Do While startIdx <= Len(Text) And InStr(TSZF, Mid(Text, startIdx, 1)) > 0
+            startIdx = startIdx + 1
+        Loop
+    End If
     
     ' 去除末尾的空格、回车、换行及不可见字符
-    endIdx = Len(Text)
-    If endIdx > 0 Then
-        Do While endIdx >= startIdx And InStr(TSZF, Mid(Text, endIdx, 1)) > 0
-            endIdx = endIdx - 1
-        Loop
+    If IsLeft = True Then
+        endIdx = Len(Text)
+        If endIdx > 0 Then
+            Do While endIdx >= startIdx And InStr(TSZF, Mid(Text, endIdx, 1)) > 0
+                endIdx = endIdx - 1
+            Loop
+        End If
     End If
     ' 截取并返回清理后的字符串
     TrimEx = Mid(Text, startIdx, endIdx - startIdx + 1)
@@ -155,7 +159,7 @@ Public Function PercentEncode(inputStr As String) As String
         ' 判断是否为数字
         If IsNumeric(currentChar) Then
             ' 获取字符的 ASCII 值并转换为十六进制
-            hexValue = HEX(Asc(currentChar))
+            hexValue = Hex(Asc(currentChar))
             ' 拼接为 % 十六进制格式
             result = result & "%" & hexValue
         Else
@@ -221,7 +225,7 @@ Public Function UnicodeEncode(ByVal inputString As String, Optional PreFix As St
             unicodeString = unicodeString & currentChar
         Else
             ' 否则转为 \u 格式
-            unicodeString = unicodeString & PreFix & Right$("0000" & HEX(charCode), 4)
+            unicodeString = unicodeString & PreFix & Right$("0000" & Hex(charCode), 4)
         End If
     Next i
     
@@ -283,7 +287,7 @@ Public Function UniVbCrLf(Text As String) As String
 End Function
 
 Public Function IsString(var As Variant) As Boolean
-    IsString = (VarType(var) = vbString)
+    IsString = (varType(var) = vbString)
 End Function
 
 Public Function HasStr(ByVal FindStr As String, FullStr As String, Optional StartPos As Long = 1, Optional CompType As VbCompareMethod = vbTextCompare) As Long
@@ -293,18 +297,35 @@ Public Function HasStr(ByVal FindStr As String, FullStr As String, Optional Star
     HasStr = InStr(StartPos, FullStr, FindStr, CompType)
 End Function
 
+Public Function HasStrFromRight(ByVal FindStr As String, FullStr As String, Optional StartPos As Long = -1, Optional CompType As VbCompareMethod = vbTextCompare) As Long
+    'InStr 的参数顺序太难记了，因为其他语言也是这样的问题：命名模糊，不知道哪个参数是条件，哪个是操作对象。
+    '因此增加了这个函数，专门用于判断字符串是否存在，并返回所在位置，
+    '0 表示不存在，大于0 表示存在且标识位置
+    HasStrFromRight = InStrRev(FullStr, FindStr, StartPos, CompType)
+End Function
 
-Public Function SubStr(ByVal Txt As String, ByVal txtF$, Optional ByVal txtE$, Optional RetInt As Boolean) As String
+Public Function SubStr( _
+    ByVal Txt As String, _
+    ByVal txtFirst As String, _
+    Optional ByVal txtEnd As String, _
+    Optional RetInt As Boolean, _
+    Optional Method As VbCompareMethod = vbBinaryCompare, _
+    Optional FindFromEnd As Boolean _
+    ) As String
     'vb6截取任意位置字符串.md
     '其实应该使用正则提取更好，或者改进为 doloop 循环获取，返回数组或者集合的形式，
     Dim POSF&, POSE&, hasLeft&
-    hasLeft = InStr(Txt, txtF)
+    hasLeft = InStr(1, Txt, txtFirst, Method)
     If hasLeft = 0 Then GoTo ret_nothing
-    POSF = hasLeft + Len(txtF)
-    If txtE = "" Then
+    POSF = hasLeft + Len(txtFirst)
+    If txtEnd = "" Then
         POSE = Len(Txt) + 1
     Else
-        POSE = InStr(POSF, Txt, txtE)
+        If FindFromEnd = True Then
+            POSE = InStrRev(Txt, txtEnd, -1, Method)
+        Else
+            POSE = InStr(POSF, Txt, txtEnd, Method)
+        End If
     End If
     If POSE > POSF Then
         SubStr = Trim(Mid$(Txt, POSF, POSE - POSF))
@@ -347,7 +368,7 @@ Public Function FromByteArray(inputArray() As Byte, Optional CharSet As String =
     FromByteArray = StrConv(inputArray, vbUnicode)
 End Function
 Public Function FromHex(hexStr As String, Optional CharSet As String = "UTF-8") As String
-    Dim byteArray() As Byte
+    Dim ByteArray() As Byte
     Dim i As Long
     Dim strResult As String
     
@@ -356,20 +377,20 @@ Public Function FromHex(hexStr As String, Optional CharSet As String = "UTF-8") 
     
     ' 验证字符串是否是偶数长度
     If Len(hexStr) Mod 2 <> 0 Then
-        Err.Raise vbObjectError + 513, "HexToString", "Hex string must have an even length."
+        ERR.Raise vbObjectError + 513, "HexToString", "Hex string must have an even length."
         Exit Function
     End If
     
     ' 初始化字节数组
-    ReDim byteArray((Len(hexStr) \ 2) - 1)
+    ReDim ByteArray((Len(hexStr) \ 2) - 1)
     
     ' 转换为字节数组
     For i = 1 To Len(hexStr) Step 2
-        byteArray((i \ 2)) = CByte("&H" & Mid(hexStr, i, 2))
+        ByteArray((i \ 2)) = CByte("&H" & Mid(hexStr, i, 2))
     Next i
     
     ' 将字节数组转为字符串
-    strResult = StrConv(byteArray, vbUnicode)
+    strResult = StrConv(ByteArray, vbUnicode)
     
     ' 返回结果
     FromHex = strResult
@@ -386,7 +407,7 @@ Public Function ToHex(InputData As Variant, Optional CharSet As String = "UTF-8"
     End If
     Dim tmp As String, i As Long
     For i = 0 To UBound(inputArray)
-        tmp = tmp & HEX(inputArray(i))
+        tmp = tmp & Hex(inputArray(i))
     Next i
     ToHex = tmp
 End Function
@@ -394,7 +415,7 @@ End Function
 Public Function GetGUID(Optional isFull As Boolean) As String
     Dim TypeLib As Object
     Set TypeLib = CreateObject("Scriptlet.TypeLib")
-    GetGUID = IIf(isFull = True, left(TypeLib.Guid, 38), Mid(TypeLib.Guid, 2, 36))
+    GetGUID = IIf(isFull = True, Left(TypeLib.Guid, 38), Mid(TypeLib.Guid, 2, 36))
 End Function
 
 Public Function GetNewIds(Optional ByVal Bath As Long) As String
@@ -402,32 +423,45 @@ Public Function GetNewIds(Optional ByVal Bath As Long) As String
 End Function
 
 Public Function GetFirstChar(Txt As String, Optional Length As Long = 1) As String
-    Dim Pos As Long, CharStr As String, CharDec As Long
-    Do Until (CharDec >= 33 And CharDec <= 126)
-        Pos = Pos + 1
-        CharStr = Mid$(Txt, Pos, 1)
-        CharDec = Asc(CharStr)
-    Loop
-    If Length = 1 Then
-        GetFirstChar = CharStr
-    Else
-        GetFirstChar = Mid$(Txt, Pos, Length)
-    End If
+    Dim T As String: T = TrimEx(Txt, True, False)
+    GetFirstChar = Left(T, lenght)
+    '    Dim Pos As Long, CharStr As String, CharDec As Long
+    '    Do Until (CharDec >= 33 And CharDec <= 126)
+    '        Pos = Pos + 1
+    '        CharStr = Mid$(Txt, Pos, 1)
+    '        CharDec = Asc(CharStr)
+    '    Loop
+    '    If Length = 1 Then
+    '        GetFirstChar = CharStr
+    '    Else
+    '        GetFirstChar = Mid$(Txt, Pos, Length)
+    '    End If
 End Function
 
 Public Function GetLastChar(Txt As String, Optional Length As Long = 1) As String
-    Dim Pos As Long, CharStr As String, CharDec As Long
-    Do Until (CharDec >= 33 And CharDec <= 126)
-        Pos = Pos + 1
-        CharStr = Mid$(Txt, Pos, 1)
-        CharDec = Asc(CharStr)
-    Loop
-    If Length = 1 Then
-        GetLastChar = CharStr
-    Else
-        GetLastChar = Mid$(Txt, Pos, Length)
-    End If
+    Dim T As String: T = TrimEx(Txt, False, True)
+    GetLastChar = Right(T, lenght)
+    '    Dim Pos As Long, CharStr As String, CharDec As Long
+    '    Dim TxtLength As Long
+    '
+    '    ' 获取字符串长度
+    '    TxtLength = Len(Txt)
+    '
+    '    ' 从字符串的最后一个字符开始向前查找有效字符
+    '    Do Until (CharDec >= 33 And CharDec <= 126) Or Pos = TxtLength
+    '        Pos = TxtLength - Pos
+    '        CharStr = Mid$(Txt, Pos, 1)
+    '        CharDec = Asc(CharStr)
+    '    Loop
+    '
+    '    ' 返回找到的字符或字符段
+    '    If Length = 1 Then
+    '        GetLastChar = CharStr
+    '    Else
+    '        GetLastChar = Mid$(Txt, Pos - Length + 1, Length)
+    '    End If
 End Function
+
 
 Public Function GetRandStr(Optional ByVal Lens As Integer = 32, Optional Zuhe As String = "1aA") As String
     Rem 先顶用下，后期优化
@@ -461,7 +495,7 @@ Public Function GetRandStr(Optional ByVal Lens As Integer = 32, Optional Zuhe As
 End Function
 
 Public Function GetRandByte()
-    Dim byteArray() As Byte
+    Dim ByteArray() As Byte
     Dim byteSize As Integer
     Dim i As Integer
     
@@ -472,15 +506,15 @@ Public Function GetRandByte()
     Randomize
     
     ' 分配字节数组的大小
-    ReDim byteArray(byteSize - 1)
+    ReDim ByteArray(byteSize - 1)
     
     ' 生成随机字节
     For i = 0 To byteSize - 1
-        byteArray(i) = Int(Rnd * 256)                                           ' 生成0到255之间的随机字节
+        ByteArray(i) = Int(Rnd * 256)                                           ' 生成0到255之间的随机字节
     Next i
     
     ' 打印字节数组（以十六进制形式显示）
     For i = 0 To byteSize - 1
-        Debug.Print HEX(byteArray(i));
+        Debug.Print Hex(ByteArray(i));
     Next i
 End Function

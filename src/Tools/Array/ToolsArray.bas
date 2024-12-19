@@ -2,7 +2,7 @@ Attribute VB_Name = "ToolsArray"
 Option Explicit
 
 ' 声明 CopyMemory API
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SplitLongToBytes Lib "msvbvm60" Alias "#644" (ByVal lngNum As Long) As longByteType
 Private Type longType
     v As Long
@@ -23,21 +23,47 @@ Private Sub Command1_Click()
     
     LSet lngByte = lngNum
     
-    Debug.Print Hex(lngByte.a1), Hex(lngByte.a2), Hex(lngByte.a3), Hex(lngByte.a4)
+    Debug.Print HEX(lngByte.a1), HEX(lngByte.a2), HEX(lngByte.a3), HEX(lngByte.a4)
     
 End Sub
 
+'[desc:把 指定索引 后面的 成员往前移动,然后干掉最后一个元素]
+Public Function Remove(ByRef Arr As Variant, ByVal index As Integer) As Boolean
+    Dim i As Integer
+    
+    ' 检查数组是否为空
+    If LBound(Arr) > UBound(Arr) Then Exit Function
+    
+    ' 检查索引是否有效
+    If index < LBound(Arr) Or index > UBound(Arr) Then
+        '        MsgBox "索引超出范围"
+        Exit Function
+    End If
+    
+    ' 复制保留的元素到新数组
+    For i = index To UBound(Arr) - 1
+        Arr(i) = Arr(i + 1)
+    Next i
+    
+    If UBound(Arr) - 1 < 0 Then
+        ' 清空数组
+        Erase Arr
+    Else
+        ' 调整数组大小，去掉最后一个元素
+        ReDim Preserve Arr(UBound(Arr) - 1)
+    End If
+End Function
 
 
-Public Property Let Extend(Vars as Variant, Value As Variant)
+Public Property Let Extend(Vars As Variant, value As Variant)
     '未完待续
-    Dim Min As Long: Min = LBound(Value)
-    Dim Max As Long: Max = UBound(Value)
+    Dim Min As Long: Min = LBound(value)
+    Dim Max As Long: Max = UBound(value)
     Dim All As Long: All = UBound(Vars)
     Dim i As Long
     For i = Min To Max
         If All < i Then Exit For
-        If IsMissing(Vars(i)) = False Then Vars(i) = Value(i)
+        If IsMissing(Vars(i)) = False Then Vars(i) = value(i)
         '        Debug.Print Arr(i)
     Next
 End Property
@@ -60,7 +86,7 @@ End Sub
 '    DeArray Split("a/b/c", "/"), a,,c
 '    Debug.Print a
 'End Sub
-Public Sub DeArray(Arr as Variant, ParamArray OutVars())
+Public Sub DeArray(Arr As Variant, ParamArray OutVars())
     '未处理 下标 不为零 的情况
     Dim Min As Long: Min = LBound(Arr)
     Dim Max As Long: Max = UBound(Arr)
@@ -73,23 +99,23 @@ Public Sub DeArray(Arr as Variant, ParamArray OutVars())
     Next
 End Sub
 
-Public Function IsArrayEmpty(Arr as Variant) As Boolean
+Public Function IsArrayEmpty(Arr As Variant) As Boolean
     On Error Resume Next                                                        ' 忽略错误
     IsArrayEmpty = (LBound(Arr) > UBound(Arr))                                  ' 如果数组为空，会引发错误，此时LBound(arr) > UBound(arr)的值为True
-    If ERR.Number <> 0 Then
+    If Err.Number <> 0 Then
         ' 如果触发了错误，说明数组为空
         IsArrayEmpty = True
-        ERR.Clear                                                               ' 清除错误
+        Err.Clear                                                               ' 清除错误
     End If
     On Error GoTo 0                                                             ' 恢复正常的错误处理
 End Function
 
 
-Public Function GetIndexByValue(Arr As Variant, Value As String) As Long
+Public Function GetIndexByValue(Arr As Variant, value As String) As Long
     Dim i As Long
     GetIndexByValue = -1                                                        ' 默认返回 -1，表示未找到
     For i = LBound(Arr) To UBound(Arr)
-        If Arr(i) = Value Then
+        If Arr(i) = value Then
             GetIndexByValue = i                                                 ' 找到值，返回索引
             Exit Function
         End If
@@ -101,12 +127,12 @@ End Function
 ' 处理 Byte 数组的切片
 Function SliceByteArray(ByRef Arr() As Byte, ByVal StartPos As Long, Optional ByVal EndPos As Long = -1) As Byte()
     Dim slicedArray() As Byte
-    Dim length As Long
+    Dim Length As Long
     
     If EndPos = -1 Then
-        length = UBound(Arr) - StartPos + 1                                     ' 从 startPos 到数组末尾
+        Length = UBound(Arr) - StartPos + 1                                     ' 从 startPos 到数组末尾
     ElseIf StartPos < EndPos Then
-        length = EndPos - StartPos + 1                                          ' 从 startPos 到 endPos
+        Length = EndPos - StartPos + 1                                          ' 从 startPos 到 endPos
     Else
         ' 如果 startPos > endPos，返回一个空数组
         ReDim slicedArray(0)
@@ -115,9 +141,9 @@ Function SliceByteArray(ByRef Arr() As Byte, ByVal StartPos As Long, Optional By
     End If
     
     ' ReDim 保证目标数组有足够的空间
-    ReDim slicedArray(length - 1)
+    ReDim slicedArray(Length - 1)
     ' 使用 CopyMemory 将字节数组切片到新的数组
-    CopyMemory slicedArray(0), Arr(StartPos), length
+    CopyMemory slicedArray(0), Arr(StartPos), Length
     SliceByteArray = slicedArray
 End Function
 
@@ -137,12 +163,12 @@ End Function
 ' 处理 Long 类型数组的切片
 Function SliceLongArray(ByRef Arr() As Long, ByVal StartPos As Long, Optional ByVal EndPos As Long = -1) As Long()
     Dim slicedLong() As Long
-    Dim length As Long
+    Dim Length As Long
     
     If EndPos = -1 Then
-        length = (UBound(Arr) - StartPos + 1) * 4                               ' 每个 Long 占 4 字节
+        Length = (UBound(Arr) - StartPos + 1) * 4                               ' 每个 Long 占 4 字节
     ElseIf StartPos <= EndPos Then
-        length = (EndPos - StartPos + 1) * 4                                    ' 每个 Long 占 4 字节
+        Length = (EndPos - StartPos + 1) * 4                                    ' 每个 Long 占 4 字节
     Else
         ' 如果 startPos > endPos，返回一个空数组
         ReDim slicedLong(0)
@@ -151,9 +177,9 @@ Function SliceLongArray(ByRef Arr() As Long, ByVal StartPos As Long, Optional By
     End If
     
     ' ReDim 保证目标数组有足够的空间
-    ReDim slicedLong((length / 4) - 1)
+    ReDim slicedLong((Length / 4) - 1)
     ' 使用 CopyMemory 将 Long 数组切片到新的数组
-    CopyMemory slicedLong(0), Arr(StartPos), length
+    CopyMemory slicedLong(0), Arr(StartPos), Length
     SliceLongArray = slicedLong
 End Function
 
@@ -231,7 +257,7 @@ Public Function StringToByteArray(ByVal St As String) As Byte()
     StringToByteArray = StrConv(St, vbFromUnicode)
 End Function
 
-Public Function GetArrayLength(Arr() as Variant) As Long
+Public Function GetArrayLength(Arr() As Variant) As Long
     GetArrayLength = UBound(Arr) - LBound(Arr) + 1
 End Function
 
@@ -273,7 +299,7 @@ Public Function SplitByteArray(ByRef Arr() As Byte, ByVal position As Long, Opti
     If ArrLen <= position Then
         part1 = Arr
         ReDim part2(0)
-        GoTo RET
+        GoTo ret
     End If
     ' 前半部分 (0 到 position-1)
     ReDim part1(position - 1)
@@ -283,12 +309,12 @@ Public Function SplitByteArray(ByRef Arr() As Byte, ByVal position As Long, Opti
     
     If ArrLen <= position Then
         ReDim part2(0)
-        GoTo RET
+        GoTo ret
     End If
     ' 后半部分 (position 到末尾)
     ReDim part2(UBound(Arr) - position)
     CopyMemory part2(0), Arr(position), UBound(Arr) - position + 1
-RET:
+ret:
     ' 返回一个包含两个数组的 Variant
     Dim result(1) As Variant
     result(0) = part1

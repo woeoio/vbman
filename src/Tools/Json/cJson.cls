@@ -51,22 +51,28 @@ Public Property Get Item(ByVal Key As String) As Variant
     If IsObject(RootItem(Key)) = True Then Set Item = RootItem(Key): Exit Property
     Item = RootItem(Key)
 End Property
-Public Property Get Items(ByVal index As Long) As Variant
-    If RootItems.count < index Then Exit Property
-    If IsObject(RootItems(index)) = True Then Set Items = RootItems(index): Exit Property
-    Items = RootItems(index)
+Public Property Get Items(ByVal Index As Long) As Variant
+    If RootItems.count < Index Then Exit Property
+    If IsObject(RootItems(Index)) = True Then Set Items = RootItems(Index): Exit Property
+    Items = RootItems(Index)
 End Property
 Public Property Set Item(ByVal Key As String, Dat As Variant)
     Set RootItem(Key) = Dat
 End Property
-Public Property Set Items(ByVal index As Long, Dat As Variant)
-    Set RootItems(index) = Dat
+Public Property Set Items(ByVal Index As Long, Dat As Variant)
+    If RootItems.count < Index Then GoTo Assets
+    If Index = 0 Then GoTo Assets
+Assets:
+    RootItems.Add Dat
 End Property
 Public Property Let Item(ByVal Key As String, Dat As Variant)
     RootItem(Key) = Dat
 End Property
-Public Property Let uuItems(ByVal index As Long, Dat As Variant)
-    RootItems(index) = Dat
+Public Property Let Items(ByVal Index As Long, Dat As Variant)
+    If RootItems.count < Index Then GoTo Assets
+    If Index = 0 Then GoTo Assets
+Assets:
+    RootItems.Add Dat
 End Property
 
 '--------------------------------Property end

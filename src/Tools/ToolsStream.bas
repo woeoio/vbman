@@ -1,6 +1,8 @@
 Attribute VB_Name = "ToolsStream"
 Option Explicit
 
+'×÷Õß£ºµËÎ°£¬QQ 215879458
+
 '    Library ADODB
 'C:  \Program Files (x86)\Common Files\System\ado\msado28.tlb
 '    Microsoft ActiveX Data Objects 2.8 Library
@@ -41,7 +43,7 @@ Public Function LoadFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     LoadFileAsBinary = True
     Exit Function
 EH:
-    LastError = Err.Description & "#" & Err.Description
+    LastError = ERR.Description & "#" & ERR.Description
 End Function
 
 Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
@@ -58,6 +60,6 @@ Public Function SaveFileAsBinary(ByVal Path As String, OutData() As Byte) As Boo
     SaveFileAsBinary = True
     Exit Function
 EH:
-    LastError = Err.Description & "#" & Err.Description
+    LastError = ERR.Description & "#" & ERR.Description
 End Function
 

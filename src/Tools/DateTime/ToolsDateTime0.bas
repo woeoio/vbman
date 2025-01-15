@@ -69,7 +69,7 @@ Public Function FormatDateTime(Optional ByVal strFormat As String = "yyyy-mm-dd 
         dt = Now
     ElseIf IsDate(varDate) Then
         dt = CDate(varDate)
-    ElseIf VarType(varDate) = vbString Then
+    ElseIf varType(varDate) = vbString Then
         dt = CDate(varDate)
     Else
         ' 如果第二个参数既不是日期也不是字符串，则返回空字符串

@@ -53,6 +53,12 @@ Public LastError As String
 
 Dim BodyRaw As Variant
 
+Public Property Get Item(ByVal key) As Variant
+Attribute Item.VB_Description = "自动从请求参数，表单参数，json参数获取值"
+Attribute Item.VB_UserMemId = 0
+    '
+End Property
+
 Private Function ParseUri(sRequest As String) As Boolean
     Dim oneLine: oneLine = Split(sRequest, vbCrLf, 2)
     Dim a: a = Split(oneLine(0), " ")
@@ -111,7 +117,7 @@ Friend Function ParseBody(aReqBody() As Byte) As Boolean
     If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
         '先进行编码转换
         b = ToolsUtf8.Decode(aReqBody)
-        b = ToolsHttp.UrlDecodeUtf8(b)
+        '        b = ToolsHttp.UrlDecodeUtf8(b)
         If b = "" Then GoTo QH
         Call ToolsHttp.ParseContent(b, Form): GoTo QH
     End If

@@ -34,8 +34,16 @@ Option Explicit
 Dim WithEvents Inst As WinHttp.WinHttpRequest
 Attribute Inst.VB_VarHelpID = -1
 Dim Json As New cJson
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" ( _
+    ByVal hwnd As Long, _
+    ByVal lpOperation As String, _
+    ByVal lpFile As String, _
+    ByVal lpParameters As String, _
+    ByVal lpDirectory As String, _
+    ByVal nShowCmd As Long) As Long
 
-'缓存请求的返回内容
+
+    '缓存请求的返回内容
 Public ResponseRaw As Variant
 '模仿前几天写的php版ajax，做个完整处理过的 res.header+res.cookies+res.data
 Public Event OnResponseFinished()
@@ -68,12 +76,16 @@ Public Function MapRequestContentType(ReqType As EnumRequestContentType) As Stri
     MapRequestContentType = RequestContentType
 End Function
 
-Public Function SetCookies(ByVal Value As String) As cHttpClient
+Public Sub ShowPage(Url As String)
+    ShellExecute 0, "open", Url, 0, 0, 1
+End Sub
+
+Public Function SetCookies(ByVal value As String) As cHttpClient
     Set SetCookies = Me
-    If Trim(Value) = "" Then Exit Function
+    If Trim(value) = "" Then Exit Function
     'todo 此处应该实现字符串解析到 Cookies 对象,
     '并且返回头如果有 set-cookies 也要自动处理, 而且可能有多个 set-Cookies
-    RequestHeaders("Cookie") = Value
+    RequestHeaders("Cookie") = value
 End Function
 
 Public Function Async(Bool As Boolean) As cHttpClient

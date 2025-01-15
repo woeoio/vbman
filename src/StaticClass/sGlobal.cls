@@ -14,6 +14,6 @@ Attribute VB_Exposed = True
 Option Explicit
 
 
-Public Function VBMAN() As cTools
-    Set VBMAN = New cTools
+Public Function VBMAN() As cVBMAN
+    Set VBMAN = New cVBMAN
 End Function

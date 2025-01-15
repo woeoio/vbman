@@ -21,6 +21,11 @@ Public Csv As New cCsv
 Public Ini As New cIni
 Public Logs As New cLogs
 
+'tools
+Public ToolsStream As New cToolsStream
+Public ToolsWindow As New cToolsWindow
+
 Public Function Version(Optional HostApp As Object) As String
     Version = Common.Version(HostApp)
 End Function
+

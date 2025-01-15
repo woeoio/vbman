@@ -1,5 +1,6 @@
 VERSION 5.00
 Begin VB.Form FLayer 
+   AutoRedraw      =   -1  'True
    BackColor       =   &H00404040&
    BorderStyle     =   0  'None
    Caption         =   "Form1"
@@ -15,6 +16,11 @@ Begin VB.Form FLayer
    ScaleWidth      =   3615
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  '所有者中心
+   Begin VB.Timer Timer2 
+      Interval        =   1
+      Left            =   2160
+      Top             =   240
+   End
    Begin VB.Timer Timer1 
       Enabled         =   0   'False
       Left            =   2640
@@ -73,3 +79,9 @@ Public Function ShowTo(Content As String, Optional Owner As Object) As FLayer
     If Owner Is Nothing Then Me.Show: Exit Function
     Me.Show 1, Owner
 End Function
+
+Private Sub Timer2_Timer()
+    ToolsWindow.TopMost Me.hWnd
+    Me.Refresh
+
+End Sub

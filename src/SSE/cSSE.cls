@@ -34,6 +34,10 @@ Public Function Remove(hSocket As Long) As Boolean
     Remove = True
 End Function
 
+Public Property Get ClientCount() As Long
+    ClientCount = Clients.Count
+End Property
+
 '处理入口
 Friend Function Entry(Client As cClientCallback) As Boolean
     If IsStart = False Then GoTo QH

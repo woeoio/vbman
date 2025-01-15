@@ -1,10 +1,24 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
-Public Sub Test()
+
+
+Public Sub tLogs()
+    With New cLogs
+        .ShowLogsViewer = True
+        .Data "ghj"
+    End With
+End Sub
+
+
+Public Sub test()
     With New cJson
         Debug.Print .Decode("sdhg({""a"":1});").Encode()
-        
+        With .NewItems("v")
+            .Items(0) = 123
+            .Items(0) = 456
+        End With
+        Debug.Print .Encode()
     End With
     '    Debug.Print VBMAN.Version()
     '    Debug.Print VBMAN.Version(App)

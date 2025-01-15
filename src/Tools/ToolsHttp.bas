@@ -16,157 +16,160 @@ Public Const C_HEADER_FIELD_CONTENT_LENGHT As String = "Content-Lenght"
 '                            版权声明：本文为博主原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接和本声明。
 '
 '原文链接：https://blog.csdn.net/gs1069405343/article/details/50471825
+'Public Function UrlDecodeUtf8(ByVal Url As String) As String
+'    Dim i As Long
+'    Dim S As String
+'    Dim b As String
+'    Dim hexStr As String
+'    Dim decodedChar As Long
+'    Dim utf8Bytes() As Byte
+'    Dim utf8Char As String
+'    Dim utf8Length As Byte
+'
+'    S = ""
+'    i = 1
+'    While i <= Len(Url)
+'        b = Mid(Url, i, 1)
+'
+'        Select Case b
+'        Case "+"                                                                ' '+' 转为空格
+'            S = S & " "
+'            i = i + 1
+'
+'        Case "%"                                                                ' URL 编码格式
+'            ' 获取后两位作为十六进制字符
+'            hexStr = Mid(Url, i + 1, 2)
+'            If Len(hexStr) = 2 Then
+'                decodedChar = CInt("&H" & hexStr)
+'
+'                ' 检查是否是单字节 ASCII 字符
+'                If decodedChar < 128 Then
+'                    S = S & ChrW(decodedChar)
+'                    i = i + 3                                                   ' 跳过 "％" 和两位十六进制字符
+'                Else
+'                    ' 处理 UTF-8 编码字符（多字节）
+'                    utf8Bytes = DecodeUtf8Bytes(Url, i + 1)
+'                    '                    utf8Char = ChrW(CInt(utf8Bytes(0)))
+'                    '                    Dim LLL As Long: LLL = UBound(utf8Bytes) + 1
+'                    '                    If LLL > 1 Then
+'                    '                        utf8Char = ChrW(CInt(utf8Bytes(1)))
+'                    '                    End If
+'                    '                    If LLL > 2 Then
+'                    '                        utf8Char = ChrW(CInt(utf8Bytes(2)))
+'                    '                    End If
+'                    utf8Length = UBound(utf8Bytes) + 1
+'                    utf8Char = ToolsUtf8.Decode(utf8Bytes)
+'                    S = S & utf8Char
+'                    i = i + utf8Length                                          ' 跳过 UTF-8 字节
+'                End If
+'            End If
+'
+'        Case Else                                                               ' 其他字符直接添加
+'            S = S & b
+'            i = i + 1
+'        End Select
+'    Wend
+'
+'    UrlDecodeUtf8 = S
+'End Function
+
+' 辅助函数：解码 UTF-8 字节
+'Private Function DecodeUtf8Bytes(ByVal Url As String, ByVal startIndex As Long) As Byte()
+'    Dim bytes() As Byte
+'    Dim i As Long
+'    Dim utf8Byte As Long
+'    Dim hexStr As String
+'
+'    i = startIndex
+'    While i <= Len(Url)
+'        hexStr = Mid(Url, i, 2)
+'        utf8Byte = CInt("&H" & hexStr)
+'        If utf8Byte < &H80 Then
+'            ReDim bytes(0)
+'            bytes(0) = utf8Byte
+'            DecodeUtf8Bytes = bytes
+'            Exit Function
+'        ElseIf utf8Byte >= &HC0 And utf8Byte <= &HDF Then
+'            ' 处理 2 字节 UTF-8
+'            ReDim bytes(1)
+'            bytes(0) = utf8Byte
+'            hexStr = Mid(Url, i + 3, 2)
+'            bytes(1) = CInt("&H" & hexStr)
+'            DecodeUtf8Bytes = bytes
+'            Exit Function
+'        ElseIf utf8Byte >= &HE0 And utf8Byte <= &HEF Then
+'            ' 处理 3 字节 UTF-8
+'            ReDim bytes(2)
+'            bytes(0) = utf8Byte
+'            hexStr = Mid(Url, i + 3, 2)
+'            bytes(1) = CInt("&H" & hexStr)
+'            hexStr = Mid(Url, i + 6, 2)
+'            bytes(2) = CInt("&H" & hexStr)
+'            DecodeUtf8Bytes = bytes
+'            Exit Function
+'        End If
+'    Wend
+'    DecodeUtf8Bytes = bytes
+'End Function
+
 Public Function UrlDecodeUtf8(ByVal Url As String) As String
-    Dim i As Long
-    Dim S As String
-    Dim b As String
-    Dim hexStr As String
-    Dim decodedChar As Long
-    Dim utf8Bytes() As Byte
-    Dim utf8Char As String
-    
-    S = ""
-    i = 1
-    While i <= Len(Url)
+    Dim b As Variant, ub As Variant                                             ''中文字的Unicode码(2字节)
+    Dim aa As Variant, BB As Variant
+    Dim UtfB As Variant                                                         ''Utf-8单个字节
+    Dim UtfB1 As Variant, UtfB2 As Variant, UtfB3 As Variant                    ''Utf-8码的三个字节
+    Dim i As Long, n As Long, S As String
+    Dim str1 As String
+    Dim str2 As String
+    '    n = 0
+    '    ub = 0
+    For i = 1 To Len(Url)
         b = Mid(Url, i, 1)
-        
         Select Case b
-        Case "+"                                                                ' '+' 转为空格
+        Case "+"
             S = S & " "
-            i = i + 1
-            
-        Case "%"                                                                ' URL 编码格式
-            ' 获取后两位作为十六进制字符
-            hexStr = Mid(Url, i + 1, 2)
-            If Len(hexStr) = 2 Then
-                decodedChar = CInt("&H" & hexStr)
-                
-                ' 检查是否是单字节 ASCII 字符
-                If decodedChar < 128 Then
-                    S = S & ChrW(decodedChar)
-                    i = i + 3                                                   ' 跳过 "％" 和两位十六进制字符
-                Else
-                    ' 处理 UTF-8 编码字符（多字节）
-                    utf8Bytes = DecodeUtf8Bytes(Url, i + 1)
-                    utf8Char = ChrW(CInt(utf8Bytes(0)))
-                    Dim LLL As Long: LLL = UBound(utf8Bytes) + 1
-                    If LLL > 1 Then
-                        utf8Char = ChrW(CInt(utf8Bytes(1)))
-                    End If
-                    If LLL > 2 Then
-                        utf8Char = ChrW(CInt(utf8Bytes(2)))
-                    End If
-                    S = S & utf8Char
-                    i = i + (LLL * 3)                                           ' 跳过 UTF-8 字节
+        Case "%"
+            ub = Mid(Url, i + 1, 2)
+            If InStr(ub, vbLf) <= 0 And ub <> "" Then
+                aa = Mid(ub, 1, 1)
+                BB = Mid(ub, 2, 1)
+                If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
+                    UtfB = CInt("&H" & ub)
                 End If
             End If
             
-        Case Else                                                               ' 其他字符直接添加
+            If UtfB < 128 Then
+                i = i + 2
+                S = S & ChrW(UtfB)
+            Else
+                UtfB1 = (UtfB And &HF) * &H1000                                 ''取第1个Utf-8字节的二进制后4位
+                str1 = Mid(Url, i + 4, 2)
+                If InStr(str1, vbLf) <= 0 And str1 <> "" Then
+                    
+                    aa = Mid(str1, 1, 1)
+                    BB = Mid(str1, 2, 1)
+                    If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
+                        UtfB2 = (CInt("&H" & str1) And &H3F) * &H40             ''取第2个Utf-8字节的二进制后6位
+                    End If
+                    
+                    str2 = Mid(Url, i + 7, 2)
+                    If InStr(str2, vbLf) <= 0 And str2 <> "" Then
+                        aa = Mid(str2, 1, 1)
+                        BB = Mid(str2, 2, 1)
+                        If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
+                            UtfB3 = CInt("&H" & str2) And &H3F                  ''取第3个Utf-8字节的二进制后6位
+                        End If
+                    End If
+                End If
+                S = S & ChrW(UtfB1 Or UtfB2 Or UtfB3)
+                i = i + 8
+            End If
+            
+        Case Else                                                               ''Ascii码
             S = S & b
-            i = i + 1
         End Select
-    Wend
-    
+    Next
     UrlDecodeUtf8 = S
 End Function
-
-' 辅助函数：解码 UTF-8 字节
-Private Function DecodeUtf8Bytes(ByVal Url As String, ByVal startIndex As Long) As Byte()
-    Dim bytes() As Byte
-    Dim i As Long
-    Dim utf8Byte As Long
-    Dim hexStr As String
-    
-    i = startIndex
-    While i <= Len(Url)
-        hexStr = Mid(Url, i, 2)
-        utf8Byte = CInt("&H" & hexStr)
-        If utf8Byte < &H80 Then
-            ReDim bytes(0)
-            bytes(0) = utf8Byte
-            DecodeUtf8Bytes = bytes
-            Exit Function
-        ElseIf utf8Byte >= &HC0 And utf8Byte <= &HDF Then
-            ' 处理 2 字节 UTF-8
-            ReDim bytes(1)
-            bytes(0) = utf8Byte
-            hexStr = Mid(Url, i + 3, 2)
-            bytes(1) = CInt("&H" & hexStr)
-            DecodeUtf8Bytes = bytes
-            Exit Function
-        ElseIf utf8Byte >= &HE0 And utf8Byte <= &HEF Then
-            ' 处理 3 字节 UTF-8
-            ReDim bytes(2)
-            bytes(0) = utf8Byte
-            hexStr = Mid(Url, i + 3, 2)
-            bytes(1) = CInt("&H" & hexStr)
-            hexStr = Mid(Url, i + 6, 2)
-            bytes(2) = CInt("&H" & hexStr)
-            DecodeUtf8Bytes = bytes
-            Exit Function
-        End If
-    Wend
-    DecodeUtf8Bytes = bytes
-End Function
-
-'Public Function UrlDecodeUtf8(ByVal Url As String) As String
-'    Dim b As Variant, ub As Long                                                ''中文字的Unicode码(2字节)
-'    Dim aa As Variant, BB As Variant
-'    Dim UtfB As Variant                                                         ''Utf-8单个字节
-'    Dim UtfB1 As Variant, UtfB2 As Variant, UtfB3 As Variant                    ''Utf-8码的三个字节
-'    Dim i As Long, n As Long, S As String
-'    Dim str1 As String
-'    Dim str2 As String
-'    n = 0
-'    ub = 0
-'    For i = 1 To Len(Url)
-'        b = Mid(Url, i, 1)
-'        Select Case b
-'        Case "+"
-'            S = S & " "
-'        Case "%"
-'            ub = Mid(Url, i + 1, 2)
-'            If InStr(ub, vbLf) <= 0 And ub <> "" Then
-'                aa = Mid(ub, 1, 1)
-'                BB = Mid(ub, 2, 1)
-'                If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
-'                    UtfB = CInt("&H" & ub)
-'                End If
-'            End If
-'
-'            If UtfB < 128 Then
-'                i = i + 2
-'                S = S & ChrW(UtfB)
-'            Else
-'                UtfB1 = (UtfB And &HF) * &H1000                                 ''取第1个Utf-8字节的二进制后4位
-'                str1 = Mid(Url, i + 4, 2)
-'                If InStr(str1, vbLf) <= 0 And str1 <> "" Then
-'
-'                    aa = Mid(str1, 1, 1)
-'                    BB = Mid(str1, 2, 1)
-'                    If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
-'                        UtfB2 = (CInt("&H" & str1) And &H3F) * &H40             ''取第2个Utf-8字节的二进制后6位
-'                    End If
-'
-'                    str2 = Mid(Url, i + 7, 2)
-'                    If InStr(str2, vbLf) <= 0 And str2 <> "" Then
-'                        aa = Mid(str2, 1, 1)
-'                        BB = Mid(str2, 2, 1)
-'                        If aa < "g" And aa < "G" And BB < "g" And BB < "G" And aa <> "%" And BB <> "%" Then
-'                            UtfB3 = CInt("&H" & str2) And &H3F                  ''取第3个Utf-8字节的二进制后6位
-'                        End If
-'                    End If
-'                End If
-'                S = S & ChrW(UtfB1 Or UtfB2 Or UtfB3)
-'                i = i + 8
-'            End If
-'
-'        Case Else                                                               ''Ascii码
-'            S = S & b
-'        End Select
-'    Next
-'    UrlDecodeUtf8 = S
-'End Function
 'UTF-8编码
 Public Function UrlEncodeUtf8(ByVal szInput As Variant) As String
     Dim wch As Variant, uch As Variant, szRet As Variant
@@ -301,7 +304,7 @@ End Function
 '原文链接：https://blog.csdn.net/gs1069405343/article/details/50471825
 
 
-Sub Test()
+Sub test()
     ' Usage
     Dim sUrl As String
     Dim sResult As String
@@ -320,9 +323,9 @@ Public Function AddToQueryString(ByVal Url As String, ByVal QS As String) As Str
 End Function
 
 Public Function MakeContent(Dic As Scripting.Dictionary, Optional IsUrlEncode As Boolean = True) As String
-    If Dic.count > 0 Then
+    If Dic.Count > 0 Then
         Dim Arr() As String
-        ReDim Arr(Dic.count - 1)
+        ReDim Arr(Dic.Count - 1)
         Dim i As Long, x As Variant, d As String
         For Each x In Dic.Keys()
             d = Dic(x)
@@ -370,9 +373,9 @@ Public Function MapMethod(Name As String) As Long
     Dim Arr As Variant: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
     MapMethod = ToolsArray.GetIndexByValue(Arr, Name)
 End Function
-Public Function MapMethodName(index As Long) As String
+Public Function MapMethodName(Index As Long) As String
     Dim Arr As Variant: Arr = Array("ANY", "POST", "GET", "PUT", "DELETE", "OPTIONS")
-    MapMethodName = Arr(index)
+    MapMethodName = Arr(Index)
 End Function
 
 

@@ -19,7 +19,8 @@ Dim Fso  As New Scripting.FileSystemObject
 Dim FileStream As Scripting.TextStream
 Public LastError As String
 
-Public Root As Scripting.Dictionary
+Public Root As New Scripting.Dictionary
+Attribute Root.VB_VarUserMemId = 0
 
 Private Sub FixFileExtName(Path As String)
     '自动完善 .ini 后缀名
@@ -35,7 +36,7 @@ Public Function SaveTo(Optional ByVal Path As String) As Boolean
     Dim Dic As Scripting.Dictionary: Set Dic = Root
     If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
     FixFileExtName Path
-    ToolsFso.AutoMakeDir Path
+    ToolsFso.AutoMakeDir Path, True
     Set FileStream = Fso.OpenTextFile(Path, ForWriting, True)
     For Each Section In Dic.Keys
         Text = Text & "[" & Section & "]" & vbCrLf

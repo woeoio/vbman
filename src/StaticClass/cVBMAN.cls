@@ -20,6 +20,10 @@ Public HttpClient As New cHttpClient
 Public Csv As New cCsv
 Public Ini As New cIni
 Public Logs As New cLogs
+Public Cmd As New cCmd
+
+'µÚÈý·½
+Public Baidu As New cBaidu
 
 'tools
 Public ToolsStream As New cToolsStream

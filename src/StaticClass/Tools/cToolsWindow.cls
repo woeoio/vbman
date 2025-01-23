@@ -13,6 +13,10 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-Public Sub TopMost(ByVal hWnd As Long, Optional Cancel As Boolean)
-    Call ToolsWindow.TopMost(hWnd, Cancel)
+Public Sub TopMost(ByVal hwnd As Long, Optional Cancel As Boolean)
+    Call ToolsWindow.TopMost(hwnd, Cancel)
+End Sub
+
+Public Sub SwitchToThis(ByVal hwnd As Long, Optional IsAltTab As Boolean = True)
+    Call ToolsWindow.SwitchToThis(frm.hwnd, IsAltTab)
 End Sub

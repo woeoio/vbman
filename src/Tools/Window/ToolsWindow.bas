@@ -18,5 +18,5 @@ Public Sub TopMost(ByVal hwnd As Long, Optional Cancel As Boolean)
 End Sub
 
 Public Sub SwitchToThis(ByVal hwnd As Long, Optional IsAltTab As Boolean = True)
-    SwitchToThisWindow frm.hwnd, IsAltTab
+    SwitchToThisWindow hwnd, IsAltTab
 End Sub

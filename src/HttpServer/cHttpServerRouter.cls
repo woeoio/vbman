@@ -93,7 +93,7 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If RouteBefore.Entry(Client.Context) = False Then GoTo EH
     If Client.Context.fIsAbort = True Then GoTo QH
     '开始路由
-    If Request.PathInfo = "/_dev" Then Response.Test: Exit Function
+    If Request.PathInfo = "/_dev" Then Response.test: Exit Function
     '匹配用户路由
     If Dic.Exists(Request.MethodName) = True Then
         Dim RD As Scripting.Dictionary, Handler As String
@@ -171,5 +171,15 @@ Private Sub Class_Initialize()
         .Add C_METHOD_PUT, DicPut
         .Add C_METHOD_DELETE, DicDelete
     End With
+    
     Controllers.CompareMode = TextCompare
+    '忽略大小写
+    '    Dic.CompareMode = TextCompare
+    DicAny.CompareMode = TextCompare
+    DicGet.CompareMode = TextCompare
+    DicPost.CompareMode = TextCompare
+    DicPut.CompareMode = TextCompare
+    DicDelete.CompareMode = TextCompare
+    DicGroup.CompareMode = TextCompare
+    
 End Sub

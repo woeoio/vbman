@@ -58,3 +58,9 @@ Friend Function IsStaticFile(Path As String) As Boolean
         If p = x Then IsStaticFile = True: Exit Function
     Next
 End Function
+
+Private Sub Class_Initialize()
+    '设置大小写不敏感
+    rootFiles.CompareMode = TextCompare
+    rootDirs.CompareMode = TextCompare
+End Sub

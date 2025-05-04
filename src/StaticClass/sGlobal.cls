@@ -13,7 +13,16 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
+Dim Inst As cVBMAN
 
 Public Function VBMAN() As cVBMAN
-    Set VBMAN = New cVBMAN
+    Set VBMAN = Inst
 End Function
+
+Private Sub Class_Initialize()
+    Set Inst = New cVBMAN
+End Sub
+
+Private Sub Class_Terminate()
+    Set Inst = Nothing
+End Sub

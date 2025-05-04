@@ -21,6 +21,7 @@ Public Csv As New cCsv
 Public Ini As New cIni
 Public Logs As New cLogs
 Public Cmd As New cCmd
+Public TimeUse As New cTimeUse
 
 'µÚÈý·½
 Public Baidu As New cBaidu

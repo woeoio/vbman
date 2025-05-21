@@ -61,9 +61,8 @@ Public Sub View(TplPath As String)
     '
 End Sub
 
-'自定义对象
-
-Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As String, Optional Count As Long, Optional Whitespace As Variant)
+'返回 json
+Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As String, Optional Count As Long, Optional Whitespace As Variant)
     '判断是否 Recordset 对象，是就先转换为集合
     If TypeOf Data Is ADODB.Recordset Then
         Set Data = ToolsList.RsToCollection(Data)
@@ -75,13 +74,14 @@ Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional Msg As Str
     Dim Dic As New Scripting.Dictionary
     With Dic
         .Add JsonPackFieldNameCode, Code
-        .Add JsonPackFieldNameMsg, Msg
+        .Add JsonPackFieldNameMsg, msg
         .Add JsonPackFieldNameData, Data
         .Add JsonPackFieldNameCount, Count
     End With
     Call SendBodyText(JsonInst.Encode(Dic, Whitespace), "application/json")
 End Sub
 
+'返回 文件
 Public Sub File(Path As String)
     '自动判断是否ajax请求，决定返回页面还是json
     Dim sPath As String: sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
@@ -177,7 +177,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
 End Sub
 
 
-Public Sub Test()
+Public Sub test()
     Dim sRequest As String: sRequest = Client.Context.Request.HeaderRaw
     Dim Index As Long: Index = Client.Index
     Dim vSplit              As Variant

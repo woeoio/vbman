@@ -27,6 +27,8 @@ Public Session As cHttpServerSession
 Public Cookies As cHttpServerCookies
 Public TimeUse As New cTimeUse
 Public Db As cDataBase
+
+Public SSE As New cSSEContext
 '用户数据，用于整个请求生命周期传递数据
 Public UserData As New Scripting.Dictionary
 

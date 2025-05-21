@@ -33,6 +33,8 @@ Public Database As New cDataBase
 
 Public CrossDomain As New cHttpCrossDomain
 
+Public LastError As String
+
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
 
@@ -59,6 +61,30 @@ Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "
     Start = True
 End Function
 
+Public Function StopMe() As Boolean
+    On Error GoTo EH
+    m_oServer.CloseSck
+    IsRunning = False
+    'clear
+    Set m_cConnPool = Nothing
+    Set HttpApp = Nothing
+    Set HttpSvr = Nothing
+    Set m_oServer = Nothing
+    
+    Set SSE = Nothing
+    
+    Set Router = Nothing
+    Set RouteBefore = Nothing
+    Set RouteAfter = Nothing
+    Set Database = Nothing
+    
+    Set CrossDomain = Nothing
+    
+    StopMe = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
 
 Private Sub Class_Initialize()
     '
@@ -147,6 +173,7 @@ Friend Sub OnDataArrival(Index As Long)
         Set .Session = Session
         Set .Cookies = Cookies
         Set .Db = oCallback.Parent.Database
+        Set .SSE.flsSSEInst = SSE
     End With
     '解析请求体, 这里可以按需要决定是否解析,比如头部指定为文件传输, 可能就要异步或者稍后解析
     aReqBody = vRequest(1)

@@ -7,17 +7,17 @@ Begin VB.Form FLayer
    ClientHeight    =   855
    ClientLeft      =   0
    ClientTop       =   0
-   ClientWidth     =   3615
+   ClientWidth     =   6120
    ForeColor       =   &H00000000&
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
    ScaleHeight     =   855
-   ScaleWidth      =   3615
+   ScaleWidth      =   6120
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  '所有者中心
    Begin VB.Timer Timer2 
-      Interval        =   1
+      Interval        =   100
       Left            =   2160
       Top             =   240
    End
@@ -77,11 +77,13 @@ Public Function ShowTo(Content As String, Optional Owner As Object) As FLayer
     Set ShowTo = Me
     LContent.Caption = Content
     If Owner Is Nothing Then Me.Show: Exit Function
-    Me.Show 1, Owner
+    Me.Show                                                                     '1, Owner
+    '    ToolsWindow.TopMost Me.hwnd
+    '    Me.Refresh
 End Function
 
 Private Sub Timer2_Timer()
-    ToolsWindow.TopMost Me.hWnd
+    ToolsWindow.TopMost Me.hwnd
     Me.Refresh
-
+    
 End Sub

@@ -2,6 +2,29 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 
+Public Sub DbgJson()
+    Dim i As Long
+    With New cJson
+        For i = 0 To 300                                                        ' 然后就可以用 for 循环来创建无数个数组成员了
+            With .NewItem()                                                     '如果数组成员也是对象,则先进性 NewItem 创建个空对象
+                .Item("d") = Now()                                              '然后给对象成员赋值
+                .Item("e") = 34 + i
+                .Item("f") = "进入坦克: " & i
+                '根据以上原理, 可以创建无限层级的子孙节点, 比如下面的 g 节点是挂在 c 节点下
+                With .NewItem("g")
+                    .Item("g1") = 123
+                    .Item("g2") = 456
+                End With
+                With .NewItems("h")                                             '这个节点也挂在 c 节点下, 但这是个数组类型的节点
+                    .Items(0) = 456                                             '这个数组节点成员都是普通类型， 所以直接用 items 赋值
+                    .Items(0) = "123"                                           '其中 items 参数为0 则表示这个值是新增的数组元素
+                    .Items(0) = "456"                                           '如果 items 参数大于0则表示修改指定索引数组元素值
+                End With
+            End With
+        Next
+        Debug.Print .Encode(, 2, True)
+    End With
+End Sub
 
 Public Sub tLogs()
     With New cLogs

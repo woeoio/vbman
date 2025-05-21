@@ -2,12 +2,12 @@ Attribute VB_Name = "ToolsStr"
 Option Explicit
 
 '[desc:从字符串中提取数字的函数，支持可选参数来控制提取的个数和保留的小数点位数]
-Function ParseNumbers(inputString As String, Optional decimalPlaces As Integer = -1, Optional count As Integer) As Collection
+Function ParseNumbers(inputString As String, Optional decimalPlaces As Integer = -1, Optional Count As Integer) As Collection
     Dim regex As Object
     Dim matches As Object
     Dim match As Object
     Dim result As New Collection
-    Dim Num As Double
+    Dim num As Double
     Dim i As Integer
     
     ' 创建正则表达式对象
@@ -20,20 +20,20 @@ Function ParseNumbers(inputString As String, Optional decimalPlaces As Integer =
     Set matches = regex.Execute(inputString)
     
     ' 遍历匹配结果并处理
-    For i = 0 To matches.count - 1
+    For i = 0 To matches.Count - 1
         Set match = matches.Item(i)
-        Num = CDbl(match.value)
+        num = CDbl(match.Value)
         
         ' 如果指定了小数位数，进行四舍五入
         If decimalPlaces >= 0 Then
-            Num = Round(Num, decimalPlaces)
+            num = Round(num, decimalPlaces)
         End If
         
         ' 将数字添加到集合
-        result.Add Num
+        result.Add num
         
         ' 如果指定了个数，达到个数时停止
-        If count > 0 And result.count >= count Then Exit For
+        If Count > 0 And result.Count >= Count Then Exit For
     Next i
     
     ' 返回结果集合
@@ -71,7 +71,7 @@ End Function
 Public Function LeftEx(Text As Variant, Length As Long) As String
     LeftEx = Left(Trim(Text), Length)
 End Function
-Public Function InsertSpan(ByRef inputStr As String, ByVal span As String, ByVal SetpNum As Long, Optional HeadFoot As Boolean) As String
+Public Function InsertSpan(ByRef inputStr As String, ByVal Span As String, ByVal SetpNum As Long, Optional HeadFoot As Boolean) As String
     Dim resultStr As String
     Dim i As Integer
     Dim chunkLength As Integer
@@ -87,13 +87,13 @@ Public Function InsertSpan(ByRef inputStr As String, ByVal span As String, ByVal
         
         ' 如果当前块不是最后一块，插入[RTXREG]
         If i + chunkLength <= Len(inputStr) Then
-            resultStr = resultStr & span
+            resultStr = resultStr & Span
         End If
     Next i
     
     ' 返回处理后的字符串
     If HeadFoot = True Then
-        InsertSpan = span & resultStr & span
+        InsertSpan = Span & resultStr & Span
     Else
         InsertSpan = resultStr
     End If
@@ -234,7 +234,7 @@ End Function
 
 
 Public Function UnicodeDecode(Text As String, Optional PreFix As String = "\u") As String
-    Dim i As Integer
+    Dim i As Long
     Dim result As String
     Dim unicodeStr As String
     Dim unicodeCode As Long
@@ -272,8 +272,8 @@ Public Function SliceString(ByVal Arr As String, ByVal StartPos As Long, Optiona
     SliceString = slicedStr
 End Function
 
-Public Function JoinStr(span As String, ParamArray Strings() As Variant) As String
-    JoinStr = Join(Strings, span)
+Public Function JoinStr(Span As String, ParamArray Strings() As Variant) As String
+    JoinStr = Join(Strings, Span)
 End Function
 
 
@@ -423,8 +423,8 @@ Public Function GetNewIds(Optional ByVal Bath As Long) As String
 End Function
 
 Public Function GetFirstChar(Txt As String, Optional Length As Long = 1) As String
-    Dim T As String: T = TrimEx(Txt, True, False)
-    GetFirstChar = Left(T, Length)
+    Dim t As String: t = TrimEx(Txt, True, False)
+    GetFirstChar = Left(t, Length)
     '    Dim Pos As Long, CharStr As String, CharDec As Long
     '    Do Until (CharDec >= 33 And CharDec <= 126)
     '        Pos = Pos + 1
@@ -439,8 +439,8 @@ Public Function GetFirstChar(Txt As String, Optional Length As Long = 1) As Stri
 End Function
 
 Public Function GetLastChar(Txt As String, Optional Length As Long = 1) As String
-    Dim T As String: T = TrimEx(Txt, False, True)
-    GetLastChar = Right(T, Length)
+    Dim t As String: t = TrimEx(Txt, False, True)
+    GetLastChar = Right(t, Length)
     '    Dim Pos As Long, CharStr As String, CharDec As Long
     '    Dim TxtLength As Long
     '

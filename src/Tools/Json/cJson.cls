@@ -158,16 +158,31 @@ Start:
     ElseIf Left(RootText, 1) = "{" Then
         Set RootItem = ParseJson(RootText)
     Else
-        ' check if JSONP
-        Dim LeftK As String: LeftK = ToolsStr.HasStr("(", RootText)
-        Dim RightK As String: RightK = ToolsStr.HasStrFromRight(");", RootText & ";")
-        If LeftK = 0 Or RightK = 0 Then ERR.Raise 1, "", "Not stand JSON data."
+        ' check if JSONP / Var
+        GoSub CheckJSONP
+        GoSub CheckVar
+        'error data
+        ERR.Raise 1, "", "Not stand JSON data."
+    End If
+    Exit Function
+CheckJSONP:
+    Dim LeftK As Long: LeftK = ToolsStr.HasStr("(", RootText)
+    Dim RightK As Long: RightK = ToolsStr.HasStrFromRight(");", RootText & ";")
+    If LeftK > 0 And RightK > 0 Then
         Dim LastChar As String: LastChar = Right(RootText, 1)
         If LastChar = ";" Then LastChar = ");"
         RootText = ToolsStr.SubStr(RootText, "(", LastChar, False, vbBinaryCompare, True)
         GoTo Start
     End If
-    Exit Function
+    Return
+CheckVar:
+    Dim LeftWord As String: LeftWord = ToolsStr.GetFirstChar(RootText, 3)
+    If LeftWord = "var" Then
+        'Dim FirstPos As String: FirstPos = ToolsStr.HasStr("=", RootText)
+        RootText = ToolsStr.SubStr(RootText, "=")
+        GoTo Start
+    End If
+    Return
 EH:
     ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & Text
 End Function

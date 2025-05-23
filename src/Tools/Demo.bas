@@ -1,6 +1,12 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+Public Function JsonVar()
+    With New cJson
+        .Decode "var dataSK={""nameen"":""zhengzhou"",""cityname"":""郑州"",""city"":""101180101"",""temp"":""20.8"",""tempf"":""69.4"",""WD"":""北风"",""wde"":""N"",""WS"":""2级"",""wse"":""9km\/h"",""SD"":""50%"",""sd"":""50%"",""qy"":""997"",""njd"":""20km"",""time"":""15:05"",""rain"":""0"",""rain24h"":""0"",""aqi"":""83"",""aqi_pm25"":""83"",""weather"":""阴"",""weathere"":""Overcast"",""weathercode"":""d02"",""limitnumber"":""4和9"",""date"":""05月22日(星期四)""}"
+        JsonVar = .Encode()
+    End With
+End Function
 
 Public Sub DbgJson()
     Dim i As Long

@@ -45,7 +45,7 @@ Public Enum enumDbType
     Access = 1
     Mysql = 2
     MsSql = 3
-    CSV = 4
+    Csv = 4
 End Enum
 Public DatabaseType As enumDbType
 
@@ -89,7 +89,7 @@ Public Function TransRollback() As Boolean
     BeginTrans = True
 End Function
 
-Public Function Page(Optional Num As Long = 1, Optional Limit As Long = 10) As cDataBase
+Public Function Page(Optional num As Long = 1, Optional Limit As Long = 10) As cDataBase
     Set Page = Me
     IsPage = True
     '暂时先做个壳子
@@ -98,11 +98,11 @@ End Function
 Public Function Connect( _
     ByVal DbType As enumDbType, _
     Optional ByVal DbAddress As String = "127.0.0.1,1433", _
-    Optional ByVal Username As String = "sa", _
-    Optional ByVal Password As String = "Sa123456", _
+    Optional ByVal username As String = "sa", _
+    Optional ByVal password As String = "Sa123456", _
     Optional ByVal DefaultDataBase As String = "master") As Boolean
     
-    On Error GoTo eee
+    '    On Error GoTo eee
     
     '如果连接标记为真，则返回。否则会出错
     If IsConnect = True Then
@@ -117,17 +117,19 @@ Public Function Connect( _
         Case Access
             DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Access Driver (*.mdb)};Dbq=" & DbAddress & ";"
-        Case CSV
+        Case Csv
             DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
         Case MsSql
-            Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
+            Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & username & ";pwd=" & password & ";Database=" & DefaultDataBase & ";"
         Case Mysql
-            Dim Svr: Svr = Split(Server, ",")
-            Dim Address$: Address = Svr(0)
-            Dim Port$: Port = "3306"
-            If UBound(Svr) > 0 Then Port = Svr(1)
-            Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Port=" & Port & ";Uid=" & Username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";OPTION=3"
+            '            Dim Svr: Svr = Split(DbAddress, ",")
+            '            Dim Address$: Address = Svr(0)
+            '            Dim Port$: Port = "3306"
+            '            If UBound(Svr) > 0 Then Port = Svr(1)
+            DbAddress = Replace(DbAddress, "，", ",")
+            DbAddress = Replace(DbAddress, ",", ":")
+            Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Port=" & Port & ";Uid=" & username & ";pwd=" & password & ";Database=" & DefaultDataBase & ";"
         End Select
     End If
     '打开到数据库的连接
@@ -143,7 +145,7 @@ Public Function Connect( _
     Select Case DbType
     Case Access
         'todo
-    Case CSV
+    Case Csv
         'todo
     Case MsSql
         'todo
@@ -157,10 +159,10 @@ Public Function Connect( _
     Connect = True
     Exit Function
 eee:
-    LastErr = "Connect Err[" & Err.Number & "]" & Err.Description & "{" & DbAddress & "}{" & DbType & "}{" & Username & "}{" & DefaultDataBase & "}"
-    LastErrNumber = Err.Number
-    LastErrDescription = Err.Description
-    Err.Raise LastErrNumber, , LastErr
+    LastErr = "Connect Err[" & ERR.Number & "]" & ERR.Description & "{" & DbAddress & "}{" & DbType & "}{" & username & "}{" & DefaultDataBase & "}"
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ERR.Raise LastErrNumber, , LastErr
 End Function
 
 '断开与数据库的连接
@@ -185,9 +187,9 @@ Public Function Disconnect() As Boolean
     
     Exit Function
 eee:
-    LastErr = "Disconnect Err[" & Err.Number & "]" & Err.Description
-    LastErrNumber = Err.Number
-    LastErrDescription = Err.Description
+    LastErr = "Disconnect Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
 End Function
 
 Public Function Sql(ByVal RawSqlString As String) As cDataBase
@@ -208,9 +210,9 @@ Public Function Exec(Optional RecordsAffected, Optional Options As Long = -1) As
     Exec = True
     Exit Function
 eee:
-    LastErr = "Exec Err[" & Err.Number & "]" & Err.Description & "{" & pvRawSqlString & "}"
-    LastErrNumber = Err.Number
-    LastErrDescription = Err.Description
+    LastErr = "Exec Err[" & ERR.Number & "]" & ERR.Description & "{" & pvRawSqlString & "}"
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
 End Function
 
 '执行数据库查询语句
@@ -232,9 +234,9 @@ Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     Query = True
     Exit Function
 eee:
-    LastErr = "Query Err[" & Err.Number & "]" & Err.Description & "{" & pvRawSqlString & "}"
-    LastErrNumber = Err.Number
-    LastErrDescription = Err.Description
+    LastErr = "Query Err[" & ERR.Number & "]" & ERR.Description & "{" & pvRawSqlString & "}"
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
 End Function
 
 Private Sub Class_Initialize()

@@ -21,7 +21,7 @@ Dim Clients As New Scripting.Dictionary
 Dim UserHandler As cSSEHandle
 Public Data As New Scripting.Dictionary
 'sse通用对象
-Public Function Start(Optional MatchPath As String) As Boolean
+Public Function Start(Optional MatchPath As String, Optional OnConnect As Object) As Boolean
     Path = MatchPath
     IsStart = True
     Start = True
@@ -29,8 +29,12 @@ End Function
 
 Public Function Remove(hSocket As Long) As Boolean
     If Clients.Exists(hSocket) = False Then Exit Function
+    Dim Client As cClientCallback
+    Set Client = Clients(hSocket)
     Set Clients(hSocket) = Nothing
     Clients.Remove hSocket
+    Client.Socket.CloseSck
+    Set Client = Nothing
     Remove = True
 End Function
 
@@ -44,6 +48,7 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If Path <> "" Then
         If Client.Context.Request.PathInfo <> Path Then GoTo QH
     End If
+    Clients.Add Client.hSocket, Client
     '必须立即返回一个数据，否则链接无效
     AcceptConnect = True
     Data.Add "hello", "init"
@@ -53,14 +58,13 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     '
     '    RaiseEvent HandleRecvMsg
     '
-    Clients.Add Client.hSocket, Client
     Entry = True
     Exit Function
 QH:
     Client.Socket.CloseSck
 End Function
 
-Public Function ToID(hSocket As Long) As cSSE
+Public Function ToClient(hSocket As Long) As cSSE
     '
 End Function
 Public Function ToUser(User As String) As cSSE

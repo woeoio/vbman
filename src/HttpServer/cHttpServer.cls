@@ -109,15 +109,17 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
     Dim oCallback           As New cClientCallback
     m_cConnPool.Add oCallback
     With oCallback
-        .Index = m_cConnPool.Count
-        Set .Parent = Me
-        Set .ClientInfo = CI
-        'todo 这里可以优化为对象池子, 并发请求的时候处理更快
         Set .Socket = New cTlsReMaster
         Set .Context = New cHttpServerContext
-        Set .Context.ClientInfo = CI
+        .Index = m_cConnPool.Count
+        Set .Parent = Me
+        'todo 这里可以优化为对象池子, 并发请求的时候处理更快
         Set .Context.Server = HttpSvr
         .Socket.Accept requestID
+        '
+        CI.hSocket = .Socket.SocketHandle
+        Set .ClientInfo = CI
+        Set .Context.ClientInfo = CI
         .hSocket = .Socket.SocketHandle
     End With
     '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
@@ -194,7 +196,7 @@ Friend Sub OnCloseSck(Index As Long)
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
     If oCallback.IsSSE = True Then
-        SSE.Remove oCallback.hSocket
+        SSE.CloseClient oCallback.hSocket
     End If
     Set oCallback = Nothing
     '    Set m_cConnPool.Item(Index) = Nothing

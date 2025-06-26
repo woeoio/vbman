@@ -27,8 +27,8 @@ Public TimeUse As New cTimeUse
 Public Baidu As New cBaidu
 
 'tools
-Public ToolsStream As New cToolsStream
-Public ToolsWindow As New cToolsWindow
+Public Stream As New cToolsStream
+Public Window As New cToolsWindow
 
 Public Function Version(Optional HostApp As Object) As String
     Version = Common.Version(HostApp)

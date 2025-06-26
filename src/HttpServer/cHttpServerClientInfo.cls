@@ -15,4 +15,6 @@ Option Explicit
 
 Public IP As String
 Public Port As Long
+Public hSocket As Long
+Public User As String
 Public ConnectAt As Date

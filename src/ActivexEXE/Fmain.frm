@@ -10,6 +10,7 @@ Begin VB.Form Fmain
    ScaleWidth      =   9450
    StartUpPosition =   1  '所有者中心
    Begin VB.Timer Timer1 
+      Enabled         =   0   'False
       Interval        =   100
       Left            =   5400
       Top             =   4080
@@ -20,8 +21,8 @@ Begin VB.Form Fmain
       TabIndex        =   0
       Top             =   360
       Width           =   6615
-      _ExtentX        =   11668
-      _ExtentY        =   5741
+      _extentx        =   11668
+      _extenty        =   5741
    End
    Begin VB.Menu Install 
       Caption         =   "安装"
@@ -112,7 +113,11 @@ Option Explicit
 
 Dim HttpServer As New cHttpServer
 
-
+Public Function StartServer() As Boolean
+    With HttpServer
+        
+    End With
+End Function
 
 Private Sub Form_Load()
     Me.Caption = "VBMAN " & Common.Version

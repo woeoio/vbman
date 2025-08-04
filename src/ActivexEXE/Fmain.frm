@@ -15,13 +15,13 @@ Begin VB.Form Fmain
       Top             =   4080
    End
    Begin VBMANLIB.ucLogs Logs 
-      Height          =   3015
+      Height          =   3255
       Left            =   720
       TabIndex        =   0
       Top             =   360
-      Width           =   5535
-      _extentx        =   9763
-      _extenty        =   5318
+      Width           =   6615
+      _ExtentX        =   11668
+      _ExtentY        =   5741
    End
    Begin VB.Menu Install 
       Caption         =   "°²×°"

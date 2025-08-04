@@ -11,6 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+'作者：邓伟，215879458@qq.com
 '引用：
 'Microsoft ActiveX Data Objects 2.8 Library
 '依赖：

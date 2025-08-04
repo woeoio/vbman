@@ -11,6 +11,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+'×÷Õß£ºµËÎ°£¬215879458@qq.com
+
 Option Explicit
 
 Dim IsRunning  As Boolean
@@ -18,8 +20,6 @@ Dim IsRunning  As Boolean
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
-
-
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 Public Event OnLogs(ByVal Level As String, ByVal Content As String)

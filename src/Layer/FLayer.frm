@@ -55,7 +55,12 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
+Public IsModal As Boolean
+Public IsBlurClose As Boolean
 
+Private Sub Form_LostFocus()
+    If IsBlurClose = True Then Unload Me
+End Sub
 
 Private Sub Form_Resize()
     LContent.Move 0, Me.ScaleHeight / 2 - LContent.Height / 2, Me.ScaleWidth
@@ -76,8 +81,10 @@ End Function
 Public Function ShowTo(Content As String, Optional Owner As Object) As FLayer
     Set ShowTo = Me
     LContent.Caption = Content
+    IsModal = False
     If Owner Is Nothing Then Me.Show: Exit Function
-    Me.Show                                                                     '1, Owner
+    Timer1.Enabled = False
+    Me.Show 1, Owner
     '    ToolsWindow.TopMost Me.hwnd
     '    Me.Refresh
 End Function

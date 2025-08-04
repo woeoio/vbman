@@ -116,7 +116,6 @@ Dim HttpServer As New cHttpServer
 
 Private Sub Form_Load()
     Me.Caption = "VBMAN " & Common.Version
-    Logs.Add Info, "欢迎使用VBMAN服务器"
     LogLevel(Logs.LogLevel).Checked = True
 End Sub
 

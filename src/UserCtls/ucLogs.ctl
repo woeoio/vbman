@@ -13,6 +13,7 @@ Begin VB.UserControl ucLogs
       MultiLine       =   -1  'True
       ScrollBars      =   2  'Vertical
       TabIndex        =   0
+      Text            =   "ucLogs.ctx":0000
       Top             =   840
       Width           =   6495
    End
@@ -24,10 +25,18 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-
+Private Declare Function MakeSureDirectoryPathExists Lib "imagehlp.dll" (ByVal DirPath As String) As Long
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" _
     (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
 
+Dim Logs As New cLogs
+
+Const LOGO_1 As String = " __     __  ____    __  __      _      _   _ " & vbCrLf & _
+    " \ \   / / | __ )  |  \/  |    / \    | \ | |" & vbCrLf & _
+    "  \ \ / /  |  _ \  | |\/| |   / _ \   |  \| |" & vbCrLf & _
+    "   \ V /   | |_) | | |  | |  / ___ \  | |\  |" & vbCrLf & _
+    "    \_/    |____/  |_|  |_| /_/   \_\ |_| \_|" & vbCrLf & _
+    "                                             " & vbCrLf
 
 Public Enum EnumLevel
     Debugger = 0
@@ -100,15 +109,63 @@ Public Sub Add(Level As EnumLevel, ByVal Title As String, ParamArray Contents() 
         SendMessage .hwnd, WM_VSCROLL, SB_BOTTOM, 0
         
     End With
+    '写入文件
+    
 End Sub
-
+Private Function Save() As Boolean
+    Dim LogPath As String
+    Dim LogFile As String
+    '默认值处理
+    If LogSubDir = "" Then LogSubDir = "system"
+    If LogFileNameByUer = "" Then LogFileNameByUer = "vb.txt"
+    If LogFileNameRule = None Then LogFileNameRule = ByDay
+    
+    '    If MakeLogData(LogStr, LogLevel) = False Then Exit Function
+    
+    If LogFileNameRule = byUser Then
+        LogPath = LogSubDir & "\"
+        LogFile = LogFileNameByUer
+    Else
+        Select Case LogFileNameRule
+        Case EnumLogFileNameRule.ByMonth
+            LogPath = Format$(Now, "yyyy") & "\"
+            LogFile = "\" & Format$(Now, "yyyyMM") & ".txt"
+        Case EnumLogFileNameRule.ByDay
+            LogPath = Format$(Now, "yyyy") & "\" & Format$(Now, "MM") & "\"
+            LogFile = Format$(Now, "yyyyMMdd") & ".txt"
+        Case Else
+            LogPath = Format$(Now, "yyyy") & "\" & Format$(Now, "MM") & "\"
+            LogFile = LogFileNameByUer & ".txt"
+        End Select
+        LogPath = "\logs\" + LogSubDir + "\" + LogPath
+    End If
+    If LogDir = "" Then
+        LogPath = App.Path & "\" & LogPath
+    Else
+        LogPath = LogDir & "\" & LogPath
+    End If
+    If Dir(LogPath, vbDirectory) = "" Then                                      '判断文件夹是否存在
+        MakeSureDirectoryPathExists LogPath                                     '创建文件夹
+    End If
+    FileNumber = FreeFile
+    Open LogPath & "\" & LogFile For Append As #FileNumber
+    Print #FileNumber, MakeLogContent()
+    Close #FileNumber
+    
+    Save = True
+End Function
 
 Private Sub UserControl_Initialize()
     MaxContentShow = 65535
     EnumLevelNames = Array("DEBUGGER", "INFO", "WARN", "DANGER", "ERRORS", "", "", "", "", "CUSTOM")
+    'Tlogs.Text = LOGO_1
+    Add Info, "欢迎使用VBMAN服务器"
+    Add Info, "当前版本：" & Common.Version()
+    Add Info, "开发文档：http://doc.vb6.pro"
     If App.LogMode <> 0 Then LogLevel = Info
 End Sub
 
 Private Sub UserControl_Resize()
     Tlogs.Move 0, 0, UserControl.ScaleWidth, UserControl.ScaleHeight
 End Sub
+

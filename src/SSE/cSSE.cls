@@ -63,11 +63,11 @@ Public Function CloseClient(Optional ByVal hSocket As Long) As Boolean
     If hSocket = 0 Then
         For Each x In Clients.Keys()
             Set Client = Clients(x)
-            Call Client.Socket.SendData(d)
+            '            Call Client.Socket.SendData(d)
         Next
     Else
         Set Client = Clients(hSocket)
-        Call Client.Socket.SendData(d)
+        '        Call Client.Socket.SendData(d)
     End If
     GoTo QH
 Start:

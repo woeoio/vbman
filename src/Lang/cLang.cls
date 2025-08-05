@@ -24,6 +24,9 @@ Option Explicit
 '这个方案比资源文件好太多了
 '编译前，是直接加载的 json 文件，方便自己实时修改
 
+' API声明
+Private Declare Function GetSystemDefaultLangID Lib "kernel32" () As Integer
+Private Declare Function GetUserDefaultLangID Lib "kernel32" () As Integer
 
 Public Type TypeLang
     Index As Long
@@ -49,7 +52,7 @@ Public Function Selector(Items As Object, ByVal Index As Long) As Boolean
     Dim M As Menu: Set M = Items(Index)
     '
     LoadData Index
-    SaveSetting "VBMAN", "Lang", "CurLangIndex", Index
+    SaveSetting "VBMAN", "Lang", "CurLang.Index", Index
     '
     Dim i As Long
     For i = 0 To Items.Count - 1
@@ -102,7 +105,20 @@ End Function
 
 Private Sub Class_Initialize()
     Call LoadInfo
-    Dim Idx As Long: Idx = GetSetting("VBMAN", "Lang", "CurLangIndex", 0)
+    Dim Idx As Long: Idx = GetSetting("VBMAN", "Lang", "CurLang.Index", -1)
+    If Idx = -1 Then
+        Dim langID As Integer
+        ' 获取系统默认语言ID
+        langID = GetSystemDefaultLangID()
+        ' 或者使用用户默认语言ID
+        ' langID = GetUserDefaultLangID()
+        '如果当前不是中文系统，则显示默认语言：en-US
+        If langID = EnumLang.LANG_ID_ZH_CH Then
+            Idx = 0
+        Else
+            Idx = LangInfo("DefaultIndex")
+        End If
+    End If
     Call LoadData(Idx)
 End Sub
 

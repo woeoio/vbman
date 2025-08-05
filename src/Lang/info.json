@@ -3,6 +3,7 @@
         "这是一个多语言支持的JSON文件。",
         "它包含了不同语言的翻译和相关信息。"
     ],
+    "DefaultIndex": 1,
     "LangList": [
         {
             "ID": "zh-CN",

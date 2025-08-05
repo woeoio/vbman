@@ -14,6 +14,14 @@ Private Type longByteType
     a4 As Byte
 End Type
 
+Public Function IsControlArray(Ctl As Object) As Boolean
+    On Error GoTo EH
+    Dim a As Integer: a = Ctl.Index
+    IsControlArray = True
+EH:
+End Function
+
+
 Private Sub Command1_Click()
     
     Dim lngNum As longType
@@ -23,25 +31,25 @@ Private Sub Command1_Click()
     
     LSet lngByte = lngNum
     
-    Debug.Print HEX(lngByte.a1), HEX(lngByte.a2), HEX(lngByte.a3), HEX(lngByte.a4)
+    Debug.Print Hex(lngByte.a1), Hex(lngByte.a2), Hex(lngByte.a3), Hex(lngByte.a4)
     
 End Sub
 
 '[desc:把 指定索引 后面的 成员往前移动,然后干掉最后一个元素]
-Public Function Remove(ByRef Arr As Variant, ByVal index As Integer) As Boolean
+Public Function Remove(ByRef Arr As Variant, ByVal Index As Integer) As Boolean
     Dim i As Integer
     
     ' 检查数组是否为空
     If LBound(Arr) > UBound(Arr) Then Exit Function
     
     ' 检查索引是否有效
-    If index < LBound(Arr) Or index > UBound(Arr) Then
+    If Index < LBound(Arr) Or Index > UBound(Arr) Then
         '        MsgBox "索引超出范围"
         Exit Function
     End If
     
     ' 复制保留的元素到新数组
-    For i = index To UBound(Arr) - 1
+    For i = Index To UBound(Arr) - 1
         Arr(i) = Arr(i + 1)
     Next i
     
@@ -55,22 +63,22 @@ Public Function Remove(ByRef Arr As Variant, ByVal index As Integer) As Boolean
 End Function
 
 
-Public Property Let Extend(Vars As Variant, value As Variant)
+Public Property Let Extend(Vars As Variant, Value As Variant)
     '未完待续
-    Dim Min As Long: Min = LBound(value)
-    Dim Max As Long: Max = UBound(value)
+    Dim Min As Long: Min = LBound(Value)
+    Dim Max As Long: Max = UBound(Value)
     Dim All As Long: All = UBound(Vars)
     Dim i As Long
     For i = Min To Max
         If All < i Then Exit For
-        If IsMissing(Vars(i)) = False Then Vars(i) = value(i)
+        If IsMissing(Vars(i)) = False Then Vars(i) = Value(i)
         '        Debug.Print Arr(i)
     Next
 End Property
 
 
 
-Sub Test()
+Sub test()
     Dim a As String, c As String
     DeArray Split("a/b/c", "/"), a, , c
     Debug.Print a
@@ -102,20 +110,20 @@ End Sub
 Public Function IsArrayEmpty(Arr As Variant) As Boolean
     On Error Resume Next                                                        ' 忽略错误
     IsArrayEmpty = (LBound(Arr) > UBound(Arr))                                  ' 如果数组为空，会引发错误，此时LBound(arr) > UBound(arr)的值为True
-    If Err.Number <> 0 Then
+    If ERR.Number <> 0 Then
         ' 如果触发了错误，说明数组为空
         IsArrayEmpty = True
-        Err.Clear                                                               ' 清除错误
+        ERR.Clear                                                               ' 清除错误
     End If
     On Error GoTo 0                                                             ' 恢复正常的错误处理
 End Function
 
 
-Public Function GetIndexByValue(Arr As Variant, value As String) As Long
+Public Function GetIndexByValue(Arr As Variant, Value As String) As Long
     Dim i As Long
     GetIndexByValue = -1                                                        ' 默认返回 -1，表示未找到
     For i = LBound(Arr) To UBound(Arr)
-        If Arr(i) = value Then
+        If Arr(i) = Value Then
             GetIndexByValue = i                                                 ' 找到值，返回索引
             Exit Function
         End If

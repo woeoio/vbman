@@ -33,7 +33,6 @@ Begin VB.Form Fmain
       End
       Begin VB.Menu InstallDirMenu 
          Caption         =   "右键启动"
-         Enabled         =   0   'False
       End
       Begin VB.Menu InstallUrlCall 
          Caption         =   "URL协议启动"
@@ -41,7 +40,6 @@ Begin VB.Form Fmain
       End
       Begin VB.Menu InstallCOM 
          Caption         =   "COM组件"
-         Enabled         =   0   'False
       End
    End
    Begin VB.Menu Servers 
@@ -104,6 +102,19 @@ Begin VB.Form Fmain
          Caption         =   "关于软件"
       End
    End
+   Begin VB.Menu LangSelect 
+      Caption         =   "Language"
+      Begin VB.Menu LangSelectItem 
+         Caption         =   "简体中文"
+         HelpContextID   =   2052
+         Index           =   0
+      End
+      Begin VB.Menu LangSelectItem 
+         Caption         =   "English"
+         HelpContextID   =   1033
+         Index           =   1
+      End
+   End
 End
 Attribute VB_Name = "Fmain"
 Attribute VB_GlobalNameSpace = False
@@ -113,6 +124,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Dim WithEvents HttpServer As cHttpServer
+Attribute HttpServer.VB_VarHelpID = -1
 
 Public Function StartServer( _
     ByVal Address As String, _
@@ -130,11 +142,11 @@ Public Function StartServer( _
         StartServer = .Start(Port, WebRoot, Address)
         If StartServer = True Then
             Logs.IsSaveToFile = IsSaveLogs
-            Logs.Add INFO, "HTTP/SSE服务器启动成功"
-            Logs.Add INFO, "监听地址：" & Address
-            Logs.Add INFO, "监听端口：" & Port
-            Logs.Add INFO, "站点目录：" & WebRoot
-            If SSEPath <> "" Then Logs.Add INFO, "SSE路径：" & SSEPath
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.1")
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.2") & Address
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.3") & Port
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.4") & WebRoot
+            If SSEPath <> "" Then Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.5") & SSEPath
         Else
             MsgBox .LastError
         End If
@@ -143,8 +155,10 @@ End Function
 
 Private Sub Form_Load()
     Me.Caption = "VBMAN " & Common.Version
+    Lang.Render Me
     Set HttpServer = New cHttpServer
     LogLevel(ToolsLogs.LogLevel).Checked = True
+    LangSelectItem(Lang.CurLangIndex).Checked = True
 End Sub
 
 Private Sub Form_Resize()
@@ -154,7 +168,7 @@ End Sub
 Private Sub HelpAbout_Click()
     With FLayer
         .IsBlurClose = True
-        .ShowTo "作者：邓伟，邮箱：215879458@qq.com"
+        .ShowTo Lang("Fmain.HelpAbout.Content")
     End With
 End Sub
 
@@ -164,6 +178,10 @@ End Sub
 
 Private Sub HttpServer_OnLogs(ByVal Level As String, ByVal Content As String)
     Logs.Add INFO, Content
+End Sub
+
+Private Sub LangSelectItem_Click(Index As Integer)
+    Lang.Selector LangSelectItem, Index
 End Sub
 
 Private Sub LogLevel_Click(Index As Integer)

@@ -185,9 +185,9 @@ Private Sub UserControl_Initialize()
         LogLevel = INFO
     End If
     '
-    Add INFO, "欢迎使用VBMAN服务器"
-    Add INFO, "当前版本：" & Common.Version()
-    Add INFO, "开发文档：http://doc.vb6.pro"
+    Add INFO, Lang("Fmain.ucLogs.Initialize.Logs.Info.1")
+    Add INFO, Lang("Fmain.ucLogs.Initialize.Logs.Info.2") & Common.Version()
+    Add INFO, Lang("Fmain.ucLogs.Initialize.Logs.Info.3") & "http://doc.vb6.pro"
 End Sub
 
 Private Sub UserControl_Resize()

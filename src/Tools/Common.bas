@@ -1,6 +1,8 @@
 Attribute VB_Name = "Common"
 Option Explicit
 
+Public Lang As New cLang
+
 ' 在标准模块中添加
 Public g_bRunningAsEXE As Boolean
 

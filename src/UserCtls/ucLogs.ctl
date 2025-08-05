@@ -38,17 +38,17 @@ Const LOGO_1 As String = " __     __  ____    __  __      _      _   _ " & vbCrL
     "    \_/    |____/  |_|  |_| /_/   \_\ |_| \_|" & vbCrLf & _
     "                                             " & vbCrLf
 
-Public Enum EnumLevel
-    Debugger = 0
-    INFO = 1
-    Warn = 2
-    Danger = 3
-    Errors = 4
-    CUSTOM = 9
-End Enum
-Dim EnumLevelNames As Variant
+    'Public Enum EnumLevel
+    '    Debugger = 0
+    '    INFO = 1
+    '    Warn = 2
+    '    Danger = 3
+    '    Errors = 4
+    '    CUSTOM = 9
+    'End Enum
+    'Dim EnumLevelNames As Variant
 
-''日志文件名规则
+    ''日志文件名规则
 Public Enum EnumLogFileNameRule2
     None = 0
     ByMonth = 1
@@ -64,18 +64,18 @@ Public LogFileNameRule As EnumLogFileNameRule2
 '日志文件名称用户定义，支持任意细分深层目录和文件名
 Public LogFileNameByUer As String
 
-Public LogLevel As EnumLevel
+'Public LogLevel As EnumLevel
 Public MaxContentShow As Long
 Public LogLevelOnly As Boolean
 Public IsSaveToFile As Boolean
 
-Public Property Get EnumLevelName(Level As EnumLevel) As String
-    If Level <= CUSTOM Then
-        EnumLevelName = EnumLevelNames(Level)
-    Else
-        EnumLevelName = "CUSTOM+" & (Level - EnumLevel.CUSTOM)
-    End If
-End Property
+'Public Property Get EnumLevelName(Level As EnumLevel) As String
+'    If Level <= CUSTOM Then
+'        EnumLevelName = EnumLevelNames(Level)
+'    Else
+'        EnumLevelName = "CUSTOM+" & (Level - EnumLevel.CUSTOM)
+'    End If
+'End Property
 
 Public Sub SetLogLevelMenu(MenuObj As Object, Index As Integer)
     Dim i As Long
@@ -176,10 +176,11 @@ End Function
 
 Private Sub UserControl_Initialize()
     MaxContentShow = 65535
-    EnumLevelNames = Array("DEBUGGER", "INFO", "WARN", "DANGER", "ERRORS", "", "", "", "", "CUSTOM")
+    '    EnumLevelNames = Array("DEBUGGER", "INFO", "WARN", "DANGER", "ERRORS", "", "", "", "", "CUSTOM")
     'Tlogs.Text = LOGO_1
+    LogDir = ToolsFso.AppPath()
     If App.LogMode = 0 Then
-        LogDir = App.Path & "\..\dist\EXE\"
+        
     Else
         LogLevel = INFO
     End If

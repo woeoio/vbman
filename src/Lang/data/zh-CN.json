@@ -1,5 +1,7 @@
 {
-    "remark": "VBManLib的中文语言文件",
+    "Wellcome": "已切换到中文(简体)语言",
+    "Caption": "中文(简体)",
+    "Fmain": "---------------------------",
     "Fmain.Install.Caption": "安装",
     "Fmain.InstallService.Caption": "系统服务",
     "Fmain.InstallDirMenu.Caption": "右键菜单",

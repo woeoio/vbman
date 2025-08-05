@@ -1,5 +1,7 @@
 {
-    "remark": "VBMAN ASP Server By woeoio",
+    "Wellcome": "Switched to English(US) language",
+    "Caption": "English",
+    "Fmain": "---------------------------",
     "Fmain.Install.Caption": "Install",
     "Fmain.InstallService.Caption": "System Service",
     "Fmain.InstallDirMenu.Caption": "Right Menu Call",

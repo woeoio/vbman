@@ -26,9 +26,9 @@ Option Explicit
 
 
 Public Type TypeLang
-    ID As Long
-    Code As String
-    Title As String
+    Index As Long
+    ID As String
+    Caption As String
 End Type
 
 Public Enum EnumLang
@@ -39,15 +39,16 @@ End Enum
 Public LangData As New cJson
 Public LangInfo As New cJson
 
-Public CurLangID As Long
-Public CurLangIndex As Long
+Dim pvCurLang As TypeLang
+Friend Property Get CurLang() As TypeLang
+    CurLang = pvCurLang
+End Property
 
 
-Public Function Selector(Items As Object, Index As Integer) As Boolean
+Public Function Selector(Items As Object, ByVal Index As Long) As Boolean
     Dim M As Menu: Set M = Items(Index)
-    Dim ID As Long: ID = LangInfo("Map")("IndexToID")(Index + 1)
     '
-    LoadData ID
+    LoadData Index
     SaveSetting "VBMAN", "Lang", "CurLangIndex", Index
     '
     Dim i As Long
@@ -57,47 +58,52 @@ Public Function Selector(Items As Object, Index As Integer) As Boolean
     M.Checked = True
     '
     Render M.Parent
+    Selector = True
 End Function
 
 Public Function Render(Frm As Object) As Boolean
-    Dim O As Form: Set O = Frm
-    Dim Ctl As Variant, Key As String, LN As String
+    Dim o As Form: Set o = Frm
+    Dim Ctl As Variant, key As String, ln As String
     On Error Resume Next
-    LN = Item(O.Name & ".Caption")
-    If LN <> "" Then O.Caption = LN
-    For Each Ctl In O
-        Key = O.Name & "." & Ctl.Name
+    ln = Item(o.Name & ".Caption")
+    If ln <> "" Then o.Caption = ln
+    For Each Ctl In o
+        key = o.Name & "." & Ctl.Name
         If IsControlArray(Ctl.Index) = True Then
-            Key = Key & "." & Ctl.Index
+            key = key & "." & Ctl.Index
         End If
-        Key = Key & ".Caption"
-        LN = Item(Key)
-        If LN <> "" Then Ctl.Caption = LN
+        key = key & ".Caption"
+        ln = Item(key)
+        If ln <> "" Then Ctl.Caption = ln
         'Debug.Print """" & Key & """: """ & Ctl.Caption & """, "
     Next
 End Function
 
-Public Function Item(Key As String) As String
+Public Function Item(key As String) As String
 Attribute Item.VB_UserMemId = 0
-    Item = LangData.Item(Key)
+    Item = LangData.Item(key)
 End Function
-
-Private Function LoadData(ID As Long) As Boolean
-    If IsIDE = True Then
-        LangData.LoadFrom App.Path & "\lang\data\" & ID & ".json", "GBK"
-    Else
-        Dim D() As Byte: D = LoadResData(ID, "CUSTOM")
-        Dim S As String: S = StrConv(D, vbUnicode)
-        LangData.Decode S
-    End If
+Private Function LoadData(ByVal Idx As Long) As Boolean
+    With LangInfo("LangList")(Idx + 1)
+        pvCurLang.Index = Idx
+        pvCurLang.ID = .Item("ID")
+        pvCurLang.Caption = .Item("Caption")
+        '
+        If IsIDE = True Then
+            LangData.LoadFrom App.Path & "\lang\data\" & pvCurLang.ID & ".json", "GBK"
+        Else
+            Dim d() As Byte: d = LoadResData(pvCurLang.ID, "LANGUAGE")
+            Dim S As String: S = StrConv(d, vbUnicode)
+            LangData.Decode S
+        End If
+    End With
     LoadData = True
 End Function
 
 Private Sub Class_Initialize()
     Call LoadInfo
-    CurLangIndex = GetSetting("VBMAN", "Lang", "CurLangIndex", 0)
-    CurLangID = LangInfo("Map")("IndexToID")(CurLangIndex + 1)
-    Call LoadData(CurLangID)
+    Dim Idx As Long: Idx = GetSetting("VBMAN", "Lang", "CurLangIndex", 0)
+    Call LoadData(Idx)
 End Sub
 
 
@@ -105,8 +111,8 @@ Private Function LoadInfo() As Boolean
     If IsIDE = True Then
         LangInfo.LoadFrom App.Path & "\lang\info.json", "GBK"
     Else
-        Dim D() As Byte: D = LoadResData(6000, "CUSTOM")
-        Dim S As String: S = StrConv(D, vbUnicode)
+        Dim d() As Byte: d = LoadResData("-", "LANGUAGE")
+        Dim S As String: S = StrConv(d, vbUnicode)
         LangInfo.Decode S
     End If
     LoadInfo = True

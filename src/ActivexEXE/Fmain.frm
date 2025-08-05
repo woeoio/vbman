@@ -22,8 +22,8 @@ Begin VB.Form Fmain
       TabIndex        =   0
       Top             =   360
       Width           =   6615
-      _extentx        =   11668
-      _extenty        =   5741
+      _ExtentX        =   11668
+      _ExtentY        =   5741
    End
    Begin VB.Menu Install 
       Caption         =   "°²×°"
@@ -142,11 +142,11 @@ Public Function StartServer( _
         StartServer = .Start(Port, WebRoot, Address)
         If StartServer = True Then
             Logs.IsSaveToFile = IsSaveLogs
-            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.1")
-            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.2") & Address
-            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.3") & Port
-            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.4") & WebRoot
-            If SSEPath <> "" Then Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.5") & SSEPath
+            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.1")
+            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.2") & Address
+            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.3") & Port
+            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.4") & WebRoot
+            If SSEPath <> "" Then Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.5") & SSEPath
         Else
             MsgBox .LastError
         End If
@@ -158,7 +158,7 @@ Private Sub Form_Load()
     Lang.Render Me
     Set HttpServer = New cHttpServer
     LogLevel(ToolsLogs.LogLevel).Checked = True
-    LangSelectItem(Lang.CurLangIndex).Checked = True
+    LangSelectItem(Lang.CurLang.Index).Checked = True
 End Sub
 
 Private Sub Form_Resize()
@@ -177,11 +177,12 @@ Private Sub HelpDoc_Click()
 End Sub
 
 Private Sub HttpServer_OnLogs(ByVal Level As String, ByVal Content As String)
-    Logs.Add INFO, Content
+    Logs.Add Info, Content
 End Sub
 
 Private Sub LangSelectItem_Click(Index As Integer)
-    Lang.Selector LangSelectItem, Index
+    If Lang.Selector(LangSelectItem, Index) = False Then MsgBox "ÇÐ»»Ê§°Ü": Exit Sub
+    Logs.Add Info, Lang("Wellcome")
 End Sub
 
 Private Sub LogLevel_Click(Index As Integer)

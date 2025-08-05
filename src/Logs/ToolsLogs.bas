@@ -10,7 +10,7 @@ Public Const LEVEL_CUSTOM As String = "CUSTOM"
     
 Public Enum EnumLevel
     Debugger = 0
-    INFO = 1
+    Info = 1
     Warn = 2
     Danger = 3
     Errors = 4

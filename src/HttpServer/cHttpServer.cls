@@ -25,6 +25,7 @@ Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean
 Public Event OnLogs(ByVal Level As String, ByVal Content As String)
 
 Public SSE As New cSSE
+Public ScriptEngine As New cScriptEngine
 
 Public Router As New cHttpServerRouter
 Public RouteBefore As New cHttpServerRouteBefore
@@ -42,7 +43,7 @@ Dim HttpSvr As cHttpServerSvr
 
 
 Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
-    If IsRunning = True Then Exit Function
+    If IsRunning = True Then LastError = "服务器正在运行中": Exit Function
     Set m_oServer = New cTlsReMaster
     With m_oServer
         .Protocol = RemasterProtocolConstants.sckTCPProtocol
@@ -130,11 +131,11 @@ Friend Sub OnDataArrival(Index As Long)
     On Error GoTo EH
     '写入对象到上下文
     Dim Request As New cHttpServerRequest
-    Dim Response As New cHttpServerResponse
+    Dim response As New cHttpServerResponse
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
     '传入Client给输出对象
-    Set Response.fClient = oCallback
+    Set response.fClient = oCallback
     Dim vRequest As Variant
     Dim sRequestHead            As String
     Dim sRequestBody            As String
@@ -160,9 +161,9 @@ Friend Sub OnDataArrival(Index As Long)
     '是否 options 查询, 且没有中间件处理流程, 则这里简单处理下, 避免重入业务流程
     If Request.Method = ReqOptions Then
         If CrossDomain.Enable = True Then
-            Response.Text ""
+            response.Text ""
         Else
-            Response.State403
+            response.State403
         End If
         Exit Sub
     End If
@@ -171,7 +172,7 @@ Friend Sub OnDataArrival(Index As Long)
     Dim Cookies As New cHttpServerCookies
     With oCallback.Context
         Set .Request = Request
-        Set .Response = Response
+        Set .response = response
         Set .Session = Session
         Set .Cookies = Cookies
         Set .Db = oCallback.Parent.Database
@@ -188,7 +189,7 @@ EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, ErrInfo)
     'todo 如果开发者定义了全局错误处理，就执行，否则执行默认错误处理函数
-    Response.State500 ErrInfo
+    response.State500 ErrInfo
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)

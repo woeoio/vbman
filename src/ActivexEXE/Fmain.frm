@@ -5,6 +5,7 @@ Begin VB.Form Fmain
    ClientLeft      =   120
    ClientTop       =   765
    ClientWidth     =   9450
+   Icon            =   "Fmain.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   5610
    ScaleWidth      =   9450
@@ -111,17 +112,39 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-Dim HttpServer As New cHttpServer
+Dim WithEvents HttpServer As cHttpServer
 
-Public Function StartServer() As Boolean
+Public Function StartServer( _
+    ByVal Address As String, _
+    ByVal Port As Long, _
+    ByVal WebRoot As String, _
+    ByVal SSEPath As String, _
+    ByVal IsSaveLogs As Boolean _
+    ) As Boolean
+    If ToolsFso.IsFullPath(WebRoot) = False Then
+        WebRoot = ToolsFso.AppPath(WebRoot)
+    End If
     With HttpServer
-        
+        If SSEPath <> "" Then .SSE.Start SSEPath
+        .ScriptEngine.Start
+        StartServer = .Start(Port, WebRoot, Address)
+        If StartServer = True Then
+            Logs.IsSaveToFile = IsSaveLogs
+            Logs.Add INFO, "HTTP/SSE服务器启动成功"
+            Logs.Add INFO, "监听地址：" & Address
+            Logs.Add INFO, "监听端口：" & Port
+            Logs.Add INFO, "站点目录：" & WebRoot
+            If SSEPath <> "" Then Logs.Add INFO, "SSE路径：" & SSEPath
+        Else
+            MsgBox .LastError
+        End If
     End With
 End Function
 
 Private Sub Form_Load()
     Me.Caption = "VBMAN " & Common.Version
-    LogLevel(Logs.LogLevel).Checked = True
+    Set HttpServer = New cHttpServer
+    LogLevel(ToolsLogs.LogLevel).Checked = True
 End Sub
 
 Private Sub Form_Resize()
@@ -137,6 +160,10 @@ End Sub
 
 Private Sub HelpDoc_Click()
     Shell "explorer https://doc.vb6.pro/vbsman"
+End Sub
+
+Private Sub HttpServer_OnLogs(ByVal Level As String, ByVal Content As String)
+    Logs.Add INFO, Content
 End Sub
 
 Private Sub LogLevel_Click(Index As Integer)

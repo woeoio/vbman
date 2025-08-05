@@ -9,6 +9,10 @@ Public Inst As New Scripting.FileSystemObject
 '申明
 Private Declare Function MakeSureDirectoryPathExists Lib "imagehlp.dll" (ByVal DirPath As String) As Long
 
+Public Function IsFullPath(Path As String) As Boolean
+    IsFullPath = ToolsStr.HasStr(":\", Path) = 0
+End Function
+
 Public Function AutoCompleteFullPath(Path As String, Optional IsFile As Boolean) As String
     '支持路径自动补全
     AutoCompleteFullPath = Path
@@ -31,6 +35,13 @@ Public Function AutoMakeDir(ByVal Path As String, Optional IsFile As Boolean) As
     AutoMakeDir = DirPart
 End Function
 
+Public Function AppPath(Optional ByVal Path As String) As String
+    If App.LogMode = 0 Then
+        AppPath = App.Path & "\..\dist\EXE\" & Path
+    Else
+        AppPath = App.Path & "\" & Path
+    End If
+End Function
 
 Public Function MakeNewFileFulPath(FileSrc As String, AppendFix As String, Optional JoinStr As String = "_") As String
     Dim fd As String: fd = Inst.GetParentFolderName(FileSrc)
@@ -40,14 +51,14 @@ Public Function MakeNewFileFulPath(FileSrc As String, AppendFix As String, Optio
 End Function
 
 
-Public Sub Test()
+Public Sub test()
     Dim r As Scripting.Folder
     Dim rDirs As Scripting.Folders
     Dim rFiles As Scripting.Files
     Set r = Inst.GetFolder("D:\code\_html\easyweb\spa-3.1.8")
     Set rDirs = r.SubFolders
     Set rFiles = r.Files
-    Dim x as Variant
+    Dim x As Variant
     For Each x In rDirs
         Debug.Print x.Name
     Next

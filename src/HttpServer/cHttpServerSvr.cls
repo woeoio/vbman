@@ -30,6 +30,7 @@ End Property
 Public Property Let WebRoot(v As String)
     If v = "" Then Exit Property
     pWebRoot = ToolsFso.AutoCompleteFullPath(v)
+    ToolsFso.AutoMakeDir pWebRoot
     '如果设置了web目录，则把根目录的文件夹名称和文件名放到字典，给路由判断是否静态文件
     Dim r As Scripting.Folder
     Dim rDirs As Scripting.Folders

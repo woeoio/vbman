@@ -22,8 +22,8 @@ Begin VB.Form Fmain
       TabIndex        =   0
       Top             =   360
       Width           =   6615
-      _ExtentX        =   11668
-      _ExtentY        =   5741
+      _extentx        =   11668
+      _extenty        =   5741
    End
    Begin VB.Menu Install 
       Caption         =   "°²×°"
@@ -105,14 +105,8 @@ Begin VB.Form Fmain
    Begin VB.Menu LangSelect 
       Caption         =   "Language"
       Begin VB.Menu LangSelectItem 
-         Caption         =   "¼òÌåÖÐÎÄ"
-         HelpContextID   =   2052
+         Caption         =   "-"
          Index           =   0
-      End
-      Begin VB.Menu LangSelectItem 
-         Caption         =   "English"
-         HelpContextID   =   1033
-         Index           =   1
       End
    End
 End
@@ -142,11 +136,11 @@ Public Function StartServer( _
         StartServer = .Start(Port, WebRoot, Address)
         If StartServer = True Then
             Logs.IsSaveToFile = IsSaveLogs
-            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.1")
-            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.2") & Address
-            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.3") & Port
-            Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.4") & WebRoot
-            If SSEPath <> "" Then Logs.Add Info, Lang("Fmain.StartServer.Logs.Info.5") & SSEPath
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.1")
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.2") & Address
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.3") & Port
+            Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.4") & WebRoot
+            If SSEPath <> "" Then Logs.Add INFO, Lang("Fmain.StartServer.Logs.Info.5") & SSEPath
         Else
             MsgBox .LastError
         End If
@@ -156,9 +150,9 @@ End Function
 Private Sub Form_Load()
     Me.Caption = "VBMAN " & Common.Version
     Lang.Render Me
+    Lang.SetSelector LangSelectItem
     Set HttpServer = New cHttpServer
     LogLevel(ToolsLogs.LogLevel).Checked = True
-    LangSelectItem(Lang.CurLang.Index).Checked = True
 End Sub
 
 Private Sub Form_Resize()
@@ -177,12 +171,12 @@ Private Sub HelpDoc_Click()
 End Sub
 
 Private Sub HttpServer_OnLogs(ByVal Level As String, ByVal Content As String)
-    Logs.Add Info, Content
+    Logs.Add INFO, Content
 End Sub
 
 Private Sub LangSelectItem_Click(Index As Integer)
-    If Lang.Selector(LangSelectItem, Index) = False Then MsgBox "ÇÐ»»Ê§°Ü": Exit Sub
-    Logs.Add Info, Lang("Wellcome")
+    If Lang.Selected(Index) = False Then MsgBox "ÇÐ»»Ê§°Ü": Exit Sub
+    Logs.Add INFO, Lang("Wellcome")
 End Sub
 
 Private Sub LogLevel_Click(Index As Integer)

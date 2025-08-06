@@ -43,25 +43,49 @@ Public LangData As New cJson
 Public LangInfo As New cJson
 
 Dim pvCurLang As TypeLang
+Dim MenuSelector As Object
+
 Friend Property Get CurLang() As TypeLang
     CurLang = pvCurLang
 End Property
 
-
-Public Function Selector(Items As Object, ByVal Index As Long) As Boolean
-    Dim M As Menu: Set M = Items(Index)
+Public Function SetSelector(Items As Object) As Boolean
+    Set MenuSelector = Items
+    '
+    Dim ItemIndex As Long, M As Menu, x As Variant
+    For Each x In LangInfo("LangList")
+        If ItemIndex = 0 Then
+            Set M = Items(0)
+        Else
+            Load Items(ItemIndex)
+            Set M = Items(ItemIndex)
+        End If
+        M.Caption = x("Caption")
+        M.Visible = True
+        ItemIndex = ItemIndex + 1
+    Next
+    '
+    If Items.Count > 0 Then
+        If Items.Count <= CurLang.Index Then CurLang.Index = 0
+        Items(CurLang.Index).Checked = True
+    End If
+    '
+    SetSelector = True
+End Function
+Public Function Selected(ByVal Index As Long) As Boolean
+    Dim M As Menu: Set M = MenuSelector(Index)
     '
     LoadData Index
     SaveSetting "VBMAN", "Lang", "CurLang.Index", Index
     '
     Dim i As Long
-    For i = 0 To Items.Count - 1
-        Items(i).Checked = False
+    For i = 0 To MenuSelector.Count - 1
+        MenuSelector(i).Checked = False
     Next
     M.Checked = True
     '
     Render M.Parent
-    Selector = True
+    Selected = True
 End Function
 
 Public Function Render(Frm As Object) As Boolean

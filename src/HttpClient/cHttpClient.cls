@@ -64,28 +64,28 @@ Public DebugInfo As New cJson
 '链式调用函数参数变量区
 Dim IsAsync As Boolean
 
-Public Function MapRequestContentType(ReqType As EnumRequestContentType) As String
+Public Function MapRequestContentType(ReqType As EnumRequestContentType, Optional ContentType As String) As String
     Dim Arr: Arr = Array("", _
-    ToolsHttp.C_CONTENT_TYPE_JSON, _
-    ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, _
-    ToolsHttp.C_CONTENT_TYPE_FORM_MULTIPART, _
-    ToolsHttp.C_CONTENT_TYPE_TEXT_PLAIN, _
-    ToolsHttp.C_CONTENT_TYPE_TEXT_HTML _
+    Consts.TOOLS_HTTP_CONTENT_TYPE_JSON, _
+    Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED, _
+    Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_MULTIPART, _
+    Consts.TOOLS_HTTP_CONTENT_TYPE_TEXT_PLAIN, _
+    Consts.TOOLS_HTTP_CONTENT_TYPE_TEXT_HTML _
     )
     RequestContentType = Arr(ReqType)
     MapRequestContentType = RequestContentType
 End Function
 
-Public Sub ShowPage(Url As String)
-    ShellExecute 0, "open", Url, 0, 0, 1
+Public Sub ShowPage(url As String)
+    ShellExecute 0, "open", url, 0, 0, 1
 End Sub
 
-Public Function SetCookies(ByVal value As String) As cHttpClient
+Public Function SetCookies(ByVal Value As String) As cHttpClient
     Set SetCookies = Me
-    If Trim(value) = "" Then Exit Function
+    If Trim(Value) = "" Then Exit Function
     'todo 此处应该实现字符串解析到 Cookies 对象,
     '并且返回头如果有 set-cookies 也要自动处理, 而且可能有多个 set-Cookies
-    RequestHeaders("Cookie") = value
+    RequestHeaders("Cookie") = Value
 End Function
 
 Public Function Async(Bool As Boolean) As cHttpClient
@@ -93,27 +93,27 @@ Public Function Async(Bool As Boolean) As cHttpClient
     IsAsync = Bool
 End Function
 
-Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As cHttpClient
+Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional Body As String) As cHttpClient
     Set Fetch = Me
     On Error GoTo ERR:
     Dim x As Variant: LastError = "": Set DebugInfo = Nothing
     '检查url
-    If Url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
+    If url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
-    If RequestDataQuery.Count > 0 Then Url = ToolsHttp.AddToQueryString(Url, ToolsHttp.MakeContent(RequestDataQuery))
+    If RequestDataQuery.Count > 0 Then url = ToolsHttp.AddToQueryString(url, ToolsHttp.MakeContent(RequestDataQuery))
     '是否添加URL资源版本号
     '    If addVer Then Url = ToolsHttp.AddToQueryString(Url, Rnd())
     '打开链路
     Dim MethodName As String: MethodName = ToolsHttp.MapMethodName(Method)
-    Inst.Open MethodName, Url, True
+    Inst.Open MethodName, url, True
     '处理Header
     With RequestHeaders
         If .Exists("Cookie") = False Then
             'todo
         End If
         If .Exists("Content-Type") = False Then
-            If RequestContentType = "" Then RequestContentType = ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED
-            .Add ToolsHttp.C_HEADER_FIELD_CONTENT_TYPE, RequestContentType
+            If RequestContentType = "" Then RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
+            .Add Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_TYPE, RequestContentType
         End If
         If .Count > 0 Then
             For Each x In .Keys()
@@ -125,9 +125,9 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
     Inst.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
     '处理POSTBODY
     If Body = "" Then
-        If RequestContentType = ToolsHttp.C_CONTENT_TYPE_JSON Then
+        If RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_JSON Then
             Body = Json.Encode(RequestDataBody)
-        ElseIf RequestContentType = ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED Then
+        ElseIf RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED Then
             Body = ToolsHttp.MakeContent(RequestDataBody)
         End If
     End If
@@ -141,7 +141,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         Else
             BodyByte = ToolsArray.StringToByteArray(Body)
         End If
-        Inst.SetRequestHeader ToolsHttp.C_HEADER_FIELD_CONTENT_LENGHT, UBound(BodyByte) + 1
+        Inst.SetRequestHeader Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_LENGHT, UBound(BodyByte) + 1
         '发送数据
         Inst.Send BodyByte
     End If
@@ -179,7 +179,7 @@ CLEAN:
             With .NewItem("Request")
                 .Item("IsAsync") = IsAsync
                 .Item("Method") = MethodName
-                .Item("Url") = Url
+                .Item("Url") = url
                 .Item("Body") = Body
                 Set .Item("Headers") = RequestHeaders
                 .Item("TimeOut") = RequestTimeOut
@@ -242,7 +242,7 @@ Private Sub Class_Initialize()
     'sendTimeout = 120000 '发送数据的超时时间，120000 毫秒。
     'receiveTimeout = 60000 '接收 response 的超时时间，60000 毫秒。
     
-    '    reqHeaders.Add ToolsHttp.C_HEADER_FIELD_CONTENT_TYPE, ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED
+    '    reqHeaders.Add Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_TYPE, Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
     '    reqHeaders.Add "req-from", "vb ajax class by 215879458@qq.com"
     '    postBody.Add "ver", 1#
     

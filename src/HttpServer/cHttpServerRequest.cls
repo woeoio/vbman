@@ -26,12 +26,13 @@ Public Enum EnumRequestContentType
     FormMultiPart = 3
     TextPlain = 4
     TextHtml = 5
+    Custom = 6
 End Enum
 
 Public Method As EnumRequestMethod
 Public MethodName As String
 Public HttpVersion As String
-Public Url As String
+Public url As String
 Public PathInfo As String
 Public PathInfoController As String
 Public PathInfoAction As String
@@ -66,8 +67,8 @@ Private Function ParseUri(sRequest As String) As Boolean
     Method = ToolsHttp.MapMethod(MethodName)
     HttpVersion = a(2)
     If a(1) = "/" Then PathInfo = "/": GoTo QH
-    Url = ToolsHttp.UrlDecodeUtf8(a(1))
-    Dim PQ: PQ = Split(Url, "?", 2)
+    url = ToolsHttp.UrlDecodeUtf8(a(1))
+    Dim PQ: PQ = Split(url, "?", 2)
     PathInfo = PQ(0)
     If UBound(PQ) > 0 Then QueryInfo = PQ(1)
     If PathInfo <> "/" Then
@@ -114,7 +115,7 @@ Friend Function ParseBody(aReqBody() As Byte) As Boolean
     On Error GoTo EH
     Dim b As String
     '解析表单
-    If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
+    If ToolsStr.HasStr(Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
         '先进行编码转换
         b = ToolsUtf8.Decode(aReqBody)
         '        b = ToolsHttp.UrlDecodeUtf8(b)
@@ -122,7 +123,7 @@ Friend Function ParseBody(aReqBody() As Byte) As Boolean
         Call ToolsHttp.ParseContent(b, Form): GoTo QH
     End If
     '解析json
-    If ToolsStr.HasStr(ToolsHttp.C_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
+    If ToolsStr.HasStr(Consts.TOOLS_HTTP_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
         '先进行编码转换
         b = ToolsUtf8.Decode(aReqBody)
         Call Json.Decode(b)

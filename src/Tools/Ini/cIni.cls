@@ -14,13 +14,26 @@ Attribute VB_Exposed = True
 Option Explicit
 
 '    引用了Microsoft Scripting Runtime
+    
+'todo: 支持无节点的键值对读写
 
 Dim Fso  As New Scripting.FileSystemObject
 Dim FileStream As Scripting.TextStream
 Public LastError As String
 
-Public Root As New Scripting.Dictionary
-Attribute Root.VB_VarUserMemId = 0
+Dim RootDic As New Scripting.Dictionary
+
+Public Property Get Root() As Scripting.Dictionary
+Attribute Root.VB_UserMemId = 0
+    Set Root = RootDic
+End Property
+
+Public Property Get Section(ByVal Key As String) As Scripting.Dictionary
+    If RootDic.Exists(Key) = False Then
+        RootDic.Add Key, New Scripting.Dictionary
+    End If
+    Set Section = RootDic(Key)
+End Property
 
 Private Sub FixFileExtName(Path As String)
     '自动完善 .ini 后缀名
@@ -33,7 +46,7 @@ Public Function SaveTo(Optional ByVal Path As String) As Boolean
     On Error GoTo EH
     Dim Text As String, Value As String
     Dim Section As Variant, Key As Variant
-    Dim Dic As Scripting.Dictionary: Set Dic = Root
+    Dim Dic As Scripting.Dictionary: Set Dic = RootDic
     If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
     FixFileExtName Path
     ToolsFso.AutoMakeDir Path, True
@@ -60,7 +73,8 @@ Public Function LoadFrom(ByVal Path As String) As cIni
     On Error GoTo EH
     Dim Section As String
     Dim TextLine As String
-    Dim Dic As Scripting.Dictionary: Set Dic = Root
+    Dim Dic As Scripting.Dictionary: Set Dic = RootDic
+    Call Dic.RemoveAll
     FixFileExtName Path
     Set FileStream = Fso.OpenTextFile(Path, ForReading)
     Do Until FileStream.AtEndOfStream
@@ -100,7 +114,6 @@ Public Function LoadFrom(ByVal Path As String) As cIni
     Loop
     FileStream.Close
     LastError = ""
-    LoadFrom = True
     Exit Function
 EH:
     LastError = "【iniTools.LoadFrom错误】" & ERR.Number & "#" & ERR.Description & ": " & Path

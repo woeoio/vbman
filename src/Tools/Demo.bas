@@ -1,6 +1,31 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+
+
+
+Sub JsonStr()
+    Const a As String = "130405089908358152"
+    With New cJson
+        .Item("a") = a
+        Debug.Print .Encode()
+    End With
+End Sub
+
+Sub jsonbig()
+    Dim j As New cJson
+    j.LoadFrom "d:\temp\1.json"
+    
+End Sub
+'
+Sub AesCBC()
+    '    With New cAes
+    '
+    '        MsgBox .CBC.Encode("2")
+    '
+    '    End With
+End Sub
+
 Sub Db()
     With New cDataBase
         If .Connect(Mysql, "127.0.0.1,3306", "root", "root", "mysql") = False Then MsgBox .LastErr: Exit Sub
@@ -43,7 +68,7 @@ Public Sub DbgJson()
     End With
 End Sub
 
-Public Sub tLogs()
+Public Sub Tlogs()
     With New cLogs
         .ShowLogsViewer = True
         .Data "ghj"

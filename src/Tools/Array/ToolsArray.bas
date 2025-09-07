@@ -156,17 +156,17 @@ Function SliceByteArray(ByRef Arr() As Byte, ByVal StartPos As Long, Optional By
 End Function
 
 '' 处理 String 类型数组的切片
-'Function SliceString(ByVal Arr As String, ByVal StartPos As Long, Optional ByVal EndPos As Long = -1) As String
-'    Dim slicedStr As String
-'
-'    If EndPos = -1 Then
-'        slicedStr = Mid$(Arr, StartPos + 1)                                     ' 从 startPos 到字符串末尾
-'    Else
-'        slicedStr = Mid$(Arr, StartPos + 1, EndPos - StartPos)                  ' 从 startPos 到 endPos
-'    End If
-'
-'    SliceString = slicedStr
-'End Function
+Function SliceString(ByVal Arr As String, ByVal StartPos As Long, Optional ByVal EndPos As Long = -1) As String
+    Dim slicedStr As String
+    
+    If EndPos = -1 Then
+        slicedStr = Mid$(Arr, StartPos + 1)                                     ' 从 startPos 到字符串末尾
+    Else
+        slicedStr = Mid$(Arr, StartPos + 1, EndPos - StartPos)                  ' 从 startPos 到 endPos
+    End If
+    
+    SliceString = slicedStr
+End Function
 
 ' 处理 Long 类型数组的切片
 Function SliceLongArray(ByRef Arr() As Long, ByVal StartPos As Long, Optional ByVal EndPos As Long = -1) As Long()

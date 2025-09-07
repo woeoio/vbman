@@ -13,6 +13,15 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
+
+Public Sub CloseAll()
+    Unload FLayer
+End Sub
+
+Public Function CloseMe(Optional ByVal FormID As Long = 3) As cLayer
+    Set CloseMe = Me
+End Function
+
 Public Function Msg(ByVal Content As String, Optional ByVal Seconds As Long = 3) As cLayer
     Set Msg = Me
     Call FLayer.ShowTo(Content)

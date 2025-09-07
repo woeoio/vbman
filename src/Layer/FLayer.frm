@@ -4,7 +4,7 @@ Begin VB.Form FLayer
    BackColor       =   &H00404040&
    BorderStyle     =   0  'None
    Caption         =   "Form1"
-   ClientHeight    =   855
+   ClientHeight    =   675
    ClientLeft      =   0
    ClientTop       =   0
    ClientWidth     =   6120
@@ -12,19 +12,19 @@ Begin VB.Form FLayer
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   855
+   ScaleHeight     =   675
    ScaleWidth      =   6120
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  '所有者中心
    Begin VB.Timer Timer2 
       Interval        =   100
-      Left            =   2160
-      Top             =   240
+      Left            =   3360
+      Top             =   120
    End
    Begin VB.Timer Timer1 
       Enabled         =   0   'False
       Left            =   2640
-      Top             =   1440
+      Top             =   120
    End
    Begin VB.Label LContent 
       Alignment       =   2  'Center
@@ -80,17 +80,17 @@ End Function
 
 Public Function ShowTo(Content As String, Optional Owner As Object) As FLayer
     Set ShowTo = Me
+    Timer1.Enabled = False
     LContent.Caption = Content
     IsModal = False
+    ToolsWindow.TopMost Me.hwnd
+    Me.Refresh
     If Owner Is Nothing Then Me.Show: Exit Function
-    Timer1.Enabled = False
     Me.Show 1, Owner
-    '    ToolsWindow.TopMost Me.hwnd
-    '    Me.Refresh
 End Function
 
 Private Sub Timer2_Timer()
-    ToolsWindow.TopMost Me.hwnd
-    Me.Refresh
+    '    ToolsWindow.TopMost Me.hwnd
+    '    Me.Refresh
     
 End Sub

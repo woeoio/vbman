@@ -12,6 +12,22 @@
         {
             "ID": "en-US",
             "Caption": "English"
+        },
+        {
+            "ID": "ja-JP",
+            "Caption": "日本語"
+        },
+        {
+            "ID": "zh-TW",
+            "Caption": "繁體中文"
+        },
+        {
+            "ID": "fr-FR",
+            "Caption": "francés"
+        },
+        {
+            "ID": "es-ES",
+            "Caption": "Espa?ol"
         }
     ]
 }

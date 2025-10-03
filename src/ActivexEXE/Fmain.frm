@@ -22,8 +22,8 @@ Begin VB.Form Fmain
       TabIndex        =   0
       Top             =   360
       Width           =   6615
-      _extentx        =   11668
-      _extenty        =   5741
+      _ExtentX        =   11668
+      _ExtentY        =   5741
    End
    Begin VB.Menu Install 
       Caption         =   "°²×°"
@@ -193,6 +193,6 @@ Private Sub ServerHttp_Click()
 End Sub
 
 Private Sub Timer1_Timer()
-    Logs.Add Danger, "HHHHH"
-    Logs.Add CUSTOM + 1002, "EEEEE"
+    Logs.Add EnumLevel.Danger, "HHHHH"
+    Logs.Add EnumLevel.CUSTOM + 1002, "EEEEE"
 End Sub

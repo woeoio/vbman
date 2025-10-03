@@ -45,7 +45,7 @@ Public LangInfo As New cJson
 Dim pvCurLang As TypeLang
 Dim MenuSelector As Object
 
-Friend Property Get CurLang() As TypeLang
+Public Property Get CurLang() As TypeLang
     CurLang = pvCurLang
 End Property
 

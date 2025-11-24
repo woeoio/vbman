@@ -168,7 +168,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         If RequestTimeOut < 5 Then RequestTimeOut = 5
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
         '处理网络不可用
-        If Inst.Status = WinHttpRequestStatus_Sending Then ERR.Raise 901, , "网络不可用"
+        '        If Inst.Status = WinHttpRequestStatus_Sending Then ERR.Raise 901, , "网络不可用"
         '        Do While httpRequest.Status = WinHttpRequestStatus_Sending
         '            DoEvents                                                            '允许其他事件处理，防止卡死
         '        Loop

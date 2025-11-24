@@ -83,6 +83,7 @@ Class=cLang; Lang\cLang.cls
 Module=mLang; Lang\mLang.bas
 Module=ToolsIDE; Tools\ToolsIDE.bas
 ResFile32="RES\VBMANLIB.RES"
+Class=cAI; AI\cAI.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

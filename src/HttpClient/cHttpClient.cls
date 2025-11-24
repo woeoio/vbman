@@ -167,6 +167,12 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
         '设置等待超时, '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
         If RequestTimeOut < 5 Then RequestTimeOut = 5
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
+        '处理网络不可用
+        If Inst.Status = WinHttpRequestStatus_Sending Then ERR.Raise 901, , "网络不可用"
+        '        Do While httpRequest.Status = WinHttpRequestStatus_Sending
+        '            DoEvents                                                            '允许其他事件处理，防止卡死
+        '        Loop
+        '
         If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
         '解析 返回头
         Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)

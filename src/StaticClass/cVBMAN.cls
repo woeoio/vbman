@@ -22,6 +22,7 @@ Public Ini As New cIni
 Public Logs As New cLogs
 Public Cmd As New cCmd
 Public TimeUse As New cTimeUse
+Public PLI As New cPLI
 
 '第三方
 Public Baidu As New cBaidu
@@ -35,7 +36,13 @@ Public ToolsHttp As New cToolsHttp
 Public ToolsBase64 As New cToolsBase64
 Public ToolsUtf8 As New cToolsUtf8
 
+'实验证明，dll编译后的app对象就是dll所属的
 Public Function Version(Optional HostApp As Object) As String
     Version = Common.Version(HostApp)
 End Function
+
+Public Function Path(Optional HostApp As Object) As String
+    Path = Common.Path(HostApp)
+End Function
+
 

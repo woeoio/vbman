@@ -1,7 +1,13 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
-
+Sub ArrayFor()
+    Dim a: a = Array(1, 2, 3)
+    Dim x
+    For Each x In a
+        Debug.Print x
+    Next
+End Sub
 
 
 Sub JsonStr()

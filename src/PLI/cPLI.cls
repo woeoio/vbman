@@ -20,6 +20,7 @@ Dim PliPath As String
 
 Const PLI_NAME As String = "VBMAN.PLI"
 Const PSC_NAME As String = "VBMAN.PSC"
+Const DAT_NAME As String = "VBMAN.DAT"
 
 Public Function Request(ParamArray Data() As Variant) As String
     PliPath = App.Path & "\"
@@ -55,7 +56,13 @@ Public Function Request(ParamArray Data() As Variant) As String
     Dat _
     ), " ")
     '    MsgBox Cmd
-    Request = StdIO.ExecuteCommand(Cmd, TimeOut, PliPath)
+    Dim Res As String: Res = StdIO.ExecuteCommand(Cmd, TimeOut, PliPath)
+    '
+    If Res = DAT_NAME Then
+        Res = ToolsStream.LoadFileAsText(PliPath & DAT_NAME)
+        Kill PliPath & DAT_NAME
+    End If
+    Request = Res
 End Function
 
 

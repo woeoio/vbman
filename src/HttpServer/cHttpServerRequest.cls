@@ -49,11 +49,17 @@ Public HeaderHostDomain As String
 Public HeaderHostPort As Long
 Public HeaderContentType As String
 Public HeaderContentLength As Long
+Dim pvRawBodyText As String
+Dim pvRawBodyBin() As Byte
 
 Public LastError As String
 
-Dim BodyRaw As Variant
-
+Public Property Get RawBodyText() As String
+    RawBodyText = pvRawBodyText
+End Property
+Public Property Get RawBodyBin() As Byte()
+    RawBodyBin = pvRawBodyBin
+End Property
 Public Property Get Item(ByVal key) As Variant
 Attribute Item.VB_Description = "自动从请求参数，表单参数，json参数获取值"
 Attribute Item.VB_UserMemId = 0
@@ -114,22 +120,23 @@ End Function
 Friend Function ParseBody(aReqBody() As Byte) As Boolean
     On Error GoTo EH
     Dim b As String
+    '先进行编码转换
+    b = ToolsUtf8.Decode(aReqBody)
     '解析表单
     If ToolsStr.HasStr(Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED, HeaderContentType) > 0 Then
-        '先进行编码转换
-        b = ToolsUtf8.Decode(aReqBody)
         '        b = ToolsHttp.UrlDecodeUtf8(b)
         If b = "" Then GoTo QH
         Call ToolsHttp.ParseContent(b, Form): GoTo QH
     End If
     '解析json
     If ToolsStr.HasStr(Consts.TOOLS_HTTP_CONTENT_TYPE_JSON, HeaderContentType) > 0 Then
-        '先进行编码转换
-        b = ToolsUtf8.Decode(aReqBody)
         Call Json.Decode(b)
     End If
     '解析
 QH:
+    '赋值给原始值属性组
+    pvRawBodyText = b
+    pvRawBodyBin = aReqBody
     ParseBody = True
     Exit Function
 EH:

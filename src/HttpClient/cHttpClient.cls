@@ -176,7 +176,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
         '            DoEvents                                                            '允许其他事件处理，防止卡死
         '        Loop
         '
-        If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#"
+        If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#" & Left(Inst.ResponseText, 1024)
         '解析 返回头
         Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
     End If

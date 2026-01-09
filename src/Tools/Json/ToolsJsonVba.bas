@@ -173,10 +173,10 @@ Public JsonOptions As json_Options
 Public Function ParseJson(ByVal JsonString As String) As Object
     Dim json_Index As Long
     json_Index = 1
-
+    
     ' Remove vbCr, vbLf, and vbTab from json_String
     JsonString = VBA.Replace(VBA.Replace(VBA.Replace(JsonString, VBA.vbCr, ""), VBA.vbLf, ""), VBA.vbTab, "")
-
+    
     json_SkipSpaces JsonString, json_Index
     Select Case VBA.Mid$(JsonString, json_Index, 1)
     Case "{"
@@ -236,7 +236,7 @@ Public Function ConvertToJson(ByVal JsonValue As Variant, Optional ByVal Whitesp
         ConvertToJson = """" & json_DateStr & """"
     Case VBA.vbString
         ' String (or large number encoded as string)
-        'woeoio: no deed
+'woeoio:no deed
         '        If Not JsonOptions.UseDoubleForLargeNumbers And json_StringIsLargeNumber(JsonValue) Then
         '            ConvertToJson = JsonValue
         '        Else
@@ -463,14 +463,16 @@ End Function
 Private Function json_ParseObject(json_String As String, ByRef json_Index As Long) As Dictionary
     Dim json_Key As String
     Dim json_NextChar As String
-
+    
     Set json_ParseObject = New Dictionary
+    json_ParseObject.CompareMode = TextCompare
+    
     json_SkipSpaces json_String, json_Index
     If VBA.Mid$(json_String, json_Index, 1) <> "{" Then
         ERR.Raise 10001, "JSONConverter", json_ParseErrorMessage(json_String, json_Index, "Expecting '{'")
     Else
         json_Index = json_Index + 1
-
+        
         Do
             json_SkipSpaces json_String, json_Index
             If VBA.Mid$(json_String, json_Index, 1) = "}" Then
@@ -480,7 +482,7 @@ Private Function json_ParseObject(json_String As String, ByRef json_Index As Lon
                 json_Index = json_Index + 1
                 json_SkipSpaces json_String, json_Index
             End If
-
+            
             json_Key = json_ParseKey(json_String, json_Index)
             json_NextChar = json_Peek(json_String, json_Index)
             If json_NextChar = "[" Or json_NextChar = "{" Then

@@ -10,7 +10,7 @@ Attribute VB_Name = "cWinsock"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Exposed = True
 
 '=========================================================================
 '
@@ -392,7 +392,14 @@ Public Sub SendData(Data As Variant)
     Case vbString
         If m_eProtocol = sckUDPProtocol And m_bIsServer Then
             ' For UDP server, need to specify remote address
-            m_oSocket.SendText CStr(Data), m_sRemoteHostIP, m_lRemotePort
+            ' Use m_sRemoteHost if m_sRemoteHostIP is empty (allows domain name resolution)
+            If LenB(m_sRemoteHostIP) <> 0 Then
+                m_oSocket.SendText CStr(Data), m_sRemoteHostIP, m_lRemotePort
+            ElseIf LenB(m_sRemoteHost) <> 0 Then
+                m_oSocket.SendText CStr(Data), m_sRemoteHost, m_lRemotePort
+            Else
+                ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost or RemoteHostIP not specified"
+            End If
         Else
             m_oSocket.SendText CStr(Data)
         End If
@@ -402,7 +409,14 @@ Public Sub SendData(Data As Variant)
         byteData = Data
 
         If m_eProtocol = sckUDPProtocol And m_bIsServer Then
-            m_oSocket.SendArray byteData, m_sRemoteHostIP, m_lRemotePort
+            ' Use m_sRemoteHost if m_sRemoteHostIP is empty (allows domain name resolution)
+            If LenB(m_sRemoteHostIP) <> 0 Then
+                m_oSocket.SendArray byteData, m_sRemoteHostIP, m_lRemotePort
+            ElseIf LenB(m_sRemoteHost) <> 0 Then
+                m_oSocket.SendArray byteData, m_sRemoteHost, m_lRemotePort
+            Else
+                ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost or RemoteHostIP not specified"
+            End If
         Else
             m_oSocket.SendArray byteData
         End If

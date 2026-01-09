@@ -40,42 +40,42 @@ Public Sub Reset(Optional OnlyData As Boolean)
     If OnlyData = False Then Call Class_Initialize
 End Sub
 
-'Public Function ShowTo(Lv As Object) As Boolean
-'    On Error GoTo Eh
-'    ' 初始化ListView控件
-'    With Lv
-'        .ColumnHeaders.Clear
-'        .ListItems.Clear
-'        .View = lvwReport                                                       ' 设置为报告视图
-'        .FullRowSelect = True                                                   ' 允许选择整行
-'        .GridLines = True                                                       ' 显示网格线
-'        .LabelEdit = lvwManual                                                  '禁止编辑行号
-'        Dim Row As Scripting.Dictionary
-'        'Dim Col As Scripting.Dictionary
-'        Dim itm As Object
-'        'Dim itm As ListItem
-'
-'        For i = 1 To Data.Count
-'            Set Row = Data(i)
-'            If i > 1 Then Set itm = .ListItems.Add(, , i - 1)
-'            For ii = 1 To Row.Count
-'                If i = 1 Then
-'                    ' 添加列标题
-'                    Dim hh As String: hh = ii & "#" & Row(ii)
-'                    If ii = 1 Then .ColumnHeaders.Add , , "行号", 800
-'                    .ColumnHeaders.Add , , hh, HeadTitleWidth(ii)
-'                Else
-'                    ' 添加数据到ListView
-'                    itm.SubItems(ii) = Row(ii)
-'                End If
-'            Next
-'        Next
-'    End With
-'    ShowTo = True
-'    Exit Function
-'Eh:
-'    LastError = ERR.Number & "#" & ERR.Description
-'End Function
+Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boolean
+    On Error GoTo EH
+    ' 初始化ListView控件
+    With Lv
+        .ColumnHeaders.Clear
+        .ListItems.Clear
+        .View = 3                                                               ' lvwReport                                                       ' 设置为报告视图
+        .FullRowSelect = True                                                   ' 允许选择整行
+        .GridLines = True                                                       ' 显示网格线
+        .LabelEdit = 1                                                          ' lvwManual                                                  '禁止编辑行号
+        Dim Row As Scripting.Dictionary
+        'Dim Col As Scripting.Dictionary
+        Dim itm As Object
+        'Dim itm As ListItem
+        
+        For i = 1 To Data.Count
+            Set Row = Data(i)
+            If i > 1 Then Set itm = .ListItems.Add(, , i - 1)
+            For ii = 1 To Row.Count
+                If i = 1 Then
+                    ' 添加列标题
+                    Dim hh As String: hh = ii & "#" & Row(ii)
+                    If ii = 1 Then .ColumnHeaders.Add , , "行号", DefaultWidth
+                    .ColumnHeaders.Add , , hh, HeadTitleWidth(ii)
+                Else
+                    ' 添加数据到ListView
+                    itm.SubItems(ii) = Row(ii)
+                End If
+            Next
+        Next
+    End With
+    ShowTo = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
 
 Public Function SetHeadTitleWidthByDic(ByVal Dic As Scripting.Dictionary) As Boolean
     For Each x In Dic.Keys()
@@ -101,18 +101,18 @@ Public Function DeleteColumn(Optional ColumnNumber As Long) As Boolean
     DeleteColumn = True
 End Function
 Public Function NewColumn(ByVal Title As String, Optional Width As Long, Optional Content As String) As Boolean
-    Dim CN As Long, ln As Long, l, c As String
+    Dim CN As Long, lN As Long, l, c As String
     Dim f As Scripting.Dictionary
     If IsMissing(Content) = True Or IsNull(Content) Or IsEmpty(Content) Then Content = ""
     For Each l In Data.Keys()
-        ln = ln + 1
+        lN = lN + 1
         Set f = Data(l)
         CN = f.Count + 1
         GoSub AddColumn
     Next
     Exit Function
 AddColumn:
-    If IsFirstLineToHead = True And ln = 1 Then
+    If IsFirstLineToHead = True And lN = 1 Then
         c = Title
     Else
         c = Content
@@ -125,7 +125,7 @@ AddColumn:
     Return
 End Function
 Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
-    Dim ln As Long: ln = Data.Count + 1
+    Dim lN As Long: lN = Data.Count + 1
     Dim f As New Scripting.Dictionary, d() As Variant: d = FieldsData
     If UBound(d) = -1 Then ReDim d(0)
     If TypeOf d(0) Is Scripting.Dictionary Then
@@ -140,8 +140,8 @@ Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
         Next
     End If
     SyncColumnLength f
-    Data.Add ln, f
-    CurrentLineNumber = ln
+    Data.Add lN, f
+    CurrentLineNumber = lN
     Set CurrentLineDic = f
     Call SyncColumnWidth
     Set f = Nothing
@@ -203,6 +203,12 @@ Public Function SetLine(ByVal LineNumber As Long, ByRef LineDic As Scripting.Dic
     Set CurrentLineDic = Nothing
     SetLine = True
 End Function
+Public Property Get CountLine() As Long
+    CountLine = Data.Count
+End Property
+Public Property Get CountColumn() As Long
+    If Data.Count > 0 Then CountColumn = Data(1).Count
+End Property
 Public Property Get Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long) As Variant
     Value = vbNull
     If Data.Exists(LineNumber) = False Then LastError = "行号不存在": Exit Property
@@ -210,6 +216,11 @@ Public Property Get Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long) 
     Value = Data(LineNumber)(ColumnNumber)
 End Property
 Public Property Set Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long, ByVal Dat As Variant)
+    If Data.Exists(LineNumber) = False Then LastError = "行号不存在": Exit Property
+    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "列号不存在": Exit Property
+    Set Data(LineNumber)(ColumnNumber) = Dat
+End Property
+Public Property Let Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long, ByVal Dat As Variant)
     If Data.Exists(LineNumber) = False Then LastError = "行号不存在": Exit Property
     If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "列号不存在": Exit Property
     Data(LineNumber)(ColumnNumber) = Dat
@@ -221,32 +232,33 @@ Public Function SetCurrentLineData(ByVal ColumnNumber As Long, ByVal Dat As Vari
     SetCurrentLineData = True
 End Function
 
-Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boolean = True) As cCsv
+Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boolean = True, Optional CharSet As String = "UTF-8") As cCsv
     '20240828 可能需要同步处理 headtitle 和 headwidth'
     On Error GoTo EH
     Set LoadFrom = Me
     Dim Dict As New Dictionary
     
-    Dim Fso As New Scripting.FileSystemObject
+    Dim fo As New cToolsStream
+    fo.UseLineMode(True).LoadFileAsText FilePath, CharSet                       ' 1: ForReading
     
-    Dim fo As Scripting.TextStream
-    Set fo = Fso.OpenTextFile(FilePath, 1)                                      ' 1: ForReading
     Set Data = Dict
-    Dim LineText As String, LineNumber As Long
+    Dim lineText As String
     
-    Do While Not fo.AtEndOfStream
+    Dim i As Long
+    For i = 1 To fo.LineData.Count
         Dim LineDic As New Scripting.Dictionary
-        LineNumber = LineNumber + 1
-        LineText = fo.ReadLine
-        If ParseCsvLine(LineText, LineDic) = True Then
+        lineText = fo.ReadLine
+        If lineText = "" Then GoTo CT
+        If ParseCsvLine(lineText, LineDic) = True Then
             'todo 此处也应该做首行对齐，避免用户的csv文件不规范
             SyncColumnLength LineDic
-            Dict.Add LineNumber, LineDic
+            Dict.Add fo.LineNumber - 1, LineDic
         End If
         Set LineDic = Nothing
-    Loop
+CT:
+    Next
     
-    fo.Close
+    fo.Inst.Close
     
     Call SyncColumnWidth
     Exit Function
@@ -311,39 +323,37 @@ End Function
 
 '----
 
-Public Function SaveTo(ByVal FilePath As String) As Boolean
+Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "UTF-8") As Boolean
     On Error GoTo EH
-    Dim Fso As New Scripting.FileSystemObject
-    
-    Dim File As Scripting.TextStream
-    Set File = Fso.CreateTextFile(FilePath, True)                               ' True: Overwrite if exists
-    
-    Dim Key As Variant, i As Long, LineFields() As String
+    Dim Fso As New cToolsStream
+    Fso.UseLine = True
+    Dim key As Variant, i As Long, LineFields() As String
     Dim LineDic As Scripting.Dictionary
-    For Each Key In Data.Keys
-        Set LineDic = Data(Key)
+    For Each key In Data.Keys
+        Set LineDic = Data(key)
         ReDim LineFields(LineDic.Count - 1)
         For i = 1 To LineDic.Count
             LineFields(i - 1) = QuoteCsvField(LineDic(i))
         Next
-        File.WriteLine Join(LineFields, Delimiter)
+        Fso.WriteLine Join(LineFields, Delimiter)
     Next
-    File.Close
+    Fso.SaveFileAsText FilePath, , CharSet
+    Fso.Inst.Close
     SaveTo = True
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description
 End Function
 
-Private Function QuoteCsvField(ByVal field As String) As String
+Private Function QuoteCsvField(ByVal Field As String) As String
     ' 检查字段是否包含逗号或双引号
-    If InStr(field, Delimiter) > 0 Or InStr(field, """") > 0 Then
+    If InStr(Field, Delimiter) > 0 Or InStr(Field, """") > 0 Then
         ' 双引号转义，将单个双引号变成两个双引号
-        field = Replace(field, """", """""")
+        Field = Replace(Field, """", """""")
         ' 用双引号包裹字段
-        QuoteCsvField = """" & field & """"
+        QuoteCsvField = """" & Field & """"
     Else
-        QuoteCsvField = field
+        QuoteCsvField = Field
     End If
 End Function
 

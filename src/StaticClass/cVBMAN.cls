@@ -23,6 +23,8 @@ Public Logs As New cLogs
 Public Cmd As New cCmd
 Public TimeUse As New cTimeUse
 Public PLI As New cPLI
+Public QRcode As New cQRcode
+Public Collection As New cCollection
 
 'µÚÈý·½
 Public Baidu As New cBaidu

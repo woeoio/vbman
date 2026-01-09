@@ -46,10 +46,3 @@ Public Function StopMe() As Boolean
 End Function
 
 
-Private Sub m_oServer_CloseSck()
-    
-End Sub
-
-Private Sub Svr_OnResolve(IpAddress As String)
-    
-End Sub

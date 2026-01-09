@@ -381,7 +381,9 @@ EH:
 End Sub
 
 ' Send string data
-Public Sub SendData(Data As Variant)
+' CodePage: Text encoding for string data (default: ACP/GBK)
+'           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
+Public Sub SendData(Data As Variant, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
     On Error GoTo EH
     
     If m_oSocket Is Nothing Then
@@ -394,14 +396,14 @@ Public Sub SendData(Data As Variant)
             ' For UDP server, need to specify remote address
             ' Use m_sRemoteHost if m_sRemoteHostIP is empty (allows domain name resolution)
             If LenB(m_sRemoteHostIP) <> 0 Then
-                m_oSocket.SendText CStr(Data), m_sRemoteHostIP, m_lRemotePort
+                m_oSocket.SendText CStr(Data), m_sRemoteHostIP, m_lRemotePort, CodePage
             ElseIf LenB(m_sRemoteHost) <> 0 Then
-                m_oSocket.SendText CStr(Data), m_sRemoteHost, m_lRemotePort
+                m_oSocket.SendText CStr(Data), m_sRemoteHost, m_lRemotePort, CodePage
             Else
                 ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost or RemoteHostIP not specified"
             End If
         Else
-            m_oSocket.SendText CStr(Data)
+            m_oSocket.SendText CStr(Data), , , CodePage
         End If
     Case vbByte + vbArray
 
@@ -430,7 +432,9 @@ EH:
 End Sub
 
 ' Receive data from buffer
-Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1)
+' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
+'           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
+Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
     Dim baBuffer() As Byte
     Dim lIdx As Long
     Dim oSocket As cAsyncSocket
@@ -504,8 +508,8 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
             Else
                 Set oSocket = New cAsyncSocket
             End If
-            ' Use ACP (GBK for Chinese Windows) instead of UTF-8 for VB6 compatibility
-            Data = oSocket.FromTextArray(baBuffer, ucsScpAcp)
+            ' Use specified encoding (default ACP for backward compatibility with UDP)
+            Data = oSocket.FromTextArray(baBuffer, CodePage)
         Else
             Data = vbNullString
         End If
@@ -521,7 +525,9 @@ EH:
 End Sub
 
 ' Peek data without removing from buffer
-Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1)
+' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
+'           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
+Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
     Dim baBuffer() As Byte
 
     On Error GoTo EH
@@ -544,7 +550,16 @@ Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional B
     Select Case VarType_
     Case vbString
         If UBound(baBuffer) >= 0 Then
-            Data = m_oSocket.FromTextArray(baBuffer)
+            ' Use specified encoding (default ACP for backward compatibility with UDP)
+            Dim oSocket As cAsyncSocket
+            If Not m_oSocket Is Nothing Then
+                Set oSocket = m_oSocket
+            ElseIf Not m_oParentServer Is Nothing And Not m_oParentServer.Socket Is Nothing Then
+                Set oSocket = m_oParentServer.Socket
+            Else
+                Set oSocket = New cAsyncSocket
+            End If
+            Data = oSocket.FromTextArray(baBuffer, CodePage)
         Else
             Data = vbNullString
         End If

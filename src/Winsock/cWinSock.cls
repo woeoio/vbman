@@ -62,6 +62,16 @@ Event Error(Client As cWinsock, ByVal Number As Long, Description As String, ByV
 
 '=========================================================================
 ' Public Enums
+
+Public Enum EnumScpCodePage
+    ScpAcp = 0
+    ScpOem = 1
+    ScpUtf8 = 65001
+    ScpUnicode = -1                                                             '--- handled internally -> no conversion, keep text wide-char
+    ScpNone = ucsScpUnicode                                                     '--- and some more aliases
+    ScpWideChar = ucsScpUnicode
+End Enum
+
 '=========================================================================
 
 Public Enum WinsockProtocol
@@ -383,7 +393,7 @@ End Sub
 ' Send string data
 ' CodePage: Text encoding for string data (default: ACP/GBK)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub SendData(Data As Variant, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
+Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
     On Error GoTo EH
     
     If m_oSocket Is Nothing Then
@@ -434,7 +444,7 @@ End Sub
 ' Receive data from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
+Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
     Dim baBuffer() As Byte
     Dim lIdx As Long
     Dim oSocket As cAsyncSocket
@@ -527,7 +537,7 @@ End Sub
 ' Peek data without removing from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As UcsAsyncSocketCodePageEnum = ucsScpAcp)
+Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
     Dim baBuffer() As Byte
 
     On Error GoTo EH

@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 
 '=========================================================================
 '
-' cWinsock - Simplified Winsock Wrapper for VB6
+' cWinsock - Simplified Winsock Wrapper for VB6 by woeoio@qq.com
 ' Based on VbAsyncSocket by wqweto@gmail.com
 '
 ' Purpose: Provides a clean, event-driven programming model similar to

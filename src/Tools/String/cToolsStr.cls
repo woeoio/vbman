@@ -18,7 +18,7 @@ Function ParseNumbers(inputString As String, Optional DecimalPlaces As Long = -1
     Dim regex As Object
     Dim matches As Object
     Dim match As Object
-    Dim result As New Collection
+    Dim Result As New Collection
     Dim Num As Double
     Dim i As Long
     
@@ -42,16 +42,97 @@ Function ParseNumbers(inputString As String, Optional DecimalPlaces As Long = -1
         End If
         
         ' 将数字添加到集合
-        result.Add Num
+        Result.Add Num
         
         ' 如果指定了个数，达到个数时停止
-        If Count > 0 And result.Count >= Count Then Exit For
+        If Count > 0 And Result.Count >= Count Then Exit For
     Next i
     
     ' 返回结果集合
-    Set ParseNumbers = result
+    Set ParseNumbers = Result
 End Function
 
+'辅助函数：将文本分割为行集合
+Public Function SplitLinesToCollection(ByVal Text As String) As cCollection
+    Set SplitLinesToCollection = New cCollection
+    Dim LineCount As Long
+    Dim Pos As Long
+    Dim NextPos As Long
+    Dim Size As Long: Size = Len(Text)
+    
+    '处理空文本
+    If Size = 0 Then Exit Function
+    
+    '统一换行符为 vbCrLf
+    '    Text = Replace(Text, vbLf, vbCrLf)
+    '    Text = Replace(Text, vbCr, vbCrLf)
+    
+    '分割文本
+    Pos = 1
+    Do Until Pos = Size
+        NextPos = InStr(Pos, Text, vbCrLf)
+        If NextPos = 0 Then
+            SplitLinesToCollection.AddOrUpdate Mid(Text, Pos)
+            Exit Do
+        End If
+        SplitLinesToCollection.AddOrUpdate Mid(Text, Pos, NextPos - Pos)
+        Pos = NextPos + 2
+    Loop
+End Function
+'辅助函数：将行集合合并为字符串
+Public Function JoinLinesFromCollection(Coll As cCollection) As String
+    '处理空文本
+    If Coll.Count = 0 Then Exit Function
+    Dim Size As Long: Size = Coll.Count
+    Dim Txt() As String, i As Long
+    
+    ReDim Txt(1 To Size)
+    '分割文本
+    For i = 1 To Size
+        Txt(i) = Coll.Item(i)
+    Next
+    
+    JoinLinesFromCollection = Join(Txt, vbCrLf)
+End Function
+
+''辅助函数：将文本分割为行数组，反函数可以直接使用 Join
+Public Function SplitLines(ByVal Text As String) As String()
+    Dim Lines() As String
+    Dim LineCount As Long
+    Dim i As Long
+    Dim Pos As Long
+    Dim NextPos As Long
+    Dim Size As Long: Size = Len(Text)
+    
+    '处理空文本
+    If Size = 0 Then
+        ReDim Lines(0)
+        Lines(0) = ""
+        SplitLines = Lines
+        Exit Function
+    End If
+    
+    '统一换行符为 vbCrLf
+    Text = Replace(Text, vbLf, vbCrLf)
+    Text = Replace(Text, vbCr, vbCrLf)
+    
+    '分割文本
+    Pos = 1
+    Do While Pos = Size
+        NextPos = InStr(Pos, Text, vbCrLf)
+        '分配数组
+        LineCount = UBound(Lines) + 1
+        ReDim Preserve Lines(LineCount)
+        If NextPos = 0 Then
+            Lines(LineCount) = Mid(Text, Pos)
+            Exit Do
+        End If
+        Lines(LineCount) = Mid(Text, Pos, NextPos - Pos)
+        Pos = NextPos + 2
+    Loop
+    
+    SplitLines = Lines
+End Function
 
 
 Public Function ToArray(Text As String) As String()
@@ -157,13 +238,13 @@ End Function
 '%34%33%30%36%38%31%31%39%38%39%31%31%32%39%33%32%31X
 
 Public Function PercentEncode(inputStr As String) As String
-    Dim result As String
+    Dim Result As String
     Dim i As Long
     Dim currentChar As String
     Dim hexValue As String
     
     ' 初始化结果字符串
-    result = ""
+    Result = ""
     
     ' 遍历输入字符串的每个字符
     For i = 1 To Len(inputStr)
@@ -173,27 +254,27 @@ Public Function PercentEncode(inputStr As String) As String
             ' 获取字符的 ASCII 值并转换为十六进制
             hexValue = Hex(Asc(currentChar))
             ' 拼接为 % 十六进制格式
-            result = result & "%" & hexValue
+            Result = Result & "%" & hexValue
         Else
             ' 非数字字符直接拼接到结果
-            result = result & currentChar
+            Result = Result & currentChar
         End If
     Next i
     
     ' 返回结果
-    PercentEncode = result
+    PercentEncode = Result
 End Function
 
 
 
 Function PercentDecode(encodedStr As String) As String
-    Dim result As String
+    Dim Result As String
     Dim i As Long
     Dim hexValue As String
     Dim asciiValue As Long
     
     ' 初始化结果字符串
-    result = ""
+    Result = ""
     i = 1
     
     ' 遍历编码字符串
@@ -204,18 +285,18 @@ Function PercentDecode(encodedStr As String) As String
             ' 将十六进制值转换为十进制
             asciiValue = CLng("&H" & hexValue)
             ' 转换为字符并拼接到结果
-            result = result & Chr(asciiValue)
+            Result = Result & Chr(asciiValue)
             ' 跳过当前的 % 和两位十六进制值
             i = i + 3
         Else
             ' 非 % 开头的字符直接拼接到结果
-            result = result & Mid(encodedStr, i, 1)
+            Result = Result & Mid(encodedStr, i, 1)
             i = i + 1
         End If
     Loop
     
     ' 返回结果
-    PercentDecode = result
+    PercentDecode = Result
 End Function
 
 
@@ -247,26 +328,26 @@ End Function
 
 Public Function UnicodeDecode(Text As String, Optional PreFix As String = "\u") As String
     Dim i As Long
-    Dim result As String
+    Dim Result As String
     Dim unicodeStr As String
     Dim unicodeCode As Long
     
-    result = ""
+    Result = ""
     i = 1
     
     While i <= Len(Text)
         If Mid(Text, i, 2) = PreFix Then
             unicodeStr = Mid(Text, i + 2, 4)                                    ' 获取 \u 后的四个字符
             unicodeCode = CLng("&H" & unicodeStr)                               ' 将四个字符转换为十六进制数
-            result = result & ChrW(unicodeCode)                                 ' 将 Unicode 码转换为字符并添加到结果字符串
+            Result = Result & ChrW(unicodeCode)                                 ' 将 Unicode 码转换为字符并添加到结果字符串
             i = i + 6                                                           ' 跳过 \uXXXX
         Else
-            result = result & Mid(Text, i, 1)                                   ' 如果不是 Unicode 转义序列，直接添加字符
+            Result = Result & Mid(Text, i, 1)                                   ' 如果不是 Unicode 转义序列，直接添加字符
             i = i + 1
         End If
     Wend
     
-    UnicodeDecode = result
+    UnicodeDecode = Result
 End Function
 
 

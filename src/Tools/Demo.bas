@@ -1,6 +1,63 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+
+Sub CsvTest()
+    With New cCsv
+        .LoadFrom "D:\code\vb6\csv-data\data\test均分.csv"
+        MsgBox .Value(1, 6)
+    End With
+End Sub
+Sub cToolsStreamExample()
+    Dim fs As New cToolsStream
+    Dim FileName As String
+    
+    FileName = "d:\a\new.csv"
+    
+    
+    With New ADODB.Stream
+        .Type = adTypeText
+        .CharSet = "UTF-8"
+        .Open
+        
+        .LoadFromFile FileName
+        Debug.Print .ReadText()
+        .Close
+    End With
+    
+    Exit Sub
+    '1. 加载文件
+    Dim Content As String
+    Content = fs.LoadFileAsText(FileName)
+    
+    '2. 读取行（行号从1开始）
+    Debug.Print "第1行: " & fs.ReadLine(1)
+    Debug.Print "第3行: " & fs.ReadLine(3)
+    '4. 写入行
+    fs.WriteLine "新内容1", 2                                                   '写入到第2行
+    fs.WriteLine "新内容2"                                                      '写入到当前行
+    fs.WriteLine "新内容3", 5                                                   '写入到第5行
+    '3. 顺序读取
+    
+    Dim lineText As String
+    Do
+        lineText = fs.ReadLine
+        If fs.LastError <> "" Then Exit Do
+        Debug.Print "当前行: " & lineText
+    Loop
+    
+    
+    
+    '5. 保存
+    
+    '    fs.SaveFileAsText "C:\test_new.txt", "123"
+End Sub
+
+Sub FileBase64()
+    Debug.Print Tools.ToolsBase64.FileToBase64("D:\a\docx.png", "png")
+End Sub
+
+
 Sub ArrayFor()
     Dim a: a = Array(1, 2, 3)
     Dim x

@@ -127,7 +127,7 @@ End Property
 
 Public Property Let Protocol(ByVal Value As WinsockProtocol)
     If m_eState <> sckClosed Then
-        Err.Raise vbObjectError, MODULE_NAME, "Cannot change protocol while socket is open"
+        ERR.Raise vbObjectError, MODULE_NAME, "Cannot change protocol while socket is open"
     End If
     m_eProtocol = Value
 End Property
@@ -149,7 +149,7 @@ End Property
 
 Public Property Let LocalPort(ByVal Value As Long)
     If m_eState <> sckClosed Then
-        Err.Raise vbObjectError, MODULE_NAME, "Cannot change local port while socket is open"
+        ERR.Raise vbObjectError, MODULE_NAME, "Cannot change local port while socket is open"
     End If
     m_lLocalPort = Value
 End Property
@@ -310,10 +310,10 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
 
     ' Validate parameters
     If LenB(m_sRemoteHost) = 0 Then
-        Err.Raise vbObjectError, MODULE_NAME, "RemoteHost not specified"
+        ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost not specified"
     End If
     If m_lRemotePort = 0 Then
-        Err.Raise vbObjectError, MODULE_NAME, "RemotePort not specified"
+        ERR.Raise vbObjectError, MODULE_NAME, "RemotePort not specified"
     End If
 
     ' Determine socket type
@@ -336,7 +336,7 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Start listening for incoming connections
@@ -377,7 +377,7 @@ Public Sub Listen(Optional ByVal Port As Long)
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Send string data
@@ -387,10 +387,10 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As UcsAsyncSocketCo
     On Error GoTo EH
     
     If m_oSocket Is Nothing Then
-        Err.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
     
-    Select Case VarType(Data)
+    Select Case varType(Data)
     Case vbString
         If m_eProtocol = sckUDPProtocol And m_bIsServer Then
             ' For UDP server, need to specify remote address
@@ -423,12 +423,12 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As UcsAsyncSocketCo
             m_oSocket.SendArray byteData
         End If
     Case Else
-        Err.Raise vbObjectError, MODULE_NAME, "Unsupported data type: " & TypeName(Data)
+        ERR.Raise vbObjectError, MODULE_NAME, "Unsupported data type: " & TypeName(Data)
     End Select
     
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Receive data from buffer
@@ -442,7 +442,7 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
     On Error GoTo EH
 
     If VarType_ = 0 Then
-        VarType_ = VarType(Data)
+        VarType_ = varType(Data)
     End If
 
     ' First check internal buffer
@@ -480,7 +480,7 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
         Else
             baBuffer = vbNullString
         End If
-    ElseIf VarType(m_vUserData) = (vbByte + vbArray) Then
+    ElseIf varType(m_vUserData) = (vbByte + vbArray) Then
         ' For UDP server mode clients, data is stored in UserData
         baBuffer = m_vUserData
         ' Clear UserData after reading
@@ -521,7 +521,7 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Peek data without removing from buffer
@@ -533,7 +533,7 @@ Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional B
     On Error GoTo EH
 
     If VarType_ = 0 Then
-        VarType_ = VarType(Data)
+        VarType_ = varType(Data)
     End If
 
     ' Copy from internal buffer
@@ -571,7 +571,7 @@ Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional B
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Close socket
@@ -623,7 +623,7 @@ Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Get error description
@@ -666,7 +666,7 @@ Friend Sub AcceptFrom(oListenSocket As cAsyncSocket, oParent As cWinsock)
 
     Exit Sub
 EH:
-    pvRaiseError Err.Number, Err.Description
+    pvRaiseError ERR.Number, ERR.Description
 End Sub
 
 ' Set UDP client info (for server)
@@ -742,7 +742,7 @@ Private Sub m_oSocket_OnAccept()
     
     Exit Sub
 EH:
-    Debug.Print "OnAccept Error: " & Err.Description
+    Debug.Print "OnAccept Error: " & ERR.Description
 End Sub
 
 Private Sub m_oSocket_OnReceive()
@@ -824,7 +824,7 @@ Private Sub m_oSocket_OnReceive()
     
     Exit Sub
 EH:
-    Debug.Print "OnReceive Error: " & Err.Description
+    Debug.Print "OnReceive Error: " & ERR.Description
 End Sub
 
 Private Sub m_oSocket_OnSend()

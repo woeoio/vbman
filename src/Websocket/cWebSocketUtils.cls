@@ -1,4 +1,16 @@
-Attribute VB_Name = "mWebSocketUtils"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cWebSocketUtils"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
 '=========================================================================
 '
 ' mWebSocketUtils - WebSocket Utility Module for VB6
@@ -19,40 +31,40 @@ Option Explicit
 ' Public Enums
 '=========================================================================
 
-'' WebSocket Opcodes (RFC 6455)
-'Public Enum WsOpCode
-'    WS_OPCODE_CONTINUATION = 0
-'    WS_OPCODE_TEXT = 1
-'    WS_OPCODE_BINARY = 2
-'    WS_OPCODE_CLOSE = 8
-'    WS_OPCODE_PING = 9
-'    WS_OPCODE_PONG = 10
-'End Enum
-'
-'' WebSocket Close Status Codes (RFC 6455)
-'Public Enum WsCloseCode
-'    WS_CLOSE_NORMAL = 1000
-'    WS_CLOSE_GOING_AWAY = 1001
-'    WS_CLOSE_PROTOCOL_ERROR = 1002
-'    WS_CLOSE_UNSUPPORTED_DATA = 1003
-'    WS_CLOSE_NO_STATUS = 1005
-'    WS_CLOSE_ABNORMAL = 1006
-'    WS_CLOSE_INVALID_DATA = 1007
-'    WS_CLOSE_POLICY_VIOLATION = 1008
-'    WS_CLOSE_MESSAGE_TOO_BIG = 1009
-'    WS_CLOSE_MANDATORY_EXT = 1010
-'    WS_CLOSE_INTERNAL_ERROR = 1011
-'    WS_CLOSE_SERVICE_RESTART = 1012
-'    WS_CLOSE_TRY_AGAIN = 1013
-'End Enum
-'
-'' WebSocket Connection State
-'Public Enum WsState
-'    WS_STATE_CLOSED = 0
-'    WS_STATE_CONNECTING = 1
-'    WS_STATE_OPEN = 2
-'    WS_STATE_CLOSING = 3
-'End Enum
+' WebSocket Opcodes (RFC 6455)
+Public Enum WsOpCode
+    WS_OPCODE_CONTINUATION = 0
+    WS_OPCODE_TEXT = 1
+    WS_OPCODE_BINARY = 2
+    WS_OPCODE_CLOSE = 8
+    WS_OPCODE_PING = 9
+    WS_OPCODE_PONG = 10
+End Enum
+
+' WebSocket Close Status Codes (RFC 6455)
+Public Enum WsCloseCode
+    WS_CLOSE_NORMAL = 1000
+    WS_CLOSE_GOING_AWAY = 1001
+    WS_CLOSE_PROTOCOL_ERROR = 1002
+    WS_CLOSE_UNSUPPORTED_DATA = 1003
+    WS_CLOSE_NO_STATUS = 1005
+    WS_CLOSE_ABNORMAL = 1006
+    WS_CLOSE_INVALID_DATA = 1007
+    WS_CLOSE_POLICY_VIOLATION = 1008
+    WS_CLOSE_MESSAGE_TOO_BIG = 1009
+    WS_CLOSE_MANDATORY_EXT = 1010
+    WS_CLOSE_INTERNAL_ERROR = 1011
+    WS_CLOSE_SERVICE_RESTART = 1012
+    WS_CLOSE_TRY_AGAIN = 1013
+End Enum
+
+' WebSocket Connection State
+Public Enum WsState
+    WS_STATE_CLOSED = 0
+    WS_STATE_CONNECTING = 1
+    WS_STATE_OPEN = 2
+    WS_STATE_CLOSING = 3
+End Enum
 
 '=========================================================================
 ' API Declarations
@@ -83,8 +95,8 @@ Private Const CALG_SHA1 As Long = &H8004&
 Private Const HP_HASHVAL As Long = 2
 Private Const SHA1_HASH_SIZE As Long = 20
 
-Public Const WS_MAGIC_GUID As String = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-Public Const WS_VERSION As String = "13"
+Const WS_MAGIC_GUID As String = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+Const WS_VERSION As String = "13"
 
 '=========================================================================
 ' Module Variables
@@ -353,3 +365,4 @@ Public Sub CleanupCryptoProvider()
         m_hCryptoProv = 0
     End If
 End Sub
+

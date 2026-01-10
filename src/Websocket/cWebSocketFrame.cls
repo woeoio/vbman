@@ -10,7 +10,7 @@ Attribute VB_Name = "cWebSocketFrame"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Exposed = True
 '=========================================================================
 '
 ' cWebSocketFrame - WebSocket Frame Parser for VB6
@@ -124,34 +124,34 @@ Public Function ParseHeader(ByRef Buffer As cByteBuffer) As Boolean
     Dim bByte1 As Byte
     Dim lLenType As Long
     Dim lOffset As Long
-
+    
     ' Reset state
     ResetState
-
+    
     ' Need at least 2 bytes for minimal header
     If Buffer.Size < 2 Then
         m_ErrorMessage = "Insufficient data for frame header"
         ParseHeader = False
         Exit Function
     End If
-
+    
     ' Read first two bytes
     bByte0 = Buffer.PeekByte(0)
     bByte1 = Buffer.PeekByte(1)
-
+    
     ' Parse first byte: FIN, RSV1-3, Opcode
     m_FIN = ((bByte0 And &H80) = &H80)
     m_RSV1 = ((bByte0 And &H40) = &H40)
     m_RSV2 = ((bByte0 And &H20) = &H20)
     m_RSV3 = ((bByte0 And &H10) = &H10)
     m_OpCode = bByte0 And &HF
-
+    
     ' Parse second byte: Mask flag, Payload length
     m_HasMask = ((bByte1 And &H80) = &H80)
     lLenType = bByte1 And &H7F
-
+    
     lOffset = 2
-
+    
     ' Parse extended payload length
     If lLenType = 126 Then
         ' 16-bit length
@@ -162,7 +162,7 @@ Public Function ParseHeader(ByRef Buffer As cByteBuffer) As Boolean
         End If
         m_PayloadLength = CLng(Buffer.PeekByte(2)) * 256 + CLng(Buffer.PeekByte(3))
         lOffset = 4
-
+        
     ElseIf lLenType = 127 Then
         ' 64-bit length (we only support 32-bit in VB6)
         If Buffer.Size < 10 Then
@@ -172,22 +172,22 @@ Public Function ParseHeader(ByRef Buffer As cByteBuffer) As Boolean
         End If
         ' Check high 4 bytes are zero (we can't handle > 2GB)
         If Buffer.PeekByte(2) <> 0 Or Buffer.PeekByte(3) <> 0 Or _
-           Buffer.PeekByte(4) <> 0 Or Buffer.PeekByte(5) <> 0 Then
+            Buffer.PeekByte(4) <> 0 Or Buffer.PeekByte(5) <> 0 Then
             m_ErrorMessage = "Payload too large (>2GB not supported)"
             ParseHeader = False
             Exit Function
         End If
         ' Read lower 4 bytes (big-endian)
         m_PayloadLength = CLng(Buffer.PeekByte(6)) * &H1000000 + _
-                         CLng(Buffer.PeekByte(7)) * &H10000 + _
-                         CLng(Buffer.PeekByte(8)) * &H100& + _
-                         CLng(Buffer.PeekByte(9))
+        CLng(Buffer.PeekByte(7)) * &H10000 + _
+        CLng(Buffer.PeekByte(8)) * &H100& + _
+        CLng(Buffer.PeekByte(9))
         lOffset = 10
     Else
         ' 7-bit length
         m_PayloadLength = lLenType
     End If
-
+    
     ' Parse masking key if present
     If m_HasMask Then
         If Buffer.Size < lOffset + 4 Then
@@ -201,11 +201,11 @@ Public Function ParseHeader(ByRef Buffer As cByteBuffer) As Boolean
         m_MaskingKey(3) = Buffer.PeekByte(lOffset + 3)
         lOffset = lOffset + 4
     End If
-
+    
     m_HeaderLength = lOffset
     m_TotalFrameLength = m_HeaderLength + m_PayloadLength
     m_IsValid = True
-
+    
     ParseHeader = True
 End Function
 

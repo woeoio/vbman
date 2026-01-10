@@ -75,8 +75,8 @@ End Enum
 '=========================================================================
 
 Public Enum WinsockProtocol
-    sckTCPProtocol = 1
-    sckUDPProtocol = 2
+    wskTCPProtocol = 1
+    wskUDPProtocol = 2
 End Enum
 
 Public Enum WinsockState
@@ -97,7 +97,7 @@ End Enum
 '=========================================================================
 
 Private Const DEF_LOCALPORT         As Long = 0
-Private Const DEF_PROTOCOL          As Long = sckTCPProtocol
+Private Const DEF_PROTOCOL          As Long = wskTCPProtocol
 Private Const DEF_REMOTEPORT        As Long = 0
 
 '=========================================================================
@@ -185,7 +185,7 @@ End Property
 ' Resolved remote IP address
 Public Property Get RemoteHostIP() As String
     ' For UDP server mode clients (no socket but has parent server), return stored IP
-    If m_oSocket Is Nothing And Not m_oParentServer Is Nothing And m_eProtocol = sckUDPProtocol Then
+    If m_oSocket Is Nothing And Not m_oParentServer Is Nothing And m_eProtocol = wskUDPProtocol Then
         RemoteHostIP = m_sRemoteHostIP
         Exit Property
     End If
@@ -327,7 +327,7 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
     End If
 
     ' Determine socket type
-    eSocketType = IIf(m_eProtocol = sckTCPProtocol, ucsSckStream, ucsSckDatagram)
+    eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
 
     ' Create socket
     Set m_oSocket = New cAsyncSocket
@@ -364,7 +364,7 @@ Public Sub Listen(Optional ByVal Port As Long)
     End If
 
     ' Determine socket type
-    eSocketType = IIf(m_eProtocol = sckTCPProtocol, ucsSckStream, ucsSckDatagram)
+    eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
 
     ' Create socket
     Set m_oSocket = New cAsyncSocket
@@ -374,7 +374,7 @@ Public Sub Listen(Optional ByVal Port As Long)
     End If
 
     ' For TCP, start listening
-    If m_eProtocol = sckTCPProtocol Then
+    If m_eProtocol = wskTCPProtocol Then
         If Not m_oSocket.Listen() Then
             pvRaiseError m_oSocket.LastError
             Exit Sub
@@ -402,7 +402,7 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage 
     
     Select Case varType(Data)
     Case vbString
-        If m_eProtocol = sckUDPProtocol And m_bIsServer Then
+        If m_eProtocol = wskUDPProtocol And m_bIsServer Then
             ' For UDP server, need to specify remote address
             ' Use m_sRemoteHost if m_sRemoteHostIP is empty (allows domain name resolution)
             If LenB(m_sRemoteHostIP) <> 0 Then
@@ -420,7 +420,7 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage 
         Dim byteData() As Byte
         byteData = Data
 
-        If m_eProtocol = sckUDPProtocol And m_bIsServer Then
+        If m_eProtocol = wskUDPProtocol And m_bIsServer Then
             ' Use m_sRemoteHost if m_sRemoteHostIP is empty (allows domain name resolution)
             If LenB(m_sRemoteHostIP) <> 0 Then
                 m_oSocket.SendArray byteData, m_sRemoteHostIP, m_lRemotePort
@@ -627,7 +627,7 @@ Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
     End If
 
     m_eState = sckOpen
-    m_eProtocol = sckUDPProtocol
+    m_eProtocol = wskUDPProtocol
     m_bIsServer = True
     Set m_cClients = New Collection
 
@@ -662,7 +662,7 @@ Friend Sub AcceptFrom(oListenSocket As cAsyncSocket, oParent As cWinsock)
     End If
 
     m_eState = sckConnected
-    m_eProtocol = sckTCPProtocol
+    m_eProtocol = wskTCPProtocol
     m_bIsAcceptedClient = True
     Set m_oParentServer = oParent
 
@@ -765,7 +765,7 @@ Private Sub m_oSocket_OnReceive()
     lBytes = m_oSocket.AvailableBytes
     
     ' For UDP server, handle differently
-    If m_bIsServer And m_eProtocol = sckUDPProtocol Then
+    If m_bIsServer And m_eProtocol = wskUDPProtocol Then
         Dim sAddress As String
         Dim lPort As Long
         Dim sKey As String
@@ -784,7 +784,7 @@ Private Sub m_oSocket_OnReceive()
                 oClient.SetUdpClientInfo sAddress, lPort
                 ' UDP client doesn't need its own socket - it's just an identifier
                 ' All data is received through the server's socket
-                oClient.Protocol = sckUDPProtocol
+                oClient.Protocol = wskUDPProtocol
                 Set oClient.ParentServer = Me
                 oClient.Tag = sKey
                 m_cClients.Add oClient, sKey

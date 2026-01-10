@@ -120,6 +120,7 @@ Private m_bIsAcceptedClient         As Boolean
 Private m_oParentServer             As cWinsock
 Private m_cClients                  As Collection
 Private m_lClientCounter            As Long
+Private m_bCloseEventRaised         As Boolean                                      ' Prevent duplicate CloseEvent
 
 '=========================================================================
 ' Properties
@@ -606,6 +607,7 @@ Public Sub Close_()
     m_eState = sckClosed
     m_bIsServer = False
     m_bIsAcceptedClient = False
+    m_bCloseEventRaised = False
     Set m_oParentServer = Nothing
     m_baRecvBuffer = vbNullString
 End Sub
@@ -705,6 +707,10 @@ Private Sub m_oSocket_OnClose()
 
     On Error Resume Next
 
+    ' Prevent duplicate CloseEvent
+    If m_bCloseEventRaised Then Exit Sub
+    m_bCloseEventRaised = True
+
     m_eState = sckClosing
 
     ' Notify parent server to remove this client
@@ -712,7 +718,13 @@ Private Sub m_oSocket_OnClose()
         Set oParent = m_oParentServer
     End If
 
-    RaiseEvent CloseEvent(Me)
+    ' If this is an accepted client, raise event through parent server
+    ' so the host can receive it via the server's event handler
+    If Not oParent Is Nothing Then
+        oParent.RaiseCloseEvent Me
+    Else
+        RaiseEvent CloseEvent(Me)
+    End If
 
     ' Remove from parent's client list
     If Not oParent Is Nothing Then
@@ -838,7 +850,12 @@ EH:
 End Sub
 
 Private Sub m_oSocket_OnSend()
-    RaiseEvent SendComplete(Me)
+    ' If this is an accepted client, raise event through parent server
+    If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
+        m_oParentServer.RaiseSendCompleteEvent Me
+    Else
+        RaiseEvent SendComplete(Me)
+    End If
 End Sub
 
 Private Sub m_oSocket_OnError(ByVal ErrorCode As Long, ByVal EventMask As UcsAsyncSocketEventMaskEnum)
@@ -862,22 +879,42 @@ Friend Sub RaiseDataArrivalEvent(oClient As cWinsock, ByVal bytesTotal As Long)
     RaiseEvent DataArrival(oClient, bytesTotal)
 End Sub
 
+' Raise CloseEvent for a client (used by accepted clients to notify through parent server)
+Friend Sub RaiseCloseEvent(oClient As cWinsock)
+    RaiseEvent CloseEvent(oClient)
+End Sub
+
+' Raise SendComplete event for a client (used by accepted clients to notify through parent server)
+Friend Sub RaiseSendCompleteEvent(oClient As cWinsock)
+    RaiseEvent SendComplete(oClient)
+End Sub
+
+' Raise Error event for a client (used by accepted clients to notify through parent server)
+Friend Sub RaiseErrorEvent(oClient As cWinsock, ByVal Number As Long, Description As String)
+    RaiseEvent Error(oClient, Number, Description, Number)
+End Sub
+
 '=========================================================================
 ' Private Methods
 '=========================================================================
 
 Private Sub pvRaiseError(ByVal ErrorCode As Long, Optional Description As String)
     Dim sDesc As String
-    
+
     m_eState = sckError
-    
+
     If LenB(Description) <> 0 Then
         sDesc = Description
     Else
         sDesc = GetErrorDescription(ErrorCode)
     End If
-    
-    RaiseEvent Error(Me, ErrorCode, sDesc, ErrorCode)
+
+    ' If this is an accepted client, raise event through parent server
+    If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
+        m_oParentServer.RaiseErrorEvent Me, ErrorCode, sDesc
+    Else
+        RaiseEvent Error(Me, ErrorCode, sDesc, ErrorCode)
+    End If
 End Sub
 
 

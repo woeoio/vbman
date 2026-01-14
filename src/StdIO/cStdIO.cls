@@ -67,18 +67,18 @@ Private Declare Function CreatePipe Lib "kernel32" ( _
     lpPipeAttributes As SECURITY_ATTRIBUTES, _
     ByVal nSize As Long) As Long
 
-    'Private Declare Function CreateProcessA Lib "kernel32" ( _
-    '    ByVal lpApplicationName As Long, _
-    '    ByVal lpCommandLine As String, _
-    '    lpProcessAttributes As SECURITY_ATTRIBUTES, _
-    '    lpThreadAttributes As SECURITY_ATTRIBUTES, _
-    '    ByVal bInheritHandles As Long, _
-    '    ByVal dwCreationFlags As Long, _
-    '    ByVal lpEnvironment As Long, _
-    '    ByVal lpCurrentDirectory As Long, _
-    '    lpStartupInfo As STARTUPINFO, _
-    '    lpProcessInformation As PROCESS_INFORMATION) As Long
 Private Declare Function CreateProcessA Lib "kernel32" ( _
+    ByVal lpApplicationName As Long, _
+    ByVal lpCommandLine As String, _
+    lpProcessAttributes As SECURITY_ATTRIBUTES, _
+    lpThreadAttributes As SECURITY_ATTRIBUTES, _
+    ByVal bInheritHandles As Long, _
+    ByVal dwCreationFlags As Long, _
+    ByVal lpEnvironment As Long, _
+    ByVal lpCurrentDirectory As Long, _
+    lpStartupInfo As STARTUPINFO, _
+    lpProcessInformation As PROCESS_INFORMATION) As Long
+Private Declare Function CreateProcessAWithDir Lib "kernel32" Alias "CreateProcessA" ( _
     ByVal lpApplicationName As Long, _
     ByVal lpCommandLine As String, _
     lpProcessAttributes As SECURITY_ATTRIBUTES, _
@@ -250,8 +250,13 @@ Public Function ExecuteCommand( _
     si.hStdError = hOutputWrite
     si.hStdInput = hInputRead
     
-    ' 创建进程
-    bSuccess = CreateProcessA(0, CommandLine, sa, sa, True, NORMAL_PRIORITY_CLASS, 0, CurrentDirectory, si, pi)
+    '判断是否有目录参数
+    If CurrentDirectory = "" Then
+        ' 创建进程
+        bSuccess = CreateProcessA(0, CommandLine, sa, sa, True, NORMAL_PRIORITY_CLASS, 0&, 0&, si, pi)
+    Else
+        bSuccess = CreateProcessAWithDir(0, CommandLine, sa, sa, True, NORMAL_PRIORITY_CLASS, 0&, CurrentDirectory, si, pi)
+    End If
     
     If bSuccess = 0 Then
         CloseHandle hOutputRead

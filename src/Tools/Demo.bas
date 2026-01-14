@@ -2,6 +2,15 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 
+
+
+Sub Pip()
+    With New cSTDIO
+        Debug.Print .ExecuteCommand("D:\code\vi\vbmanlib\vbman\dist\BIN\VBMAN.PLI -v", , "D:\code\vi\vbmanlib\vbman\dist\BIN\")
+        Debug.Print .ExecuteCommand("ping 127.0.0.1")
+    End With
+End Sub
+
 Sub CsvTest()
     With New cCsv
         .LoadFrom "D:\code\vb6\csv-data\data\test¾ù·Ö.csv"

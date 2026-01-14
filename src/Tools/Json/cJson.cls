@@ -34,6 +34,10 @@ Public Property Get LastSuccess() As Boolean
 End Property
 
 '---------------------------------Property
+Public Property Get Self() As cJson
+    Set Self = Me
+End Property
+
 Public Property Get Root() As Object
 Attribute Root.VB_UserMemId = 0
     If RootItems.Count > 0 Then Set Root = RootItems: Exit Property

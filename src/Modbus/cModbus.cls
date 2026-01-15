@@ -203,9 +203,27 @@ Private Type COMSTAT
     cbOutQue As Long
 End Type
 
+' Modbus Defaults Structure (for external access to constants)
+Public Type ModbusDefaults
+    TCP_PORT As Long
+    RTU_DEFAULT_BAUDRATE As Long
+    RTU_DEFAULT_DATABITS As Long
+    RTU_DEFAULT_PARITY As String
+    RTU_DEFAULT_STOPBITS As Long
+    RTU_DEFAULT_TIMEOUT As Long
+    RTU_FRAME_DELAY_MS As Long
+    MAX_PDU_SIZE As Long
+    MAX_REGISTERS As Long
+    MAX_COILS As Long
+    TCP_MBAP_SIZE As Long
+End Type
+
 '=========================================================================
 ' Member Variables
 '=========================================================================
+
+' Default constants (private, accessed via Defaults property)
+Private m_Defaults As ModbusDefaults
 
 ' Protocol type
 Private m_ProtocolType As ModbusProtocolType
@@ -232,6 +250,7 @@ Private m_TransactionID As Long                                                 
 ' Common
 Private m_SlaveID As Byte                                                       ' Modbus Slave/Unit ID
 Private m_ResponseTimeout As Long                                               ' Response timeout in milliseconds
+Private m_DeviceID As Long                                                      ' Device ID (暂不使用)
 
 ' Receive buffer for RTU
 Private m_RTUBuffer As cByteBuffer
@@ -283,6 +302,20 @@ End Property
 
 Public Property Let ResponseTimeout(ByVal Value As Long)
     If Value > 0 Then m_ResponseTimeout = Value
+End Property
+
+' Defaults constants (read-only)
+Public Property Get Defaults() As ModbusDefaults
+    Defaults = m_Defaults
+End Property
+
+' Device ID (暂不使用)
+Public Property Get DeviceID() As Long
+    DeviceID = m_DeviceID
+End Property
+
+Public Property Let DeviceID(ByVal Value As Long)
+    m_DeviceID = Value
 End Property
 
 ' RTU Mode Properties
@@ -435,7 +468,7 @@ Public Function ReadCoils(ByVal StartAddress As Long, ByVal Quantity As Long) As
     
     On Error GoTo ErrorHandler
     
-    If Quantity < 1 Or Quantity > MB_MAX_COILS Then
+    If Quantity < 1 Or Quantity > m_Defaults.MAX_COILS Then
         RaiseError "Invalid quantity: " & Quantity
         Exit Function
     End If
@@ -481,7 +514,7 @@ Public Function ReadDiscreteInputs(ByVal StartAddress As Long, ByVal Quantity As
     
     On Error GoTo ErrorHandler
     
-    If Quantity < 1 Or Quantity > MB_MAX_COILS Then
+    If Quantity < 1 Or Quantity > m_Defaults.MAX_COILS Then
         RaiseError "Invalid quantity: " & Quantity
         Exit Function
     End If
@@ -522,7 +555,7 @@ Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity 
     
     On Error GoTo ErrorHandler
     
-    If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then
+    If Quantity < 1 Or Quantity > m_Defaults.MAX_REGISTERS Then
         RaiseError "Invalid quantity: " & Quantity
         Exit Function
     End If
@@ -557,7 +590,7 @@ Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As
     
     On Error GoTo ErrorHandler
     
-    If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then
+    If Quantity < 1 Or Quantity > m_Defaults.MAX_REGISTERS Then
         RaiseError "Invalid quantity: " & Quantity
         Exit Function
     End If
@@ -648,7 +681,7 @@ Public Function WriteMultipleCoils(ByVal StartAddress As Long, ByRef Values() As
     On Error GoTo ErrorHandler
     
     lQuantity = UBound(Values) + 1
-    If lQuantity < 1 Or lQuantity > MB_MAX_COILS Then
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
         RaiseError "Invalid quantity: " & lQuantity
         Exit Function
     End If
@@ -681,7 +714,7 @@ Public Function WriteMultipleRegisters(ByVal StartAddress As Long, ByRef Values(
     On Error GoTo ErrorHandler
     
     lQuantity = UBound(Values) + 1
-    If lQuantity < 1 Or lQuantity > MB_MAX_REGISTERS Then
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
         RaiseError "Invalid quantity: " & lQuantity
         Exit Function
     End If
@@ -816,7 +849,7 @@ Private Sub ConnectTCP()
     End If
     
     If m_TCPPort = 0 Then
-        m_TCPPort = MB_TCP_PORT
+        m_TCPPort = m_Defaults.TCP_PORT
     End If
     
     m_State = MB_STATE_CONNECTING
@@ -1022,7 +1055,7 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
         m_TransactionID = m_TransactionID + 1
         If m_TransactionID > 65535 Then m_TransactionID = 1
         
-        ReDim baFrame(MB_TCP_MBAP_SIZE + lPDULen - 1) As Byte
+        ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 1) As Byte
         
         ' MBAP Header
         baFrame(0) = (m_TransactionID \ 256) And &HFF
@@ -1034,7 +1067,7 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
         baFrame(6) = m_SlaveID  ' Unit ID
         
         ' PDU (skip slave ID in PDU for TCP)
-        CopyMemory baFrame(MB_TCP_MBAP_SIZE), PDU(1), lPDULen - 1
+        CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
     End If
     
     BuildFrame = baFrame
@@ -1253,7 +1286,7 @@ Private Function SendRequestTCP(ByRef Request() As Byte) As Byte()
         If m_Socket.BytesReceived > 0 Then
             m_Socket.GetData baRecvBuffer, vbByte + vbArray
             
-            If UBound(baRecvBuffer) >= MB_TCP_MBAP_SIZE - 1 Then
+            If UBound(baRecvBuffer) >= m_Defaults.TCP_MBAP_SIZE - 1 Then
                 ' Parse MBAP header
                 Dim lTransactionID As Long
                 lTransactionID = CLng(baRecvBuffer(0)) * 256 + CLng(baRecvBuffer(1))
@@ -1265,7 +1298,7 @@ Private Function SendRequestTCP(ByRef Request() As Byte) As Byte()
                     ' Extract PDU (add slave ID back for compatibility)
                     ReDim baResponse(lMBAPLen) As Byte
                     baResponse(0) = baRecvBuffer(6)  ' Unit ID
-                    CopyMemory baResponse(1), baRecvBuffer(MB_TCP_MBAP_SIZE), lMBAPLen - 1
+                    CopyMemory baResponse(1), baRecvBuffer(m_Defaults.TCP_MBAP_SIZE), lMBAPLen - 1
                     
                     SendRequestTCP = baResponse
                     Exit Function
@@ -1377,16 +1410,30 @@ Private Sub Class_Initialize()
     m_SlaveID = 1
     m_ResponseTimeout = 1000
     m_TransactionID = 0
+    m_DeviceID = 0  ' 初始化 DeviceID
+    
+    ' Initialize Defaults constants structure
+    m_Defaults.TCP_PORT = 502
+    m_Defaults.RTU_DEFAULT_BAUDRATE = 9600
+    m_Defaults.RTU_DEFAULT_DATABITS = 8
+    m_Defaults.RTU_DEFAULT_PARITY = "N"
+    m_Defaults.RTU_DEFAULT_STOPBITS = 1
+    m_Defaults.RTU_DEFAULT_TIMEOUT = 1000
+    m_Defaults.RTU_FRAME_DELAY_MS = 4
+    m_Defaults.MAX_PDU_SIZE = 253
+    m_Defaults.MAX_REGISTERS = 125
+    m_Defaults.MAX_COILS = 2000
+    m_Defaults.TCP_MBAP_SIZE = 7
     
     ' RTU defaults
-    m_BaudRate = MB_RTU_DEFAULT_BAUDRATE
-    m_DataBits = MB_RTU_DEFAULT_DATABITS
-    m_Parity = MB_RTU_DEFAULT_PARITY
-    m_StopBits = MB_RTU_DEFAULT_STOPBITS
-    m_RTUTimeout = MB_RTU_DEFAULT_TIMEOUT
+    m_BaudRate = m_Defaults.RTU_DEFAULT_BAUDRATE
+    m_DataBits = m_Defaults.RTU_DEFAULT_DATABITS
+    m_Parity = m_Defaults.RTU_DEFAULT_PARITY
+    m_StopBits = m_Defaults.RTU_DEFAULT_STOPBITS
+    m_RTUTimeout = m_Defaults.RTU_DEFAULT_TIMEOUT
     
     ' TCP defaults
-    m_TCPPort = MB_TCP_PORT
+    m_TCPPort = m_Defaults.TCP_PORT
     
     ' Initialize buffer
     Set m_RTUBuffer = New cByteBuffer

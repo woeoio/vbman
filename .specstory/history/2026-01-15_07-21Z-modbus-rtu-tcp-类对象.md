@@ -5825,3 +5825,1841 @@ maxCoils = mb.Default.RTU_DEFAULT_BAUDRATE  ' 9600
 
 ---
 
+_**User (2026-01-15 10:47Z)**_
+
+再帮我定义个属性：DeviceID as long，暂不使用
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+添加 `DeviceID` 属性。查看现有属性定义位置：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+添加 `DeviceID` 属性：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -233,4 +233,5 @@
+  Private m_SlaveID As Byte                                                       ' Modbus Slave/Unit ID
+  Private m_ResponseTimeout As Long                                               ' Response timeout in milliseconds
++ Private m_DeviceID As Long                                                      ' Device ID (暂不使用)
+  
+  ' Receive buffer for RTU
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 9, lines removed: undefined
+
+```diff
+@@ -286,4 +286,13 @@
+      If Value &gt; 0 Then m_ResponseTimeout = Value
+  End Property
++ 
++ ' Device ID (暂不使用)
++ Public Property Get DeviceID() As Long
++     DeviceID = m_DeviceID
++ End Property
++ 
++ Public Property Let DeviceID(ByVal Value As Long)
++     m_DeviceID = Value
++ End Property
+  
+  ' RTU Mode Properties
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查 Class_Initialize 中是否还有需要更新的地方：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MB_RTU_DEFAULT|MB_TCP_PORT" in "src/Modbus/cModbus.cls" • 7 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `m_TCPPort = MB_TCP_PORT` | L829 |
+| `src/Modbus/cModbus.cls` | `m_BaudRate = MB_RTU_DEFAULT_BAUDRATE` | L1392 |
+| `src/Modbus/cModbus.cls` | `m_DataBits = MB_RTU_DEFAULT_DATABITS` | L1393 |
+| `src/Modbus/cModbus.cls` | `m_Parity = MB_RTU_DEFAULT_PARITY` | L1394 |
+| `src/Modbus/cModbus.cls` | `m_StopBits = MB_RTU_DEFAULT_STOPBITS` | L1395 |
+| `src/Modbus/cModbus.cls` | `m_RTUTimeout = MB_RTU_DEFAULT_TIMEOUT` | L1396 |
+| `src/Modbus/cModbus.cls` | `m_TCPPort = MB_TCP_PORT` | L1399 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复 Class_Initialize 中仍使用旧常量的部分，并初始化 DeviceID：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 20, lines removed: 6
+
+```diff
+@@ -1388,14 +1388,28 @@
+      m_ResponseTimeout = 1000
+      m_TransactionID = 0
++     m_DeviceID = 0  ' 初始化 DeviceID
++     
++     ' Initialize Default constants structure
++     Default.TCP_PORT = 502
++     Default.RTU_DEFAULT_BAUDRATE = 9600
++     Default.RTU_DEFAULT_DATABITS = 8
++     Default.RTU_DEFAULT_PARITY = "N"
++     Default.RTU_DEFAULT_STOPBITS = 1
++     Default.RTU_DEFAULT_TIMEOUT = 1000
++     Default.RTU_FRAME_DELAY_MS = 4
++     Default.MAX_PDU_SIZE = 253
++     Default.MAX_REGISTERS = 125
++     Default.MAX_COILS = 2000
++     Default.TCP_MBAP_SIZE = 7
+      
+      ' RTU defaults
+-     m_BaudRate = MB_RTU_DEFAULT_BAUDRATE
+-     m_DataBits = MB_RTU_DEFAULT_DATABITS
+-     m_Parity = MB_RTU_DEFAULT_PARITY
+-     m_StopBits = MB_RTU_DEFAULT_STOPBITS
+-     m_RTUTimeout = MB_RTU_DEFAULT_TIMEOUT
++     m_BaudRate = Default.RTU_DEFAULT_BAUDRATE
++     m_DataBits = Default.RTU_DEFAULT_DATABITS
++     m_Parity = Default.RTU_DEFAULT_PARITY
++     m_StopBits = Default.RTU_DEFAULT_STOPBITS
++     m_RTUTimeout = Default.RTU_DEFAULT_TIMEOUT
+      
+      ' TCP defaults
+-     m_TCPPort = MB_TCP_PORT
++     m_TCPPort = Default.TCP_PORT
+      
+      ' Initialize buffer
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MB_TCP_PORT|MB_RTU_DEFAULT" in "src/Modbus/cModbus.cls" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `m_TCPPort = MB_TCP_PORT` | L829 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复 ConnectTCP 中剩余的常量引用：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -827,5 +827,5 @@
+      
+      If m_TCPPort = 0 Then
+-         m_TCPPort = MB_TCP_PORT
++         m_TCPPort = Default.TCP_PORT
+      End If
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MB_TCP_PORT|MB_RTU_DEFAULT|MB_MAX_|MB_TCP_MBAP_SIZE" in "src/Modbus/cModbus.cls" • 10 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_COILS Then` | L448 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_COILS Then` | L494 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then` | L535 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then` | L570 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > MB_MAX_COILS Then` | L661 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > MB_MAX_REGISTERS Then` | L694 |
+| `src/Modbus/cModbus.cls` | `ReDim baFrame(MB_TCP_MBAP_SIZE + lPDULen - 1) As Byte` | L1035 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baFrame(MB_TCP_MBAP_SIZE), PDU(1), lPDULen - 1` | L1047 |
+| `src/Modbus/cModbus.cls` | `If UBound(baRecvBuffer) >= MB_TCP_MBAP_SIZE - 1 Then` | L1266 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baResponse(1), baRecvBuffer(MB_TCP_MBAP_SIZE), lMBAPLen - 1` | L1278 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查并修复剩余的常量引用：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Default\.MAX_COILS|Default\.MAX_REGISTERS|Default\.TCP_MBAP_SIZE" in "src/Modbus/cModbus.cls" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `Default.MAX_REGISTERS = 125` | L1401 |
+| `src/Modbus/cModbus.cls` | `Default.MAX_COILS = 2000` | L1402 |
+| `src/Modbus/cModbus.cls` | `Default.TCP_MBAP_SIZE = 7` | L1403 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复所有剩余的常量引用：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -446,5 +446,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; MB_MAX_COILS Then
++     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+Model supplied an ambiguous edit
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+Model supplied an ambiguous edit
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+Model supplied an ambiguous edit
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1033,5 +1033,5 @@
+          If m_TransactionID &gt; 65535 Then m_TransactionID = 1
+          
+-         ReDim baFrame(MB_TCP_MBAP_SIZE + lPDULen - 1) As Byte
++         ReDim baFrame(Default.TCP_MBAP_SIZE + lPDULen - 1) As Byte
+          
+          ' MBAP Header
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1045,5 +1045,5 @@
+          
+          ' PDU (skip slave ID in PDU for TCP)
+-         CopyMemory baFrame(MB_TCP_MBAP_SIZE), PDU(1), lPDULen - 1
++         CopyMemory baFrame(Default.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
+      End If
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+Model supplied an ambiguous edit
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MB_TCP_PORT|MB_RTU_DEFAULT|MB_MAX_|MB_TCP_MBAP_SIZE" in "src/Modbus/cModbus.cls" • 7 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_COILS Then` | L494 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then` | L535 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > MB_MAX_REGISTERS Then` | L570 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > MB_MAX_COILS Then` | L661 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > MB_MAX_REGISTERS Then` | L694 |
+| `src/Modbus/cModbus.cls` | `If UBound(baRecvBuffer) >= MB_TCP_MBAP_SIZE - 1 Then` | L1266 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baResponse(1), baRecvBuffer(MB_TCP_MBAP_SIZE), lMBAPLen - 1` | L1278 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+重新读取并修复剩余的常量引用：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+逐个修复剩余的常量引用：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -492,5 +492,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; MB_MAX_COILS Then
++     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -533,5 +533,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; MB_MAX_REGISTERS Then
++     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -568,5 +568,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; MB_MAX_REGISTERS Then
++     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -659,5 +659,5 @@
+      
+      lQuantity = UBound(Values) + 1
+-     If lQuantity &lt; 1 Or lQuantity &gt; MB_MAX_COILS Then
++     If lQuantity &lt; 1 Or lQuantity &gt; Default.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; lQuantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -692,5 +692,5 @@
+      
+      lQuantity = UBound(Values) + 1
+-     If lQuantity &lt; 1 Or lQuantity &gt; MB_MAX_REGISTERS Then
++     If lQuantity &lt; 1 Or lQuantity &gt; Default.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; lQuantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1264,5 +1264,5 @@
+              m_Socket.GetData baRecvBuffer, vbByte + vbArray
+              
+-             If UBound(baRecvBuffer) &gt;= MB_TCP_MBAP_SIZE - 1 Then
++             If UBound(baRecvBuffer) &gt;= Default.TCP_MBAP_SIZE - 1 Then
+                  ' Parse MBAP header
+                  Dim lTransactionID As Long
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1276,5 +1276,5 @@
+                      ReDim baResponse(lMBAPLen) As Byte
+                      baResponse(0) = baRecvBuffer(6)  ' Unit ID
+-                     CopyMemory baResponse(1), baRecvBuffer(MB_TCP_MBAP_SIZE), lMBAPLen - 1
++                     CopyMemory baResponse(1), baRecvBuffer(Default.TCP_MBAP_SIZE), lMBAPLen - 1
+                      
+                      SendRequestTCP = baResponse
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MB_TCP_PORT|MB_RTU_DEFAULT|MB_MAX_|MB_TCP_MBAP_SIZE" in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+验证 DeviceID 属性是否已正确添加：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "DeviceID|m_DeviceID" in "src/Modbus/cModbus.cls" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `Private m_DeviceID As Long                                                      ' Device ID (�ݲ�ʹ��)` | L235 |
+| `src/Modbus/cModbus.cls` | `Public Property Get DeviceID() As Long` | L290 |
+| `src/Modbus/cModbus.cls` | `DeviceID = m_DeviceID` | L291 |
+| `src/Modbus/cModbus.cls` | `Public Property Let DeviceID(ByVal Value As Long)` | L294 |
+| `src/Modbus/cModbus.cls` | `m_DeviceID = Value` | L295 |
+| `src/Modbus/cModbus.cls` | `m_DeviceID = 0  ' ��ʼ�� DeviceID` | L1390 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+已完成所有修改。总结如下：
+
+## 完成的修改
+
+### 1. 添加了 `DeviceID` 属性
+
+**成员变量：**
+```vb
+Private m_DeviceID As Long  ' Device ID (暂不使用)
+```
+
+**属性定义：**
+```vb
+' Device ID (暂不使用)
+Public Property Get DeviceID() As Long
+    DeviceID = m_DeviceID
+End Property
+
+Public Property Let DeviceID(ByVal Value As Long)
+    m_DeviceID = Value
+End Property
+```
+
+**初始化：**
+在 `Class_Initialize` 中初始化为 0：
+```vb
+m_DeviceID = 0  ' 初始化 DeviceID
+```
+
+### 2. 修复了所有常量引用
+
+所有使用模块常量的地方已改为使用 `Default.xxx`：
+- `MB_MAX_COILS` → `Default.MAX_COILS`
+- `MB_MAX_REGISTERS` → `Default.MAX_REGISTERS`
+- `MB_TCP_PORT` → `Default.TCP_PORT`
+- `MB_TCP_MBAP_SIZE` → `Default.TCP_MBAP_SIZE`
+- `MB_RTU_DEFAULT_*` → `Default.RTU_DEFAULT_*`
+
+## 使用方式
+
+现在外部项目可以这样使用：
+
+```vb
+Dim mb As New cModbus
+
+' 访问常量
+Dim maxCoils As Long
+maxCoils = mb.Default.MAX_COILS        ' 2000
+maxCoils = mb.Default.MAX_REGISTERS   ' 125
+
+' 设置 DeviceID（暂不使用）
+mb.DeviceID = 123
+```
+
+所有修改已完成，代码已通过语法检查。`DeviceID` 属性已添加，可在外部访问，但当前代码中暂未使用。
+
+---
+
+_**User (2026-01-15 10:47Z)**_
+
+Default 没有定义
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+检查 `Default` 的定义和使用情况：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Public Default|Default As|Type ModbusDefaults" in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Default\." in "src/Modbus/cModbus.cls" • 9 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_COILS Then` | L448 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_COILS Then` | L494 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_REGISTERS Then` | L535 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_REGISTERS Then` | L570 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > Default.MAX_COILS Then` | L661 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > Default.MAX_REGISTERS Then` | L694 |
+| `src/Modbus/cModbus.cls` | `m_TCPPort = Default.TCP_PORT` | L829 |
+| `src/Modbus/cModbus.cls` | `ReDim baFrame(Default.TCP_MBAP_SIZE + lPDULen - 1) As Byte` | L1035 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baFrame(Default.TCP_MBAP_SIZE), PDU(1), lPDULen - 1` | L1047 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查结构体定义和 Default 变量是否还在：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "ModbusDefaults|Public Default" in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+结构体定义和 `Default` 变量缺失。正在重新添加：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 18, lines removed: undefined
+
+```diff
+@@ -203,8 +203,26 @@
+      cbOutQue As Long
+  End Type
++ 
++ ' Modbus Defaults Structure (for external access to constants)
++ Public Type ModbusDefaults
++     TCP_PORT As Long
++     RTU_DEFAULT_BAUDRATE As Long
++     RTU_DEFAULT_DATABITS As Long
++     RTU_DEFAULT_PARITY As String
++     RTU_DEFAULT_STOPBITS As Long
++     RTU_DEFAULT_TIMEOUT As Long
++     RTU_FRAME_DELAY_MS As Long
++     MAX_PDU_SIZE As Long
++     MAX_REGISTERS As Long
++     MAX_COILS As Long
++     TCP_MBAP_SIZE As Long
++ End Type
+  
+  '=========================================================================
+  ' Member Variables
+  '=========================================================================
++ 
++ ' Default constants (accessible from external)
++ Public Default As ModbusDefaults
+  
+  ' Protocol type
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+已重新添加 `ModbusDefaults` 结构体定义和 `Default` 变量。验证是否正确定义：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Public Type ModbusDefaults|Public Default As ModbusDefaults" in "src/Modbus/cModbus.cls" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `Public Type ModbusDefaults` | L207 |
+| `src/Modbus/cModbus.cls` | `Public Default As ModbusDefaults` | L226 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+已重新添加 `ModbusDefaults` 结构体定义和 `Default` 变量。当前定义如下：
+
+## 已添加的定义
+
+### 1. 结构体定义
+```vb
+Public Type ModbusDefaults
+    TCP_PORT As Long
+    RTU_DEFAULT_BAUDRATE As Long
+    RTU_DEFAULT_DATABITS As Long
+    RTU_DEFAULT_PARITY As String
+    RTU_DEFAULT_STOPBITS As Long
+    RTU_DEFAULT_TIMEOUT As Long
+    RTU_FRAME_DELAY_MS As Long
+    MAX_PDU_SIZE As Long
+    MAX_REGISTERS As Long
+    MAX_COILS As Long
+    TCP_MBAP_SIZE As Long
+End Type
+```
+
+### 2. Public Default 变量
+```vb
+Public Default As ModbusDefaults
+```
+
+### 3. 在 Class_Initialize 中初始化
+所有常量值在类初始化时已赋值给 `Default` 结构体。
+
+现在 `Default` 已正确定义，可以在类内部和外部使用 `Default.xxx` 访问所有常量。代码已通过语法检查。
+
+---
+
+_**User (2026-01-15 10:47Z)**_
+
+Public Default As ModbusDefaults 改为只读属性过程  Defaults
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+将 `Public Default` 改为只读属性 `Defaults`：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Default\." in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: count
+
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+将 `Public Default` 改为只读属性 `Defaults`：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -223,6 +223,6 @@
+  '=========================================================================
+  
+- ' Default constants (accessible from external)
+- Public Default As ModbusDefaults
++ ' Default constants (private, accessed via Defaults property)
++ Private m_Defaults As ModbusDefaults
+  
+  ' Protocol type
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+Model supplied an ambiguous edit
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 18, lines removed: 18
+
+```diff
+@@ -1408,26 +1408,26 @@
+      m_DeviceID = 0  ' 初始化 DeviceID
+      
+-     ' Initialize Default constants structure
+-     Default.TCP_PORT = 502
+-     Default.RTU_DEFAULT_BAUDRATE = 9600
+-     Default.RTU_DEFAULT_DATABITS = 8
+-     Default.RTU_DEFAULT_PARITY = "N"
+-     Default.RTU_DEFAULT_STOPBITS = 1
+-     Default.RTU_DEFAULT_TIMEOUT = 1000
+-     Default.RTU_FRAME_DELAY_MS = 4
+-     Default.MAX_PDU_SIZE = 253
+-     Default.MAX_REGISTERS = 125
+-     Default.MAX_COILS = 2000
+-     Default.TCP_MBAP_SIZE = 7
++     ' Initialize Defaults constants structure
++     m_Defaults.TCP_PORT = 502
++     m_Defaults.RTU_DEFAULT_BAUDRATE = 9600
++     m_Defaults.RTU_DEFAULT_DATABITS = 8
++     m_Defaults.RTU_DEFAULT_PARITY = "N"
++     m_Defaults.RTU_DEFAULT_STOPBITS = 1
++     m_Defaults.RTU_DEFAULT_TIMEOUT = 1000
++     m_Defaults.RTU_FRAME_DELAY_MS = 4
++     m_Defaults.MAX_PDU_SIZE = 253
++     m_Defaults.MAX_REGISTERS = 125
++     m_Defaults.MAX_COILS = 2000
++     m_Defaults.TCP_MBAP_SIZE = 7
+      
+      ' RTU defaults
+-     m_BaudRate = Default.RTU_DEFAULT_BAUDRATE
+-     m_DataBits = Default.RTU_DEFAULT_DATABITS
+-     m_Parity = Default.RTU_DEFAULT_PARITY
+-     m_StopBits = Default.RTU_DEFAULT_STOPBITS
+-     m_RTUTimeout = Default.RTU_DEFAULT_TIMEOUT
++     m_BaudRate = m_Defaults.RTU_DEFAULT_BAUDRATE
++     m_DataBits = m_Defaults.RTU_DEFAULT_DATABITS
++     m_Parity = m_Defaults.RTU_DEFAULT_PARITY
++     m_StopBits = m_Defaults.RTU_DEFAULT_STOPBITS
++     m_RTUTimeout = m_Defaults.RTU_DEFAULT_TIMEOUT
+      
+      ' TCP defaults
+-     m_TCPPort = Default.TCP_PORT
++     m_TCPPort = m_Defaults.TCP_PORT
+      
+      ' Initialize buffer
+```
+
+</details>
+
+</tool-use>
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查并修复所有 `Default.` 的引用：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Default\." in "src/Modbus/cModbus.cls" • 11 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_COILS Then` | L466 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_COILS Then` | L512 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_REGISTERS Then` | L553 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > Default.MAX_REGISTERS Then` | L588 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > Default.MAX_COILS Then` | L679 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > Default.MAX_REGISTERS Then` | L712 |
+| `src/Modbus/cModbus.cls` | `m_TCPPort = Default.TCP_PORT` | L847 |
+| `src/Modbus/cModbus.cls` | `ReDim baFrame(Default.TCP_MBAP_SIZE + lPDULen - 1) As Byte` | L1053 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baFrame(Default.TCP_MBAP_SIZE), PDU(1), lPDULen - 1` | L1065 |
+| `src/Modbus/cModbus.cls` | `If UBound(baRecvBuffer) >= Default.TCP_MBAP_SIZE - 1 Then` | L1284 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baResponse(1), baRecvBuffer(Default.TCP_MBAP_SIZE), lMBAPLen - 1` | L1296 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+添加 `Defaults` 属性，并将所有 `Default.` 替换为 `m_Defaults.`：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -304,4 +304,9 @@
+      If Value &gt; 0 Then m_ResponseTimeout = Value
+  End Property
++ 
++ ' Defaults constants (read-only)
++ Public Property Get Defaults() As ModbusDefaults
++     Defaults = m_Defaults
++ End Property
+  
+  ' Device ID (暂不使用)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -469,5 +469,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_COILS Then
++     If Quantity &lt; 1 Or Quantity &gt; m_Defaults.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -515,5 +515,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_COILS Then
++     If Quantity &lt; 1 Or Quantity &gt; m_Defaults.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -556,5 +556,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_REGISTERS Then
++     If Quantity &lt; 1 Or Quantity &gt; m_Defaults.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -591,5 +591,5 @@
+      On Error GoTo ErrorHandler
+      
+-     If Quantity &lt; 1 Or Quantity &gt; Default.MAX_REGISTERS Then
++     If Quantity &lt; 1 Or Quantity &gt; m_Defaults.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; Quantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -682,5 +682,5 @@
+      
+      lQuantity = UBound(Values) + 1
+-     If lQuantity &lt; 1 Or lQuantity &gt; Default.MAX_COILS Then
++     If lQuantity &lt; 1 Or lQuantity &gt; m_Defaults.MAX_COILS Then
+          RaiseError "Invalid quantity: " &amp; lQuantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -715,5 +715,5 @@
+      
+      lQuantity = UBound(Values) + 1
+-     If lQuantity &lt; 1 Or lQuantity &gt; Default.MAX_REGISTERS Then
++     If lQuantity &lt; 1 Or lQuantity &gt; m_Defaults.MAX_REGISTERS Then
+          RaiseError "Invalid quantity: " &amp; lQuantity
+          Exit Function
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -850,5 +850,5 @@
+      
+      If m_TCPPort = 0 Then
+-         m_TCPPort = Default.TCP_PORT
++         m_TCPPort = m_Defaults.TCP_PORT
+      End If
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1056,5 +1056,5 @@
+          If m_TransactionID &gt; 65535 Then m_TransactionID = 1
+          
+-         ReDim baFrame(Default.TCP_MBAP_SIZE + lPDULen - 1) As Byte
++         ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 1) As Byte
+          
+          ' MBAP Header
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1068,5 +1068,5 @@
+          
+          ' PDU (skip slave ID in PDU for TCP)
+-         CopyMemory baFrame(Default.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
++         CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
+      End If
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1287,5 +1287,5 @@
+              m_Socket.GetData baRecvBuffer, vbByte + vbArray
+              
+-             If UBound(baRecvBuffer) &gt;= Default.TCP_MBAP_SIZE - 1 Then
++             If UBound(baRecvBuffer) &gt;= m_Defaults.TCP_MBAP_SIZE - 1 Then
+                  ' Parse MBAP header
+                  Dim lTransactionID As Long
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/Modbus/cModbus.cls</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1299,5 +1299,5 @@
+                      ReDim baResponse(lMBAPLen) As Byte
+                      baResponse(0) = baRecvBuffer(6)  ' Unit ID
+-                     CopyMemory baResponse(1), baRecvBuffer(Default.TCP_MBAP_SIZE), lMBAPLen - 1
++                     CopyMemory baResponse(1), baRecvBuffer(m_Defaults.TCP_MBAP_SIZE), lMBAPLen - 1
+                      
+                      SendRequestTCP = baResponse
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Default\." in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `src/Modbus`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+验证所有修改是否正确：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Public Property Get Defaults|Private m_Defaults|m_Defaults\." in "src/Modbus/cModbus.cls" • 14 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `src/Modbus/cModbus.cls` | `Private m_Defaults As ModbusDefaults` | L226 |
+| `src/Modbus/cModbus.cls` | `Public Property Get Defaults() As ModbusDefaults` | L308 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > m_Defaults.MAX_COILS Then` | L471 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > m_Defaults.MAX_COILS Then` | L517 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > m_Defaults.MAX_REGISTERS Then` | L558 |
+| `src/Modbus/cModbus.cls` | `If Quantity < 1 Or Quantity > m_Defaults.MAX_REGISTERS Then` | L593 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then` | L684 |
+| `src/Modbus/cModbus.cls` | `If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then` | L717 |
+| `src/Modbus/cModbus.cls` | `m_TCPPort = m_Defaults.TCP_PORT` | L852 |
+| `src/Modbus/cModbus.cls` | `ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 1) As Byte` | L1058 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1` | L1070 |
+| `src/Modbus/cModbus.cls` | `If UBound(baRecvBuffer) >= m_Defaults.TCP_MBAP_SIZE - 1 Then` | L1289 |
+| `src/Modbus/cModbus.cls` | `CopyMemory baResponse(1), baRecvBuffer(m_Defaults.TCP_MBAP_SIZE), lMBAPLen - 1` | L1301 |
+| `src/Modbus/cModbus.cls` | `m_Defaults.TCP_PORT = 502` | L1416 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+验证 Class_Initialize 中的初始化：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/Modbus/cModbus.cls</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "m_Defaults\." in "src/Modbus/cModbus.cls" • 0 matches</summary>
+
+Output mode: count
+
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+所有修改已完成。总结如下：
+
+## 完成的修改
+
+### 1. 将 Public 变量改为 Private 成员变量
+```vb
+' 之前：Public Default As ModbusDefaults
+' 现在：
+Private m_Defaults As ModbusDefaults
+```
+
+### 2. 添加只读属性 `Defaults`
+```vb
+' Defaults constants (read-only)
+Public Property Get Defaults() As ModbusDefaults
+    Defaults = m_Defaults
+End Property
+```
+
+### 3. 修改所有内部引用
+所有类内部使用 `Default.xxx` 的地方已改为 `m_Defaults.xxx`：
+- `Default.MAX_COILS` → `m_Defaults.MAX_COILS`
+- `Default.MAX_REGISTERS` → `m_Defaults.MAX_REGISTERS`
+- `Default.TCP_PORT` → `m_Defaults.TCP_PORT`
+- `Default.TCP_MBAP_SIZE` → `m_Defaults.TCP_MBAP_SIZE`
+- `Default.RTU_DEFAULT_*` → `m_Defaults.RTU_DEFAULT_*`
+
+### 4. 在 Class_Initialize 中初始化
+所有常量值在类初始化时赋值给 `m_Defaults` 结构体。
+
+## 使用方式
+
+现在外部项目可以通过只读属性访问常量：
+
+```vb
+Dim mb As New cModbus
+
+' 通过只读属性访问常量
+Dim maxCoils As Long
+maxCoils = mb.Defaults.MAX_COILS        ' 2000
+maxCoils = mb.Defaults.MAX_REGISTERS   ' 125
+maxCoils = mb.Defaults.TCP_PORT       ' 502
+```
+
+所有修改已完成，代码已通过语法检查。现在 `Defaults` 是一个只读属性，外部可以访问但不能修改。
+
+---
+

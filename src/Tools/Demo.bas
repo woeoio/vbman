@@ -1,8 +1,23 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+Sub StartUp()
+    With New cStartUp
+        .Toggle "vbm", App, "-a", "-888"
+        '        .Toggle "vbm", App.Path & "\" & App.EXEName & ".exe", "-a", "-888"
+    End With
+End Sub
 
-
+Sub Reg()
+    With New cRegedit
+        Dim A() As TypeRegData
+        A = .FindItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "")
+        If A(0).HasName = False Then MsgBox A(0).RegValue
+        
+        If .SaveItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2", "c:\abc.exe", Array(-1, -2, -3)) = False Then MsgBox .LastError
+        If .DeleteItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2123") = False Then MsgBox .LastError
+    End With
+End Sub
 
 Sub Pip()
     With New cSTDIO
@@ -68,18 +83,18 @@ End Sub
 
 
 Sub ArrayFor()
-    Dim a: a = Array(1, 2, 3)
+    Dim A: A = Array(1, 2, 3)
     Dim x
-    For Each x In a
+    For Each x In A
         Debug.Print x
     Next
 End Sub
 
 
 Sub JsonStr()
-    Const a As String = "130405089908358152"
+    Const A As String = "130405089908358152"
     With New cJson
-        .Item("a") = a
+        .Item("a") = A
         Debug.Print .Encode()
     End With
 End Sub
@@ -165,11 +180,11 @@ End Sub
 
 
 Public Sub Fetch()
-    Dim c As New cHttpClient
-    c.DebugStart = True
-    c.SetCookies "a=1"
-    Debug.Print c.Fetch(ReqGet, "http://a-vi.com/home/hello?name=µËÎ°").ReturnJson().Encode(, 2, True)
-    Debug.Print c.DebugInfo.Encode(, 2, True)
+    Dim C As New cHttpClient
+    C.DebugStart = True
+    C.SetCookies "a=1"
+    Debug.Print C.Fetch(ReqGet, "http://a-vi.com/home/hello?name=µËÎ°").ReturnJson().Encode(, 2, True)
+    Debug.Print C.DebugInfo.Encode(, 2, True)
 End Sub
 
 

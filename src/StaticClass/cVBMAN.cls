@@ -25,6 +25,8 @@ Public TimeUse As New cTimeUse
 Public PLI As New cPLI
 Public QRcode As New cQRcode
 Public Collection As New cCollection
+Public Regedit As New cRegedit
+Public StartUp As New cStartUp
 
 'µÚÈý·½
 Public Baidu As New cBaidu

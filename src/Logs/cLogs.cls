@@ -75,6 +75,8 @@ Private Const WEB_URL As String = "http://log.vb6.pro/submit"
 
 Public DebugPring As Boolean
 
+Dim pvHostApp As Object
+
 Dim FileNumber As Long
 Dim LogData As String
 Dim LevelData As Variant
@@ -95,6 +97,11 @@ Public Property Let ShowLogsViewer(Value As Boolean)
         Unload FLogs
     End If
 End Property
+
+Public Function HostApp(o As Object) As cLogs
+    Set HostApp = Me
+    Set pvHostApp = o
+End Function
 
 Public Function View(Value As Boolean) As cLogs
     Set View = Me
@@ -185,7 +192,7 @@ Public Function Save() As cLogs
         LogPath = "\logs\" + LogSubDir + "\" + LogPath
     End If
     If LogDir = "" Then
-        LogPath = App.Path & "\" & LogPath
+        LogPath = pvHostApp.Path & "\" & LogPath
     Else
         LogPath = LogDir & "\" & LogPath
     End If
@@ -216,7 +223,10 @@ Private Function MakeLogTitle(LogTitle As String, LogLevel As EnumLogLevel) As S
         LevelData = Array("INFO", "WARN", "DANGER", "ERROR")
     End If
     MakeLogTitle = "::[" & Now & "] [" & LevelData(LogLevel) & "] " & LogTitle
-    '    If App.LogMode = 0 And DebugPring = True Then Debug.Print LogData
+    '    If pvhostApp.LogMode = 0 And DebugPring = True Then Debug.Print LogData
 End Function
 
 
+Private Sub Class_Initialize()
+    Set pvHostApp = App
+End Sub

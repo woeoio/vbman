@@ -2,3 +2,4 @@ VB_bak/
 *.vbw
 *.ldb
 VBMAN.PSC
+.cursorindexingignore

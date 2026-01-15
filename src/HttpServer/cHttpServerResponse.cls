@@ -169,6 +169,27 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     If CrossDomain.Enable = True Then
         CrossDomain.AddTo Header
     End If
+    ' 发送 Cookie（如果 Context 中有 Cookies 对象）
+    If Not Client Is Nothing Then
+        If Not Client.Context Is Nothing Then
+            If Not Client.Context.Cookies Is Nothing Then
+                Dim cookieLines As String
+                Dim cookieLine As Variant
+                cookieLines = Client.Context.Cookies.Encode
+                If cookieLines <> "" Then
+                    ' 每个 Cookie 需要单独的 Set-Cookie 头
+                    Dim cookieArray() As String
+                    cookieArray = Split(cookieLines, vbCrLf)
+                    Dim iCookie As Long
+                    For iCookie = 0 To UBound(cookieArray)
+                        If cookieArray(iCookie) <> "" Then
+                            Head = Head & "Set-Cookie: " & cookieArray(iCookie) & vbCrLf
+                        End If
+                    Next
+                End If
+            End If
+        End If
+    End If
     Dim x, i As Long
     For Each x In Header.Keys()
         Head = Head & x & ": " & Header.Item(x) & vbCrLf

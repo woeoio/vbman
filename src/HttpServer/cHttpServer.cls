@@ -15,6 +15,13 @@ Attribute VB_Exposed = True
 
 Option Explicit
 
+' Session 存储类型枚举
+Public Enum EnumSessionStorageType
+    SessionStorageMemory = 0      ' 内存存储（不持久化）
+    SessionStorageFileSystem = 1   ' 文件系统存储
+    SessionStorageDatabase = 2     ' 数据库存储
+End Enum
+
 Dim IsRunning  As Boolean
 
 Private WithEvents m_oServer    As cTlsReMaster
@@ -35,6 +42,11 @@ Public Database As New cDataBase
 Public CrossDomain As New cHttpCrossDomain
 
 Public LastError As String
+
+' Session 持久化配置
+Public SessionStorageType As EnumSessionStorageType ' Session 存储类型
+Public SessionStoragePath As String ' 文件系统路径或数据库表名
+Public SessionCookieName As String ' Session Cookie 名称
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -88,7 +100,9 @@ EH:
 End Function
 
 Private Sub Class_Initialize()
-    '
+    ' 默认配置
+    SessionStorageType = SessionStorageMemory ' 默认内存存储
+    SessionCookieName = "VBMAN_SESSIONID"
 End Sub
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
@@ -142,6 +156,8 @@ Friend Sub OnDataArrival(Index As Long)
     Dim aReq() As Byte
     Dim aReqHead() As Byte
     Dim aReqBody() As Byte
+    Dim sessionFile As String
+    Dim sessionTable As String
     oCallback.Socket.GetData aReq, vbArray + vbByte
     '分割请求头和请求体
     vRequest = ToolsArray.SplitByteArrayByKeyword(aReq, vbCrLf & vbCrLf, 1)
@@ -170,6 +186,37 @@ Friend Sub OnDataArrival(Index As Long)
     '开始 http 流程
     Dim Session As New cHttpServerSession
     Dim Cookies As New cHttpServerCookies
+    ' 从请求头解析 Cookie
+    If Request.Header.Exists("Cookie") = True Then
+        Cookies.Decode Request.Header("Cookie")
+    End If
+    
+    ' 从 Cookie 读取 SessionID 并加载 Session
+    Dim sessionID As String
+    Dim sessionCookieName As String
+    sessionCookieName = IIf(Me.SessionCookieName = "", "VBMAN_SESSIONID", Me.SessionCookieName)
+    
+    If Cookies.Exists(sessionCookieName) Then
+        sessionID = Cookies.Cookie(sessionCookieName).Value
+        If sessionID <> "" Then
+            Session.SessionID = sessionID
+            ' 根据配置加载 Session
+            If SessionStorageType = SessionStorageFileSystem Then
+                ' 文件系统
+                If SessionStoragePath = "" Then
+                    sessionFile = Environ("TEMP") & "\vbman\sessions\" & sessionID & ".json"
+                Else
+                    sessionFile = SessionStoragePath & "\" & sessionID & ".json"
+                End If
+                Session.LoadFromFile sessionFile
+            ElseIf SessionStorageType = SessionStorageDatabase Then
+                ' 数据库
+                sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+                Session.LoadFromDatabase Database, sessionID, sessionTable
+            End If
+        End If
+    End If
+    
     With oCallback.Context
         Set .Request = Request
         Set .response = response
@@ -184,6 +231,34 @@ Friend Sub OnDataArrival(Index As Long)
     
     '开始路由
     Call Router.Entry(oCallback)
+    
+    ' 保存 Session 到持久化存储
+    If Session.SessionID <> "" Then
+        ' 将 SessionID 写入 Cookie
+        With Cookies.Cookie(sessionCookieName)
+            .Value = Session.SessionID
+            .Path = "/"
+            .HttpOnly = True
+            If Session.Timeout > 0 Then
+                .Expires = DateAdd("n", Session.Timeout, Now)
+            End If
+        End With
+        
+        ' 根据配置保存 Session
+        If SessionStorageType = SessionStorageFileSystem Then
+            ' 文件系统
+            If SessionStoragePath = "" Then
+                sessionFile = Environ("TEMP") & "\vbman\sessions\" & Session.SessionID & ".json"
+            Else
+                sessionFile = SessionStoragePath & "\" & Session.SessionID & ".json"
+            End If
+            Session.SaveToFile sessionFile
+        ElseIf SessionStorageType = SessionStorageDatabase Then
+            ' 数据库
+            sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+            Session.SaveToDatabase Database, sessionTable
+        End If
+    End If
     Exit Sub
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description

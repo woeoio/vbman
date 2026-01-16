@@ -16,230 +16,78 @@ Attribute VB_Exposed = True
 ' cModbusSlave - Modbus Slave/Server Implementation for VB6
 '
 ' Purpose: Provides Modbus RTU and TCP slave/server functionality
-'          - Listen for client connections
-'          - Handle read/write requests from master
+'          - Read/Write Coils (0x01, 0x02, 0x05, 0x0F)
+'          - Read/Write Registers (0x03, 0x04, 0x06, 0x10)
 '          - Support for RTU (Serial) and TCP modes
 '
-' Usage Example:
-'   Dim slave As New cModbusSlave
-'
-'   ' TCP Mode - Listen on all interfaces (default)
-'   slave.Start 502
-'
-'   ' TCP Mode - Listen on localhost only
-'   slave.BindAddress = "127.0.0.1"
-'   slave.Start 502
-'
-'   ' TCP Mode - Listen on specific network interface
-'   slave.Start 502, "192.168.1.100"
-'
-'   ' RTU Mode
-'   slave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
-'   slave.Start "COM1"
-'
 ' Author: Auto
-' Date: 2026-01-15
+' Date: 2026-01-16
 '
 '=========================================================================
 Option Explicit
 
 '=========================================================================
-' Modbus Enums (imported from cModbus for consistency)
-'=========================================================================
-
 ' Modbus Function Codes
+'=========================================================================
+
 Public Enum ModbusSlaveFunctionCode
-' Read Functions
-    MB_SLAVE_FC_READ_COILS = &H1                                                ' Read Coils (01)
-    MB_SLAVE_FC_READ_DISCRETE_INPUTS = &H2                                      ' Read Discrete Inputs (02)
-    MB_SLAVE_FC_READ_HOLDING_REGISTERS = &H3                                    ' Read Holding Registers (03)
-    MB_SLAVE_FC_READ_INPUT_REGISTERS = &H4                                      ' Read Input Registers (04)
-    
+    ' Read Functions
+    MB_SLAVE_FC_READ_COILS = &H1                                                  ' Read Coils (01)
+    MB_SLAVE_FC_READ_DISCRETE_INPUTS = &H2                                        ' Read Discrete Inputs (02)
+    MB_SLAVE_FC_READ_HOLDING_REGISTERS = &H3                                      ' Read Holding Registers (03)
+    MB_SLAVE_FC_READ_INPUT_REGISTERS = &H4                                        ' Read Input Registers (04)
+
     ' Write Functions
-    MB_SLAVE_FC_WRITE_SINGLE_COIL = &H5                                         ' Write Single Coil (05)
-    MB_SLAVE_FC_WRITE_SINGLE_REGISTER = &H6                                     ' Write Single Register (06)
-    MB_SLAVE_FC_WRITE_MULTIPLE_COILS = &HF                                      ' Write Multiple Coils (15)
-    MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS = &H10                                 ' Write Multiple Registers (16)
-    
-    ' Mask Write Register (22)
-    MB_SLAVE_FC_MASK_WRITE_REGISTER = &H16
-    
-    ' Read/Write Multiple Registers (23)
-    MB_SLAVE_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17
-End Enum
+    MB_SLAVE_FC_WRITE_SINGLE_COIL = &H5                                           ' Write Single Coil (05)
+    MB_SLAVE_FC_WRITE_SINGLE_REGISTER = &H6                                       ' Write Single Register (06)
+    MB_SLAVE_FC_WRITE_MULTIPLE_COILS = &HF                                        ' Write Multiple Coils (15)
+    MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS = &H10                                   ' Write Multiple Registers (16)
 
-' Modbus Exception Codes
-Public Enum ModbusSlaveExceptionCode
-    MB_SLAVE_EX_ILLEGAL_FUNCTION = &H1                                          ' Illegal Function
-    MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS = &H2                                      ' Illegal Data Address
-    MB_SLAVE_EX_ILLEGAL_DATA_VALUE = &H3                                        ' Illegal Data Value
-    MB_SLAVE_EX_SLAVE_DEVICE_FAILURE = &H4                                      ' Slave Device Failure
-    MB_SLAVE_EX_ACKNOWLEDGE = &H5                                               ' Acknowledge
-    MB_SLAVE_EX_SLAVE_DEVICE_BUSY = &H6                                         ' Slave Device Busy
-    MB_SLAVE_EX_MEMORY_PARITY_ERROR = &H8                                       ' Memory Parity Error
-    MB_SLAVE_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                  ' Gateway Path Unavailable
-    MB_SLAVE_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                              ' Gateway Target Device Failed to Respond
-End Enum
-
-' Modbus Connection State
-Public Enum ModbusSlaveState
-    MB_SLAVE_STATE_STOPPED = 0
-    MB_SLAVE_STATE_STARTING = 1
-    MB_SLAVE_STATE_RUNNING = 2
-    MB_SLAVE_STATE_ERROR = 3
+    ' Advanced Functions (optional)
+    MB_SLAVE_FC_MASK_WRITE_REGISTER = &H16                                        ' Mask Write Register (22)
+    MB_SLAVE_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17                              ' Read/Write Multiple (23)
 End Enum
 
 '=========================================================================
-' Modbus Protocol Type
+' Modbus Exception Codes
+'=========================================================================
+
+Public Enum ModbusSlaveExceptionCode
+    MB_SLAVE_EX_ILLEGAL_FUNCTION = &H1                                            ' Illegal Function
+    MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS = &H2                                        ' Illegal Data Address
+    MB_SLAVE_EX_ILLEGAL_DATA_VALUE = &H3                                          ' Illegal Data Value
+    MB_SLAVE_EX_SLAVE_DEVICE_FAILURE = &H4                                        ' Slave Device Failure
+    MB_SLAVE_EX_ACKNOWLEDGE = &H5                                                 ' Acknowledge
+    MB_SLAVE_EX_SLAVE_DEVICE_BUSY = &H6                                           ' Slave Device Busy
+    MB_SLAVE_EX_MEMORY_PARITY_ERROR = &H8                                         ' Memory Parity Error
+    MB_SLAVE_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                    ' Gateway Path Unavailable
+    MB_SLAVE_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                ' Gateway Target Device Failed
+End Enum
+
+'=========================================================================
+' Connection State
+'=========================================================================
+
+Public Enum ModbusSlaveState
+    MB_SLAVE_STATE_STOPPED = 0                                                    ' Stopped
+    MB_SLAVE_STATE_STARTING = 1                                                   ' Starting
+    MB_SLAVE_STATE_RUNNING = 2                                                    ' Running
+    MB_SLAVE_STATE_ERROR = 3                                                      ' Error
+End Enum
+
+'=========================================================================
+' Protocol Type
 '=========================================================================
 
 Public Enum ModbusSlaveProtocolType
-    MB_SLAVE_PROTOCOL_RTU = 1                                                   ' RTU over Serial
-    MB_SLAVE_PROTOCOL_TCP = 2                                                   ' TCP/IP
+    MB_SLAVE_PROTOCOL_RTU = 1                                                     ' RTU over Serial
+    MB_SLAVE_PROTOCOL_TCP = 2                                                     ' TCP/IP
 End Enum
 
 '=========================================================================
-' Events
+' Default Constants Structure
 '=========================================================================
 
-' Server started
-Event OnStarted()
-
-' Server stopped
-Event OnStopped()
-
-' Client connected
-Event OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String)
-
-' Client disconnected
-Event OnClientDisconnect(ByVal ClientID As String, ByVal Reason As String)
-
-' Error occurred
-Event OnError(ByVal Description As String)
-
-' Data received (for debugging)
-Event OnDataReceived(ByVal ClientID As String, Data() As Byte)
-
-' Read request received (allow custom handling)
-Event OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
-
-' Write request received
-Event OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
-
-'=========================================================================
-' API Declarations for Serial Port (RTU Mode)
-'=========================================================================
-
-Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" ( _
-    ByVal lpFileName As String, _
-    ByVal dwDesiredAccess As Long, _
-    ByVal dwShareMode As Long, _
-    ByVal lpSecurityAttributes As Long, _
-    ByVal dwCreationDisposition As Long, _
-    ByVal dwFlagsAndAttributes As Long, _
-    ByVal hTemplateFile As Long) As Long
-
-Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
-
-Private Declare Function WriteFile Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpBuffer As Any, _
-    ByVal nNumberOfBytesToWrite As Long, _
-    ByRef lpNumberOfBytesWritten As Long, _
-    ByVal lpOverlapped As Long) As Long
-
-Private Declare Function ReadFile Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpBuffer As Any, _
-    ByVal nNumberOfBytesToRead As Long, _
-    ByRef lpNumberOfBytesRead As Long, _
-    ByVal lpOverlapped As Long) As Long
-
-Private Declare Function SetCommState Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpDCB As Any) As Long
-
-Private Declare Function GetCommState Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpDCB As dcb) As Long
-
-Private Declare Function SetCommTimeouts Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpCommTimeouts As COMMTIMEOUTS) As Long
-
-Private Declare Function PurgeComm Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByVal dwFlags As Long) As Long
-
-Private Declare Function ClearCommError Lib "kernel32" ( _
-    ByVal hFile As Long, _
-    ByRef lpErrors As Long, _
-    ByRef lpStat As COMSTAT) As Long
-
-Private Declare Function GetTickCount Lib "kernel32" () As Long
-
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" ( _
-    Destination As Any, _
-    Source As Any, _
-    ByVal Length As Long)
-
-Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-
-' Serial Port Constants
-Private Const GENERIC_READ As Long = &H80000000
-Private Const GENERIC_WRITE As Long = &H40000000
-Private Const OPEN_EXISTING As Long = 3
-Private Const FILE_ATTRIBUTE_NORMAL As Long = &H80
-Private Const INVALID_HANDLE_VALUE As Long = -1
-
-Private Const PURGE_TXABORT As Long = &H1
-Private Const PURGE_RXABORT As Long = &H2
-Private Const PURGE_TXCLEAR As Long = &H4
-Private Const PURGE_RXCLEAR As Long = &H8
-
-' DCB Structure for Serial Port Configuration
-Private Type dcb
-    DCBlength As Long
-    BaudRate As Long
-    fBitFields As Long
-    wReserved As Integer
-    XonLim As Integer
-    XoffLim As Integer
-    ByteSize As Byte
-    Parity As Byte
-    StopBits As Byte
-    XonChar As Byte
-    XoffChar As Byte
-    ErrorChar As Byte
-    EofChar As Byte
-    EvtChar As Byte
-    wReserved1 As Integer
-End Type
-
-' COMMTIMEOUTS Structure
-Private Type COMMTIMEOUTS
-    ReadIntervalTimeout As Long
-    ReadTotalTimeoutMultiplier As Long
-    ReadTotalTimeoutConstant As Long
-    WriteTotalTimeoutMultiplier As Long
-    WriteTotalTimeoutConstant As Long
-End Type
-
-' COMSTAT Structure
-Private Type COMSTAT
-    fCtsHold As Long
-    fDsrHold As Long
-    fRlsdHold As Long
-    fXoffHold As Long
-    fXoffSent As Long
-    fEof As Long
-    fTxim As Long
-    fReserved As Long
-    cbInQue As Long
-    cbOutQue As Long
-End Type
-
-' Modbus Defaults Structure
 Public Type ModbusSlaveDefaults
     TCP_PORT As Long
     RTU_DEFAULT_BAUDRATE As Long
@@ -254,6 +102,18 @@ Public Type ModbusSlaveDefaults
 End Type
 
 '=========================================================================
+' Events
+'=========================================================================
+
+Event OnStart()
+Event OnStop()
+Event OnError(ByVal Description As String)
+Event OnDataReceived(Data() As Byte)
+Event OnDataSent(Data() As Byte)
+Event OnCoilsChanged(ByVal StartAddress As Long, ByVal Quantity As Long, Values() As Boolean)
+Event OnRegistersChanged(ByVal StartAddress As Long, ByVal Quantity As Long, Values() As Integer)
+
+'=========================================================================
 ' Member Variables
 '=========================================================================
 
@@ -263,45 +123,42 @@ Private m_Defaults As ModbusSlaveDefaults
 ' Protocol type
 Private m_ProtocolType As ModbusSlaveProtocolType
 
-' Server state
+' Connection state
 Private m_State As ModbusSlaveState
 
-' Slave ID
-Private m_SlaveID As Byte
+' Transport layers
+Private WithEvents m_TransportRTU As cModbusTransportRTU
+Attribute m_TransportRTU.VB_VarHelpID = -1
+Private WithEvents m_TransportTCP As cModbusTransportTCP
+Attribute m_TransportTCP.VB_VarHelpID = -1
 
-' Data storage
-Private m_Coils() As Boolean
-Private m_DiscreteInputs() As Boolean
-Private m_HoldingRegisters() As Integer
-Private m_InputRegisters() As Integer
-
-' Clients collection (TCP mode)
-Private WithEvents m_ListenSocket As cWinsock
-Attribute m_ListenSocket.VB_VarHelpID = -1
-Private m_Clients As Collection
-Private m_ClientCounter As Long
-
-' TCP Mode bind address
-Private m_BindAddress As String
-
-' RTU Mode (Serial Port)
-Private m_hSerialPort As Long
+' RTU Mode settings
 Private m_SerialPort As String
 Private m_BaudRate As Long
 Private m_DataBits As Long
 Private m_Parity As String
 Private m_StopBits As Long
-Private m_RTUTimeout As Long
-Private m_RTUBuffer As cByteBuffer
 
-' RTU processing thread handle (simulated)
-Private m_RTUProcessing As Boolean
+' TCP Mode settings
+Private m_TCPPort As Long
+
+' Slave data
+Private m_SlaveID As Byte
+Private m_CoilsData() As Boolean
+Private m_DiscreteInputsData() As Boolean
+Private m_HoldingRegistersData() As Integer
+Private m_InputRegistersData() As Integer
+
+' Database size
+Private m_CoilsSize As Long
+Private m_DiscreteInputsSize As Long
+Private m_HoldingRegistersSize As Long
+Private m_InputRegistersSize As Long
 
 '=========================================================================
 ' Properties
 '=========================================================================
 
-' Protocol type (RTU or TCP)
 Public Property Get ProtocolType() As ModbusSlaveProtocolType
     ProtocolType = m_ProtocolType
 End Property
@@ -314,12 +171,10 @@ Public Property Let ProtocolType(ByVal Value As ModbusSlaveProtocolType)
     m_ProtocolType = Value
 End Property
 
-' Server state
 Public Property Get State() As ModbusSlaveState
     State = m_State
 End Property
 
-' Slave/Unit ID
 Public Property Get SlaveID() As Byte
     SlaveID = m_SlaveID
 End Property
@@ -328,9 +183,56 @@ Public Property Let SlaveID(ByVal Value As Byte)
     m_SlaveID = Value
 End Property
 
-' Defaults constants (read-only)
 Public Property Get Defaults() As ModbusSlaveDefaults
     Defaults = m_Defaults
+End Property
+
+' Coils
+Public Property Get CoilsSize() As Long
+    CoilsSize = m_CoilsSize
+End Property
+
+Public Property Let CoilsSize(ByVal Value As Long)
+    If Value > 0 Then
+        m_CoilsSize = Value
+        ReDim m_CoilsData(Value - 1) As Boolean
+    End If
+End Property
+
+' Discrete Inputs
+Public Property Get DiscreteInputsSize() As Long
+    DiscreteInputsSize = m_DiscreteInputsSize
+End Property
+
+Public Property Let DiscreteInputsSize(ByVal Value As Long)
+    If Value > 0 Then
+        m_DiscreteInputsSize = Value
+        ReDim m_DiscreteInputsData(Value - 1) As Boolean
+    End If
+End Property
+
+' Holding Registers
+Public Property Get HoldingRegistersSize() As Long
+    HoldingRegistersSize = m_HoldingRegistersSize
+End Property
+
+Public Property Let HoldingRegistersSize(ByVal Value As Long)
+    If Value > 0 Then
+        m_HoldingRegistersSize = Value
+        ReDim m_HoldingRegistersData(Value - 1) As Integer
+    End If
+End Property
+
+' Input Registers
+Public Property Get InputRegistersSize() As Long
+    InputRegistersSize = m_InputRegistersSize
+End Property
+
+Public Property Let InputRegistersSize(ByVal Value As Long)
+    If Value > 0 Then
+        m_InputRegistersSize = Value
+        ReDim m_InputRegistersData(Value - 1) As Integer
+    End If
 End Property
 
 ' RTU Mode Properties
@@ -395,434 +297,319 @@ Public Property Let StopBits(ByVal Value As Long)
 End Property
 
 ' TCP Mode Properties
-Public Property Get Port() As Long
-    On Error Resume Next
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        Port = m_Defaults.TCP_PORT
-    End If
+Public Property Get TCPPort() As Long
+    TCPPort = m_TCPPort
 End Property
 
-' Bind address for TCP listening (e.g., "0.0.0.0" for all interfaces, "127.0.0.1" for localhost only)
-Public Property Get BindAddress() As String
-    BindAddress = m_BindAddress
-End Property
-
-Public Property Let BindAddress(ByVal Value As String)
+Public Property Let TCPPort(ByVal Value As Long)
     If m_State = MB_SLAVE_STATE_RUNNING Then
-        RaiseError "Cannot change bind address while running"
+        RaiseError "Cannot change TCP port while running"
         Exit Property
     End If
-    m_BindAddress = Value
-End Property
-
-' Connected client count (TCP mode only)
-Public Property Get ClientCount() As Long
-    On Error Resume Next
-    If Not m_Clients Is Nothing Then
-        ClientCount = m_Clients.Count
-    End If
+    m_TCPPort = Value
 End Property
 
 '=========================================================================
-' Public Methods - Server Control
+' Public Methods - Connection
 '=========================================================================
 
-' Start server (listen on TCP port or open serial port)
-Public Sub Start(Optional ByVal PortOrSerial As String = "", Optional ByVal BindAddress As String = "")
+Public Sub Start(Optional ByVal SerialPortOrPort As String = "")
     On Error GoTo ErrorHandler
-    
+
     If m_State = MB_SLAVE_STATE_RUNNING Then
-        RaiseError "Server already running"
+        RaiseError "Already running"
         Exit Sub
     End If
-    
-    ' Set bind address if provided
-    If LenB(BindAddress) > 0 Then
-        m_BindAddress = BindAddress
+
+    ' Validate database sizes
+    If m_CoilsSize = 0 And m_DiscreteInputsSize = 0 And _
+       m_HoldingRegistersSize = 0 And m_InputRegistersSize = 0 Then
+        RaiseError "No data areas initialized"
+        Exit Sub
     End If
-    
+
     m_State = MB_SLAVE_STATE_STARTING
-    
+
     If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        If LenB(PortOrSerial) > 0 Then m_SerialPort = PortOrSerial
+        If LenB(SerialPortOrPort) > 0 Then m_SerialPort = SerialPortOrPort
         StartRTU
     ElseIf m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        Dim lPort As Long
-        If LenB(PortOrSerial) > 0 Then
-            lPort = CLng(PortOrSerial)
-        Else
-            lPort = m_Defaults.TCP_PORT
-        End If
-        StartTCP lPort
+        If LenB(SerialPortOrPort) > 0 Then m_TCPPort = CLng(SerialPortOrPort)
+        StartTCP
     Else
         RaiseError "Invalid protocol type"
     End If
-    
+
     Exit Sub
 ErrorHandler:
     m_State = MB_SLAVE_STATE_ERROR
     RaiseError "Start failed: " & ERR.Description
 End Sub
 
-' Stop server
-Public Sub StopMe()
+Public Sub [Stop]()
     On Error Resume Next
 
-    If m_State = MB_SLAVE_STATE_STOPPED Then
-        Exit Sub
-    End If
-
     If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        StopRTU
+        If Not m_TransportRTU Is Nothing Then
+            m_TransportRTU.Close_
+        End If
     ElseIf m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        StopTCP
+        If Not m_TransportTCP Is Nothing Then
+            m_TransportTCP.Disconnect
+        End If
     End If
 
     m_State = MB_SLAVE_STATE_STOPPED
-    RaiseEvent OnStopped
+    RaiseEvent OnStop
 End Sub
 
 '=========================================================================
-' Public Methods - Data Access
+' Public Methods - Read Data
 '=========================================================================
 
-' Set coil value
-Public Sub SetCoil(ByVal Address As Long, ByVal Value As Boolean)
-    On Error GoTo ErrorHandler
-    
-    If Address >= m_Defaults.MAX_COILS Then
-        RaiseError "Address exceeds maximum coils"
-        Exit Sub
-    End If
-    
-    EnsureCoilsAllocated Address
-    m_Coils(Address) = Value
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "SetCoil failed: " & ERR.Description
-End Sub
-
-' Get coil value
 Public Function GetCoil(ByVal Address As Long) As Boolean
-    On Error Resume Next
-    
-    If Address <= UBound(m_Coils) Then
-        GetCoil = m_Coils(Address)
+    If Address >= 0 And Address < m_CoilsSize Then
+        GetCoil = m_CoilsData(Address)
+    Else
+        RaiseError "Coil address out of range: " & Address
     End If
 End Function
 
-' Set discrete input value
-Public Sub SetDiscreteInput(ByVal Address As Long, ByVal Value As Boolean)
-    On Error GoTo ErrorHandler
-    
-    If Address >= m_Defaults.MAX_COILS Then
-        RaiseError "Address exceeds maximum discrete inputs"
-        Exit Sub
-    End If
-    
-    EnsureDiscreteInputsAllocated Address
-    m_DiscreteInputs(Address) = Value
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "SetDiscreteInput failed: " & ERR.Description
-End Sub
+Public Function GetCoils(ByVal StartAddress As Long, ByVal Quantity As Long) As Boolean()
+    Dim baResult() As Boolean
+    Dim i As Long
 
-' Get discrete input value
+    If StartAddress < 0 Or StartAddress + Quantity > m_CoilsSize Then
+        RaiseError "Coils address range out of bounds"
+        Exit Function
+    End If
+
+    ReDim baResult(Quantity - 1) As Boolean
+    For i = 0 To Quantity - 1
+        baResult(i) = m_CoilsData(StartAddress + i)
+    Next i
+
+    GetCoils = baResult
+End Function
+
 Public Function GetDiscreteInput(ByVal Address As Long) As Boolean
-    On Error Resume Next
-    
-    If Address <= UBound(m_DiscreteInputs) Then
-        GetDiscreteInput = m_DiscreteInputs(Address)
+    If Address >= 0 And Address < m_DiscreteInputsSize Then
+        GetDiscreteInput = m_DiscreteInputsData(Address)
+    Else
+        RaiseError "Discrete input address out of range: " & Address
     End If
 End Function
 
-' Set holding register value
-Public Sub SetHoldingRegister(ByVal Address As Long, ByVal Value As Integer)
-    On Error GoTo ErrorHandler
-    
-    If Address >= m_Defaults.MAX_REGISTERS Then
-        RaiseError "Address exceeds maximum registers"
-        Exit Sub
-    End If
-    
-    EnsureHoldingRegistersAllocated Address
-    m_HoldingRegisters(Address) = Value
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "SetHoldingRegister failed: " & ERR.Description
-End Sub
+Public Function GetDiscreteInputs(ByVal StartAddress As Long, ByVal Quantity As Long) As Boolean()
+    Dim baResult() As Boolean
+    Dim i As Long
 
-' Get holding register value
+    If StartAddress < 0 Or StartAddress + Quantity > m_DiscreteInputsSize Then
+        RaiseError "Discrete inputs address range out of bounds"
+        Exit Function
+    End If
+
+    ReDim baResult(Quantity - 1) As Boolean
+    For i = 0 To Quantity - 1
+        baResult(i) = m_DiscreteInputsData(StartAddress + i)
+    Next i
+
+    GetDiscreteInputs = baResult
+End Function
+
 Public Function GetHoldingRegister(ByVal Address As Long) As Integer
-    On Error Resume Next
-    
-    If Address <= UBound(m_HoldingRegisters) Then
-        GetHoldingRegister = m_HoldingRegisters(Address)
+    If Address >= 0 And Address < m_HoldingRegistersSize Then
+        GetHoldingRegister = m_HoldingRegistersData(Address)
+    Else
+        RaiseError "Holding register address out of range: " & Address
     End If
 End Function
 
-' Set input register value
-Public Sub SetInputRegister(ByVal Address As Long, ByVal Value As Integer)
-    On Error GoTo ErrorHandler
-    
-    If Address >= m_Defaults.MAX_REGISTERS Then
-        RaiseError "Address exceeds maximum registers"
-        Exit Sub
+Public Function GetHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Integer()
+    Dim baResult() As Integer
+    Dim i As Long
+
+    If StartAddress < 0 Or StartAddress + Quantity > m_HoldingRegistersSize Then
+        RaiseError "Holding registers address range out of bounds"
+        Exit Function
     End If
-    
-    EnsureInputRegistersAllocated Address
-    m_InputRegisters(Address) = Value
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "SetInputRegister failed: " & ERR.Description
+
+    ReDim baResult(Quantity - 1) As Integer
+    For i = 0 To Quantity - 1
+        baResult(i) = m_HoldingRegistersData(StartAddress + i)
+    Next i
+
+    GetHoldingRegisters = baResult
+End Function
+
+Public Function GetInputRegister(ByVal Address As Long) As Integer
+    If Address >= 0 And Address < m_InputRegistersSize Then
+        GetInputRegister = m_InputRegistersData(Address)
+    Else
+        RaiseError "Input register address out of range: " & Address
+    End If
+End Function
+
+Public Function GetInputRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Integer()
+    Dim baResult() As Integer
+    Dim i As Long
+
+    If StartAddress < 0 Or StartAddress + Quantity > m_InputRegistersSize Then
+        RaiseError "Input registers address range out of bounds"
+        Exit Function
+    End If
+
+    ReDim baResult(Quantity - 1) As Integer
+    For i = 0 To Quantity - 1
+        baResult(i) = m_InputRegistersData(StartAddress + i)
+    Next i
+
+    GetInputRegisters = baResult
+End Function
+
+'=========================================================================
+' Public Methods - Write Data
+'=========================================================================
+
+Public Sub SetCoil(ByVal Address As Long, ByVal Value As Boolean)
+    If Address >= 0 And Address < m_CoilsSize Then
+        m_CoilsData(Address) = Value
+    Else
+        RaiseError "Coil address out of range: " & Address
+    End If
 End Sub
 
-' Get input register value
-Public Function GetInputRegister(ByVal Address As Long) As Integer
-    On Error Resume Next
-    
-    If Address <= UBound(m_InputRegisters) Then
-        GetInputRegister = m_InputRegisters(Address)
-    End If
-End Function
+Public Sub SetCoils(ByVal StartAddress As Long, ByRef Values() As Boolean)
+    Dim i As Long
+    Dim lQuantity As Long
 
-' Clear all data
-Public Sub ClearAllData()
-    Erase m_Coils
-    Erase m_DiscreteInputs
-    Erase m_HoldingRegisters
-    Erase m_InputRegisters
+    lQuantity = UBound(Values) + 1
+    If StartAddress < 0 Or StartAddress + lQuantity > m_CoilsSize Then
+        RaiseError "Coils address range out of bounds"
+        Exit Sub
+    End If
+
+    For i = 0 To lQuantity - 1
+        m_CoilsData(StartAddress + i) = Values(i)
+    Next i
+
+    RaiseEvent OnCoilsChanged(StartAddress, lQuantity, Values)
+End Sub
+
+Public Sub SetDiscreteInput(ByVal Address As Long, ByVal Value As Boolean)
+    If Address >= 0 And Address < m_DiscreteInputsSize Then
+        m_DiscreteInputsData(Address) = Value
+    Else
+        RaiseError "Discrete input address out of range: " & Address
+    End If
+End Sub
+
+Public Sub SetDiscreteInputs(ByVal StartAddress As Long, ByRef Values() As Boolean)
+    Dim i As Long
+    Dim lQuantity As Long
+
+    lQuantity = UBound(Values) + 1
+    If StartAddress < 0 Or StartAddress + lQuantity > m_DiscreteInputsSize Then
+        RaiseError "Discrete inputs address range out of bounds"
+        Exit Sub
+    End If
+
+    For i = 0 To lQuantity - 1
+        m_DiscreteInputsData(StartAddress + i) = Values(i)
+    Next i
+End Sub
+
+Public Sub SetHoldingRegister(ByVal Address As Long, ByVal Value As Integer)
+    If Address >= 0 And Address < m_HoldingRegistersSize Then
+        m_HoldingRegistersData(Address) = Value
+    Else
+        RaiseError "Holding register address out of range: " & Address
+    End If
+End Sub
+
+Public Sub SetHoldingRegisters(ByVal StartAddress As Long, ByRef Values() As Integer)
+    Dim i As Long
+    Dim lQuantity As Long
+
+    lQuantity = UBound(Values) + 1
+    If StartAddress < 0 Or StartAddress + lQuantity > m_HoldingRegistersSize Then
+        RaiseError "Holding registers address range out of bounds"
+        Exit Sub
+    End If
+
+    For i = 0 To lQuantity - 1
+        m_HoldingRegistersData(StartAddress + i) = Values(i)
+    Next i
+
+    RaiseEvent OnRegistersChanged(StartAddress, lQuantity, Values)
+End Sub
+
+Public Sub SetInputRegister(ByVal Address As Long, ByVal Value As Integer)
+    If Address >= 0 And Address < m_InputRegistersSize Then
+        m_InputRegistersData(Address) = Value
+    Else
+        RaiseError "Input register address out of range: " & Address
+    End If
+End Sub
+
+Public Sub SetInputRegisters(ByVal StartAddress As Long, ByRef Values() As Integer)
+    Dim i As Long
+    Dim lQuantity As Long
+
+    lQuantity = UBound(Values) + 1
+    If StartAddress < 0 Or StartAddress + lQuantity > m_InputRegistersSize Then
+        RaiseError "Input registers address range out of bounds"
+        Exit Sub
+    End If
+
+    For i = 0 To lQuantity - 1
+        m_InputRegistersData(StartAddress + i) = Values(i)
+    Next i
 End Sub
 
 '=========================================================================
-' Private Methods - RTU Server
+' Private Methods - Connection
 '=========================================================================
 
 Private Sub StartRTU()
-    Dim dcb As dcb
-    Dim timeouts As COMMTIMEOUTS
-    
     On Error GoTo ErrorHandler
-    
+
     If LenB(m_SerialPort) = 0 Then
         RaiseError "Serial port not specified"
         Exit Sub
     End If
-    
-    ' Open serial port
-    m_hSerialPort = CreateFile("\\.\" & m_SerialPort, _
-                                GENERIC_READ Or GENERIC_WRITE, _
-                                0, _
-                                0, _
-                                OPEN_EXISTING, _
-                                FILE_ATTRIBUTE_NORMAL, _
-                                0)
-    
-    If m_hSerialPort = INVALID_HANDLE_VALUE Then
-        RaiseError "Failed to open serial port: " & m_SerialPort
-        Exit Sub
-    End If
-    
-    ' Configure DCB
-    dcb.DCBlength = Len(dcb)
-    dcb.BaudRate = m_BaudRate
-    dcb.ByteSize = m_DataBits
-    
-    ' Parity
+
+    Set m_TransportRTU = New cModbusTransportRTU
+    m_TransportRTU.SerialPort = m_SerialPort
+    m_TransportRTU.BaudRate = m_BaudRate
+    m_TransportRTU.DataBits = m_DataBits
+    m_TransportRTU.StopBits = m_StopBits
+
+    ' Convert parity string to enum
     Select Case m_Parity
         Case "E"
-            dcb.Parity = 2  ' Even
+            m_TransportRTU.Parity = MB_RTU_PARITY_EVEN
         Case "O"
-            dcb.Parity = 1  ' Odd
+            m_TransportRTU.Parity = MB_RTU_PARITY_ODD
         Case Else
-            dcb.Parity = 0  ' None
+            m_TransportRTU.Parity = MB_RTU_PARITY_NONE
     End Select
-    
-    ' Stop bits
-    If m_StopBits = 2 Then
-        dcb.StopBits = 2
-    Else
-        dcb.StopBits = 0  ' 1 stop bit
-    End If
-    
-    ' Set fBitFields
-    dcb.fBitFields = &H1
-    
-    If SetCommState(m_hSerialPort, dcb) = 0 Then
-        CloseHandle m_hSerialPort
-        m_hSerialPort = INVALID_HANDLE_VALUE
-        RaiseError "Failed to configure serial port"
-        Exit Sub
-    End If
-    
-    ' Set timeouts
-    timeouts.ReadIntervalTimeout = 0
-    timeouts.ReadTotalTimeoutMultiplier = 0
-    timeouts.ReadTotalTimeoutConstant = m_RTUTimeout
-    timeouts.WriteTotalTimeoutMultiplier = 0
-    timeouts.WriteTotalTimeoutConstant = m_RTUTimeout
-    
-    SetCommTimeouts m_hSerialPort, timeouts
-    
-    ' Purge buffers
-    PurgeComm m_hSerialPort, PURGE_TXCLEAR Or PURGE_RXCLEAR
-    
-    ' Clear receive buffer
-    m_RTUBuffer.Clear
-    
-    m_State = MB_SLAVE_STATE_RUNNING
-    m_RTUProcessing = True
-    
-    ' Start RTU processing loop (simulated with timer-like behavior)
-    StartRTUProcessing
-    
-    RaiseEvent OnStarted
-    
+
+    m_TransportRTU.Open_
+
     Exit Sub
 ErrorHandler:
-    If m_hSerialPort <> INVALID_HANDLE_VALUE Then
-        CloseHandle m_hSerialPort
-        m_hSerialPort = INVALID_HANDLE_VALUE
-    End If
+    m_State = MB_SLAVE_STATE_ERROR
     RaiseError "StartRTU failed: " & ERR.Description
 End Sub
 
-Private Sub StopRTU()
-    On Error Resume Next
-    
-    m_RTUProcessing = False
-    
-    If m_hSerialPort <> INVALID_HANDLE_VALUE Then
-        CloseHandle m_hSerialPort
-        m_hSerialPort = INVALID_HANDLE_VALUE
-    End If
-    
-    If Not m_RTUBuffer Is Nothing Then
-        m_RTUBuffer.Clear
-    End If
-End Sub
-
-Private Sub StartRTUProcessing()
-    Dim baBuffer(255) As Byte
-    Dim lBytesRead As Long
-    Dim baFrame() As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    Do While m_RTUProcessing And m_State = MB_SLAVE_STATE_RUNNING
-        ' Read available data
-        ReadFile m_hSerialPort, baBuffer(0), 256, lBytesRead, 0
-        
-        If lBytesRead > 0 Then
-            Dim baTemp() As Byte
-            ReDim baTemp(lBytesRead - 1) As Byte
-            CopyMemory baTemp(0), baBuffer(0), lBytesRead
-            m_RTUBuffer.Append baTemp
-            
-            ' Try to parse frames
-            Do
-                baFrame = ParseAndProcessRTUFrame()
-                If UBound(baFrame) < 0 Then Exit Do
-            Loop
-        End If
-        
-        Sleep 10  ' Small delay to avoid CPU spinning
-    Loop
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "RTUProcessing error: " & ERR.Description
-End Sub
-
-Private Function ParseAndProcessRTUFrame() As Byte()
-    Dim baFrame() As Byte
-    Dim lFrameLen As Long
-    Dim wCRC As Long
-    Dim wCalcCRC As Long
-    Dim baPDU() As Byte
-    Dim lPDULen As Long
-    Dim bSlaveID As Byte
-    Dim bFC As Byte
-    Dim baResponse() As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    ' Minimum frame: SlaveID + FC + CRC (4 bytes)
-    If m_RTUBuffer.Size < 4 Then
-        Exit Function
-    End If
-    
-    ' Peek at slave ID and function code
-    bSlaveID = m_RTUBuffer.PeekByte(0)
-    bFC = m_RTUBuffer.PeekByte(1)
-    
-    ' Check if addressed to us
-    If bSlaveID <> m_SlaveID And bSlaveID <> 0 Then Exit Function
-    
-    ' Calculate expected frame length
-    Dim lExpectedLen As Long
-    lExpectedLen = CalculateFrameLength(bFC)
-    
-    If m_RTUBuffer.Size < lExpectedLen Then Exit Function
-    
-    ' Extract frame
-    baFrame = m_RTUBuffer.Extract(lExpectedLen)
-    
-    ' Verify CRC
-    wCRC = CLng(baFrame(lExpectedLen - 2)) + CLng(baFrame(lExpectedLen - 1)) * 256
-    wCalcCRC = ModbusCRC16(baFrame, 0, lExpectedLen - 2)
-    
-    If wCRC <> wCalcCRC Then
-        Exit Function
-    End If
-    
-    ' Process request
-    baResponse = ProcessRequest(baFrame)
-    
-    ' Send response if available
-    If UBound(baResponse) >= 0 Then
-        Dim lBytesWritten As Long
-        WriteFile m_hSerialPort, baResponse(0), UBound(baResponse) + 1, lBytesWritten, 0
-    End If
-    
-    ParseAndProcessRTUFrame = baResponse
-    Exit Function
-ErrorHandler:
-    ' Error parsing, clear buffer
-    m_RTUBuffer.Clear
-End Function
-
-'=========================================================================
-' Private Methods - TCP Server
-'=========================================================================
-
-Private Sub StartTCP(ByVal Port As Long)
+Private Sub StartTCP()
     On Error GoTo ErrorHandler
 
-    ' Create listening socket
-    Set m_ListenSocket = New cWinsock
-    m_ListenSocket.Protocol = wskTCPProtocol
+    If m_TCPPort = 0 Then m_TCPPort = m_Defaults.TCP_PORT
 
-    ' Start listening with bind address
-    ' - "0.0.0.0" or empty: Listen on all available network interfaces (default)
-    ' - "127.0.0.1": Listen on localhost only
-    ' - "192.168.1.100": Listen on specific network interface
-    If LenB(m_BindAddress) > 0 And m_BindAddress <> "0.0.0.0" Then
-        m_ListenSocket.Listen Port, m_BindAddress
-    Else
-        m_ListenSocket.Listen Port
-    End If
-
-    ' Initialize clients collection
-    Set m_Clients = New Collection
-    m_ClientCounter = 0
-
-    m_State = MB_SLAVE_STATE_RUNNING
-    RaiseEvent OnStarted
+    Set m_TransportTCP = New cModbusTransportTCP
+    m_TransportTCP.StartServer m_TCPPort
 
     Exit Sub
 ErrorHandler:
@@ -830,78 +617,27 @@ ErrorHandler:
     RaiseError "StartTCP failed: " & ERR.Description
 End Sub
 
-Private Sub StopTCP()
-    On Error Resume Next
-    
-    ' Close all client connections
-    If Not m_Clients Is Nothing Then
-        Dim oClient As cWinsock
-        For Each oClient In m_Clients
-            oClient.Close_
-        Next
-        Set m_Clients = Nothing
-    End If
-    
-    ' Close listening socket
-    If Not m_ListenSocket Is Nothing Then
-        m_ListenSocket.Close_
-        Set m_ListenSocket = Nothing
-    End If
-End Sub
-
-Private Function GetClient(ByVal ClientID As String) As cWinsock
-    On Error Resume Next
-    Set GetClient = m_Clients(ClientID)
-End Function
-
-Private Sub RemoveClient(ByVal ClientID As String, ByVal Reason As String)
-    On Error Resume Next
-    
-    Dim oClient As cWinsock
-    Set oClient = m_Clients(ClientID)
-    
-    If Not oClient Is Nothing Then
-        oClient.Close_
-        m_Clients.Remove ClientID
-        RaiseEvent OnClientDisconnect(ClientID, Reason)
-    End If
-End Sub
-
 '=========================================================================
 ' Private Methods - Request Processing
 '=========================================================================
 
 Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
-    Dim bSlaveID As Byte
-    Dim bFC As Byte
-    Dim lAddress As Long
-    Dim lQuantity As Long
     Dim baResponse() As Byte
-    Dim lMBAPSize As Long
-    
+    Dim FC As Byte
+
     On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        bSlaveID = Request(lMBAPSize)
-        bFC = Request(lMBAPSize + 1)
-        
-        ' Extract PDU (skip MBAP header)
-        Dim baPDU() As Byte
-        ReDim baPDU(UBound(Request) - lMBAPSize) As Byte
-        CopyMemory baPDU(0), Request(lMBAPSize), UBound(baPDU) + 1
-    Else
-        bSlaveID = Request(0)
-        bFC = Request(1)
+
+    ' Validate minimum request length
+    If UBound(Request) < 2 Then
+        RaiseError "Invalid request length"
+        Exit Function
     End If
-    
-    ' Check slave ID
-    If bSlaveID <> m_SlaveID And bSlaveID <> 0 Then
-        Exit Function  ' Not addressed to us
-    End If
-    
-    ' Process by function code
-    Select Case bFC
+
+    ' Get function code
+    FC = Request(1)
+
+    ' Process request based on function code
+    Select Case FC
         Case MB_SLAVE_FC_READ_COILS
             baResponse = ProcessReadCoils(Request)
         Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
@@ -919,684 +655,342 @@ Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
         Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
             baResponse = ProcessWriteMultipleRegisters(Request)
         Case Else
-            baResponse = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_FUNCTION)
+            baResponse = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_FUNCTION)
     End Select
-    
+
     ProcessRequest = baResponse
     Exit Function
+
 ErrorHandler:
     RaiseError "ProcessRequest failed: " & ERR.Description
 End Function
 
 Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
-    Dim lByteCount As Long
-    Dim baResponse() As Byte
-    Dim i As Long
-    Dim lBitIndex As Long
-    Dim bByte As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    
-    ' Check address range
-    If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+    Dim baCoils() As Boolean
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
+        ProcessReadCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    ' Build response
-    lByteCount = (lQuantity + 7) \ 8
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
-        ' Copy MBAP header
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        ' Set length
-        baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
-        baResponse(5) = (lByteCount + 2) And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)  ' Slave ID
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_COILS
-        baResponse(lMBAPSize + 2) = lByteCount
-    Else
-        ReDim baResponse(1 + lByteCount + 1) As Byte  ' +1 for CRC
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_READ_COILS
-        baResponse(2) = lByteCount
+
+    If lStartAddress + lQuantity > m_CoilsSize Then
+        ProcessReadCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
     End If
-    
-    ' Pack coil values
-    For i = 0 To lQuantity - 1
-        If (lAddress + i) <= UBound(m_Coils) And m_Coils(lAddress + i) Then
-            bByte = bByte Or (2 ^ (i Mod 8))
-        End If
-        If (i Mod 8 = 7) Or (i = lQuantity - 1) Then
-            If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-                baResponse(lMBAPSize + 3 + i \ 8) = bByte
-            Else
-                baResponse(3 + i \ 8) = bByte
-            End If
-            bByte = 0
-        End If
-    Next i
-    
-    ' Add CRC for RTU
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessReadCoils = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessReadCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    baCoils = GetCoils(lStartAddress, lQuantity)
+    ProcessReadCoils = BuildReadCoilsResponse(lQuantity, baCoils)
 End Function
 
 Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
-    Dim lByteCount As Long
-    Dim baResponse() As Byte
-    Dim i As Long
-    Dim bByte As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    
-    If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+    Dim baInputs() As Boolean
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
+        ProcessReadDiscreteInputs = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    lByteCount = (lQuantity + 7) \ 8
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
-        baResponse(5) = (lByteCount + 2) And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_DISCRETE_INPUTS
-        baResponse(lMBAPSize + 2) = lByteCount
-    Else
-        ReDim baResponse(1 + lByteCount + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_READ_DISCRETE_INPUTS
-        baResponse(2) = lByteCount
+
+    If lStartAddress + lQuantity > m_DiscreteInputsSize Then
+        ProcessReadDiscreteInputs = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
     End If
-    
-    For i = 0 To lQuantity - 1
-        If (lAddress + i) <= UBound(m_DiscreteInputs) And m_DiscreteInputs(lAddress + i) Then
-            bByte = bByte Or (2 ^ (i Mod 8))
-        End If
-        If (i Mod 8 = 7) Or (i = lQuantity - 1) Then
-            If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-                baResponse(lMBAPSize + 3 + i \ 8) = bByte
-            Else
-                baResponse(3 + i \ 8) = bByte
-            End If
-            bByte = 0
-        End If
-    Next i
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessReadDiscreteInputs = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    baInputs = GetDiscreteInputs(lStartAddress, lQuantity)
+    ProcessReadDiscreteInputs = BuildReadDiscreteInputsResponse(lQuantity, baInputs)
 End Function
 
 Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
-    Dim lByteCount As Long
-    Dim baResponse() As Byte
-    Dim i As Long
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    
-    If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+    Dim baRegisters() As Integer
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
+        ProcessReadHoldingRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    lByteCount = lQuantity * 2
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
-        baResponse(5) = (lByteCount + 2) And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_HOLDING_REGISTERS
-        baResponse(lMBAPSize + 2) = lByteCount
-    Else
-        ReDim baResponse(1 + lByteCount + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_READ_HOLDING_REGISTERS
-        baResponse(2) = lByteCount
+
+    If lStartAddress + lQuantity > m_HoldingRegistersSize Then
+        ProcessReadHoldingRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
     End If
-    
-    For i = 0 To lQuantity - 1
-        Dim iValue As Integer
-        If (lAddress + i) <= UBound(m_HoldingRegisters) Then
-            iValue = m_HoldingRegisters(lAddress + i)
-        Else
-            iValue = 0
-        End If
-        
-        If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-            baResponse(lMBAPSize + 3 + i * 2) = (iValue \ 256) And &HFF
-            baResponse(lMBAPSize + 3 + i * 2 + 1) = iValue And &HFF
-        Else
-            baResponse(3 + i * 2) = (iValue \ 256) And &HFF
-            baResponse(3 + i * 2 + 1) = iValue And &HFF
-        End If
-    Next i
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessReadHoldingRegisters = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    baRegisters = GetHoldingRegisters(lStartAddress, lQuantity)
+    ProcessReadHoldingRegisters = BuildReadHoldingRegistersResponse(lQuantity, baRegisters)
 End Function
 
 Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
-    Dim lByteCount As Long
-    Dim baResponse() As Byte
-    Dim i As Long
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    
-    If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+    Dim baRegisters() As Integer
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
+        ProcessReadInputRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    lByteCount = lQuantity * 2
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
-        baResponse(5) = (lByteCount + 2) And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_INPUT_REGISTERS
-        baResponse(lMBAPSize + 2) = lByteCount
-    Else
-        ReDim baResponse(1 + lByteCount + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_READ_INPUT_REGISTERS
-        baResponse(2) = lByteCount
+
+    If lStartAddress + lQuantity > m_InputRegistersSize Then
+        ProcessReadInputRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
     End If
-    
-    For i = 0 To lQuantity - 1
-        Dim iValue As Integer
-        If (lAddress + i) <= UBound(m_InputRegisters) Then
-            iValue = m_InputRegisters(lAddress + i)
-        Else
-            iValue = 0
-        End If
-        
-        If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-            baResponse(lMBAPSize + 3 + i * 2) = (iValue \ 256) And &HFF
-            baResponse(lMBAPSize + 3 + i * 2 + 1) = iValue And &HFF
-        Else
-            baResponse(3 + i * 2) = (iValue \ 256) And &HFF
-            baResponse(3 + i * 2 + 1) = iValue And &HFF
-        End If
-    Next i
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessReadInputRegisters = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    baRegisters = GetInputRegisters(lStartAddress, lQuantity)
+    ProcessReadInputRegisters = BuildReadInputRegistersResponse(lQuantity, baRegisters)
 End Function
 
 Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
     Dim lAddress As Long
-    Dim bValue As Byte
-    Dim bOnOff As Boolean
-    Dim baResponse() As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    bValue = Request(lPDUOffset + 2)
-    bOnOff = (bValue = &HFF And Request(lPDUOffset + 3) = 0)
-    
-    If lAddress >= m_Defaults.MAX_COILS Then
-        ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+    Dim bValue As Boolean
+
+    lAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    bValue = (Request(4) = &HFF)
+
+    If lAddress >= m_CoilsSize Then
+        ProcessWriteSingleCoil = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
-    
-    EnsureCoilsAllocated lAddress
-    m_Coils(lAddress) = bOnOff
-    
-    ' Echo request back
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 5) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = (6 \ 256) And &HFF
-        baResponse(5) = 6 And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_SINGLE_COIL
-        baResponse(lMBAPSize + 2) = Request(lPDUOffset)
-        baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
-        baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
-        baResponse(lMBAPSize + 5) = Request(lPDUOffset + 3)
-    Else
-        ReDim baResponse(1 + 4 + 1) As Byte  ' +1 for CRC
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_COIL
-        baResponse(2) = Request(lPDUOffset)
-        baResponse(3) = Request(lPDUOffset + 1)
-        baResponse(4) = Request(lPDUOffset + 2)
-        baResponse(5) = Request(lPDUOffset + 3)
-    End If
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessWriteSingleCoil = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    SetCoil lAddress, bValue
+    ProcessWriteSingleCoil = Request ' Echo request as response
 End Function
 
 Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
     Dim lAddress As Long
     Dim iValue As Integer
-    Dim baResponse() As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    iValue = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    
-    If lAddress >= m_Defaults.MAX_REGISTERS Then
-        ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+
+    lAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    iValue = CInt(Request(4)) * 256 + CInt(Request(5))
+
+    If lAddress >= m_HoldingRegistersSize Then
+        ProcessWriteSingleRegister = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
-    
-    EnsureHoldingRegistersAllocated lAddress
-    m_HoldingRegisters(lAddress) = iValue
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 5) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = (6 \ 256) And &HFF
-        baResponse(5) = 6 And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-        baResponse(lMBAPSize + 2) = Request(lPDUOffset)
-        baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
-        baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
-        baResponse(lMBAPSize + 5) = Request(lPDUOffset + 3)
-    Else
-        ReDim baResponse(1 + 4 + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-        baResponse(2) = Request(lPDUOffset)
-        baResponse(3) = Request(lPDUOffset + 1)
-        baResponse(4) = Request(lPDUOffset + 2)
-        baResponse(5) = Request(lPDUOffset + 3)
-    End If
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessWriteSingleRegister = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    SetHoldingRegister lAddress, iValue
+    ProcessWriteSingleRegister = Request ' Echo request as response
 End Function
 
 Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim lByteCount As Long
-    Dim baResponse() As Byte
+    Dim baCoils() As Boolean
     Dim i As Long
-    Dim lBitIndex As Long
-    Dim bByte As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    lByteCount = Request(lPDUOffset + 5)
-    
-    If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    lByteCount = CLng(Request(6))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
+        ProcessWriteMultipleCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    EnsureCoilsAllocated lAddress + lQuantity - 1
-    
+
+    If lStartAddress + lQuantity > m_CoilsSize Then
+        ProcessWriteMultipleCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
+    End If
+
+    ReDim baCoils(lQuantity - 1) As Boolean
     For i = 0 To lQuantity - 1
-        bByte = Request(lPDUOffset + 6 + i \ 8)
+        Dim lByteIndex As Long, lBitIndex As Long
+        lByteIndex = i \ 8
         lBitIndex = i Mod 8
-        m_Coils(lAddress + i) = ((bByte And (2 ^ lBitIndex)) <> 0)
+        baCoils(i) = ((Request(7 + lByteIndex) And (2 ^ lBitIndex)) <> 0)
     Next i
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 5) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = (6 \ 256) And &HFF
-        baResponse(5) = 6 And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_MULTIPLE_COILS
-        baResponse(lMBAPSize + 2) = Request(lPDUOffset)
-        baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
-        baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
-        baResponse(lMBAPSize + 5) = Request(lPDUOffset + 3)
-    Else
-        ReDim baResponse(1 + 4 + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_COILS
-        baResponse(2) = Request(lPDUOffset)
-        baResponse(3) = Request(lPDUOffset + 1)
-        baResponse(4) = Request(lPDUOffset + 2)
-        baResponse(5) = Request(lPDUOffset + 3)
-    End If
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessWriteMultipleCoils = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    SetCoils lStartAddress, baCoils
+    ProcessWriteMultipleCoils = BuildWriteMultipleCoilsResponse(lStartAddress, lQuantity)
 End Function
 
 Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte()
-    Dim lMBAPSize As Long
-    Dim lPDUOffset As Long
-    Dim lAddress As Long
+    Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim lByteCount As Long
-    Dim baResponse() As Byte
+    Dim baRegisters() As Integer
     Dim i As Long
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        lPDUOffset = lMBAPSize + 2
-    Else
-        lMBAPSize = 0
-        lPDUOffset = 2
-    End If
-    
-    lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
-    lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    lByteCount = Request(lPDUOffset + 5)
-    
-    If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+
+    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
+    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    lByteCount = CLng(Request(6))
+
+    If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
-    
-    EnsureHoldingRegistersAllocated lAddress + lQuantity - 1
-    
+
+    If lStartAddress + lQuantity > m_HoldingRegistersSize Then
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
+    End If
+
+    ReDim baRegisters(lQuantity - 1) As Integer
     For i = 0 To lQuantity - 1
-        m_HoldingRegisters(lAddress + i) = Request(lPDUOffset + 6 + i * 2) * 256 + Request(lPDUOffset + 6 + i * 2 + 1)
+        baRegisters(i) = CInt(Request(7 + i * 2)) * 256 + CInt(Request(8 + i * 2))
     Next i
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        ReDim baResponse(lMBAPSize + 5) As Byte
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = (6 \ 256) And &HFF
-        baResponse(5) = 6 And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-        baResponse(lMBAPSize + 2) = Request(lPDUOffset)
-        baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
-        baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
-        baResponse(lMBAPSize + 5) = Request(lPDUOffset + 3)
-    Else
-        ReDim baResponse(1 + 4 + 1) As Byte
-        baResponse(0) = m_SlaveID
-        baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-        baResponse(2) = Request(lPDUOffset)
-        baResponse(3) = Request(lPDUOffset + 1)
-        baResponse(4) = Request(lPDUOffset + 2)
-        baResponse(5) = Request(lPDUOffset + 3)
-    End If
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
-        baResponse(UBound(baResponse) - 1) = wCRC And &HFF
-        baResponse(UBound(baResponse)) = (wCRC \ 256) And &HFF
-    End If
-    
-    ProcessWriteMultipleRegisters = baResponse
-    Exit Function
-ErrorHandler:
-    ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
+
+    SetHoldingRegisters lStartAddress, baRegisters
+    ProcessWriteMultipleRegisters = BuildWriteMultipleRegistersResponse(lStartAddress, lQuantity)
 End Function
 
 '=========================================================================
 ' Private Methods - Response Building
 '=========================================================================
 
-Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal ExceptionCode As ModbusSlaveExceptionCode) As Byte()
-    Dim lMBAPSize As Long
+Private Function BuildReadCoilsResponse(ByVal Quantity As Long, ByRef Values() As Boolean) As Byte()
     Dim baResponse() As Byte
-    Dim bFC As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
-        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        ReDim baResponse(lMBAPSize + 2) As Byte
-        
-        CopyMemory baResponse(0), Request(0), lMBAPSize
-        baResponse(4) = (3 \ 256) And &HFF
-        baResponse(5) = 3 And &HFF
-        baResponse(lMBAPSize) = Request(lMBAPSize)
-        bFC = Request(lMBAPSize + 1)
-        baResponse(lMBAPSize + 1) = bFC Or &H80
-        baResponse(lMBAPSize + 2) = ExceptionCode
-    Else
-        ReDim baResponse(2 + 1) As Byte  ' +1 for CRC
-        baResponse(0) = m_SlaveID
-        bFC = Request(1)
-        baResponse(1) = bFC Or &H80
-        baResponse(2) = ExceptionCode
-        
-        ' Add CRC
-        Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, 2)
-        baResponse(3) = wCRC And &HFF
-        baResponse(4) = (wCRC \ 256) And &HFF
-    End If
-    
+    Dim lByteCount As Long
+    Dim i As Long, lByteIndex As Long, lBitIndex As Long, bByte As Byte
+
+    lByteCount = (Quantity + 7) \ 8
+    ReDim baResponse(2 + lByteCount) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_READ_COILS
+    baResponse(2) = lByteCount
+
+    For i = 0 To Quantity - 1
+        lByteIndex = i \ 8
+        lBitIndex = i Mod 8
+        If Values(i) Then bByte = bByte Or (2 ^ lBitIndex)
+        If lBitIndex = 7 Or i = Quantity - 1 Then
+            baResponse(3 + lByteIndex) = bByte
+            bByte = 0
+        End If
+    Next i
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildReadCoilsResponse = baResponse
+End Function
+
+Private Function BuildReadDiscreteInputsResponse(ByVal Quantity As Long, ByRef Values() As Boolean) As Byte()
+    Dim baResponse() As Byte
+    Dim lByteCount As Long
+    Dim i As Long, lByteIndex As Long, lBitIndex As Long, bByte As Byte
+
+    lByteCount = (Quantity + 7) \ 8
+    ReDim baResponse(2 + lByteCount) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_READ_DISCRETE_INPUTS
+    baResponse(2) = lByteCount
+
+    For i = 0 To Quantity - 1
+        lByteIndex = i \ 8
+        lBitIndex = i Mod 8
+        If Values(i) Then bByte = bByte Or (2 ^ lBitIndex)
+        If lBitIndex = 7 Or i = Quantity - 1 Then
+            baResponse(3 + lByteIndex) = bByte
+            bByte = 0
+        End If
+    Next i
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildReadDiscreteInputsResponse = baResponse
+End Function
+
+Private Function BuildReadHoldingRegistersResponse(ByVal Quantity As Long, ByRef Values() As Integer) As Byte()
+    Dim baResponse() As Byte
+    Dim i As Long
+
+    ReDim baResponse(2 + Quantity * 2) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_READ_HOLDING_REGISTERS
+    baResponse(2) = Quantity * 2
+
+    For i = 0 To Quantity - 1
+        baResponse(3 + i * 2) = (Values(i) \ 256) And &HFF
+        baResponse(4 + i * 2) = Values(i) And &HFF
+    Next i
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildReadHoldingRegistersResponse = baResponse
+End Function
+
+Private Function BuildReadInputRegistersResponse(ByVal Quantity As Long, ByRef Values() As Integer) As Byte()
+    Dim baResponse() As Byte
+    Dim i As Long
+
+    ReDim baResponse(2 + Quantity * 2) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_READ_INPUT_REGISTERS
+    baResponse(2) = Quantity * 2
+
+    For i = 0 To Quantity - 1
+        baResponse(3 + i * 2) = (Values(i) \ 256) And &HFF
+        baResponse(4 + i * 2) = Values(i) And &HFF
+    Next i
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildReadInputRegistersResponse = baResponse
+End Function
+
+Private Function BuildWriteMultipleCoilsResponse(ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
+    Dim baResponse(7) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_COILS
+    baResponse(2) = (StartAddress \ 256) And &HFF
+    baResponse(3) = StartAddress And &HFF
+    baResponse(4) = (Quantity \ 256) And &HFF
+    baResponse(5) = Quantity And &HFF
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildWriteMultipleCoilsResponse = baResponse
+End Function
+
+Private Function BuildWriteMultipleRegistersResponse(ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
+    Dim baResponse(7) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
+    baResponse(2) = (StartAddress \ 256) And &HFF
+    baResponse(3) = StartAddress And &HFF
+    baResponse(4) = (Quantity \ 256) And &HFF
+    baResponse(5) = Quantity And &HFF
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
+    BuildWriteMultipleRegistersResponse = baResponse
+End Function
+
+Private Function BuildExceptionResponse(ByVal FunctionCode As Byte, ByVal ExceptionCode As ModbusSlaveExceptionCode) As Byte()
+    Dim baResponse(3) As Byte
+
+    baResponse(0) = m_SlaveID
+    baResponse(1) = FunctionCode Or &H80
+    baResponse(2) = ExceptionCode
+
+    ' Add CRC
+    Modbus_AppendCRC baResponse
     BuildExceptionResponse = baResponse
-    Exit Function
-ErrorHandler:
-    RaiseError "BuildExceptionResponse failed: " & ERR.Description
 End Function
 
 '=========================================================================
 ' Private Methods - Helpers
 '=========================================================================
-
-Private Function CalculateFrameLength(ByVal FC As Byte) As Long
-    ' Calculate expected frame length for RTU mode
-    ' This is a simplified version
-    CalculateFrameLength = 8  ' Minimum
-End Function
-
-Private Sub EnsureCoilsAllocated(ByVal MaxAddress As Long)
-    On Error Resume Next
-    If UBound(m_Coils) < MaxAddress Then
-        ReDim Preserve m_Coils(MaxAddress) As Boolean
-    End If
-End Sub
-
-Private Sub EnsureDiscreteInputsAllocated(ByVal MaxAddress As Long)
-    On Error Resume Next
-    If UBound(m_DiscreteInputs) < MaxAddress Then
-        ReDim Preserve m_DiscreteInputs(MaxAddress) As Boolean
-    End If
-End Sub
-
-Private Sub EnsureHoldingRegistersAllocated(ByVal MaxAddress As Long)
-    On Error Resume Next
-    If UBound(m_HoldingRegisters) < MaxAddress Then
-        ReDim Preserve m_HoldingRegisters(MaxAddress) As Integer
-    End If
-End Sub
-
-Private Sub EnsureInputRegistersAllocated(ByVal MaxAddress As Long)
-    On Error Resume Next
-    If UBound(m_InputRegisters) < MaxAddress Then
-        ReDim Preserve m_InputRegisters(MaxAddress) As Integer
-    End If
-End Sub
-
-Private Function ModbusCRC16(ByRef Data() As Byte, ByVal StartIndex As Long, ByVal Length As Long) As Long
-    Dim i As Long
-    Dim j As Long
-    Dim wCRC As Long
-    Dim bByte As Byte
-    
-    wCRC = &HFFFF
-    
-    For i = StartIndex To StartIndex + Length - 1
-        bByte = Data(i)
-        wCRC = wCRC Xor CLng(bByte)
-        
-        For j = 0 To 7
-            If (wCRC And &H1) <> 0 Then
-                wCRC = (wCRC \ 2) Xor &HA001
-            Else
-                wCRC = wCRC \ 2
-            End If
-        Next j
-    Next i
-    
-    ModbusCRC16 = wCRC
-End Function
 
 Private Sub RaiseError(ByVal Description As String)
     Debug.Print "[cModbusSlave] Error: " & Description
@@ -1604,103 +998,35 @@ Private Sub RaiseError(ByVal Description As String)
 End Sub
 
 '=========================================================================
-' Socket Event Handlers (TCP Mode)
+' Transport Event Handlers
 '=========================================================================
 
-Private Sub m_ListenSocket_ConnectionRequest(Client As cWinsock, ByRef DisConnect As Boolean)
-    On Error GoTo ErrorHandler
-    
-    ' Generate client ID
-    m_ClientCounter = m_ClientCounter + 1
-    Dim sClientID As String
-    sClientID = "Client#" & m_ClientCounter
-    
-    ' Add to collection
-    m_Clients.Add Client, sClientID
-    
-    ' Accept connection
-    DisConnect = False
-    
-    RaiseEvent OnClientConnect(sClientID, Client.RemoteHostIP)
-    
-    Exit Sub
-ErrorHandler:
-    DisConnect = True
-    RaiseError "ConnectionRequest: " & ERR.Description
+Private Sub m_TransportRTU_OnOpen()
+    m_State = MB_SLAVE_STATE_RUNNING
+    RaiseEvent OnStart
 End Sub
 
-Private Sub m_ListenSocket_DataArrival(Client As cWinsock, ByVal bytesTotal As Long)
-    Dim baData() As Byte
-    Dim sClientID As String
-    Dim baResponse() As Byte
-    
-    On Error GoTo ErrorHandler
-    
-    ' Find client ID
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
-    If LenB(sClientID) = 0 Then Exit Sub
-    
-    ' Receive data
-    Client.GetData baData, vbByte + vbArray
-    
-    RaiseEvent OnDataReceived(sClientID, baData)
-    
-    ' Process request
-    baResponse = ProcessRequest(baData)
-    
-    ' Send response
-    If UBound(baResponse) >= 0 Then
-        Client.SendData baResponse
-    End If
-    
-    Exit Sub
-ErrorHandler:
-    RaiseError "DataArrival: " & ERR.Description
+Private Sub m_TransportRTU_OnClose()
+    m_State = MB_SLAVE_STATE_STOPPED
+    RaiseEvent OnStop
 End Sub
 
-Private Sub m_ListenSocket_CloseEvent(Client As cWinsock)
-    Dim sClientID As String
-    
-    On Error Resume Next
-    
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
-    If LenB(sClientID) > 0 Then
-        RemoveClient sClientID, "Connection closed"
-    End If
+Private Sub m_TransportRTU_OnError(ByVal Description As String)
+    RaiseError Description
 End Sub
 
-Private Sub m_ListenSocket_Error(Client As cWinsock, ByVal Number As Long, Description As String, ByVal Scode As Long)
-    Dim sClientID As String
-    
-    On Error Resume Next
-    
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
-    If LenB(sClientID) > 0 Then
-        RemoveClient sClientID, "Socket error: " & Description
-    Else
-        RaiseError "Socket error: " & Description
-    End If
+Private Sub m_TransportTCP_OnConnect()
+    m_State = MB_SLAVE_STATE_RUNNING
+    RaiseEvent OnStart
+End Sub
+
+Private Sub m_TransportTCP_OnDisconnect()
+    m_State = MB_SLAVE_STATE_STOPPED
+    RaiseEvent OnStop
+End Sub
+
+Private Sub m_TransportTCP_OnError(ByVal Description As String)
+    RaiseError Description
 End Sub
 
 '=========================================================================
@@ -1711,38 +1037,43 @@ Private Sub Class_Initialize()
     m_ProtocolType = MB_SLAVE_PROTOCOL_TCP
     m_State = MB_SLAVE_STATE_STOPPED
     m_SlaveID = 1
-    m_ClientCounter = 0
-    m_RTUProcessing = False
-    m_BindAddress = "0.0.0.0"                                                   ' Default: listen on all interfaces
-    
-    ' Initialize Defaults constants structure
-    m_Defaults.TCP_PORT = 502
-    m_Defaults.RTU_DEFAULT_BAUDRATE = 9600
-    m_Defaults.RTU_DEFAULT_DATABITS = 8
+
+    ' Initialize Defaults
+    m_Defaults.TCP_PORT = MODBUS_TCP_PORT
+    m_Defaults.RTU_DEFAULT_BAUDRATE = MODBUS_DEFAULT_BAUDRATE
+    m_Defaults.RTU_DEFAULT_DATABITS = MODBUS_DEFAULT_DATABITS
     m_Defaults.RTU_DEFAULT_PARITY = "N"
-    m_Defaults.RTU_DEFAULT_STOPBITS = 1
-    m_Defaults.RTU_DEFAULT_TIMEOUT = 1000
-    m_Defaults.MAX_PDU_SIZE = 253
-    m_Defaults.MAX_REGISTERS = 125
-    m_Defaults.MAX_COILS = 2000
-    m_Defaults.TCP_MBAP_SIZE = 7
-    
+    m_Defaults.RTU_DEFAULT_STOPBITS = MODBUS_DEFAULT_STOPBITS
+    m_Defaults.RTU_DEFAULT_TIMEOUT = MODBUS_DEFAULT_TIMEOUT
+    m_Defaults.MAX_PDU_SIZE = MODBUS_MAX_PDU_SIZE
+    m_Defaults.MAX_REGISTERS = MODBUS_MAX_REGISTERS_PER_REQUEST
+    m_Defaults.MAX_COILS = MODBUS_MAX_COILS_PER_REQUEST
+    m_Defaults.TCP_MBAP_SIZE = MODBUS_TCP_MBAP_SIZE
+
     ' RTU defaults
     m_BaudRate = m_Defaults.RTU_DEFAULT_BAUDRATE
     m_DataBits = m_Defaults.RTU_DEFAULT_DATABITS
     m_Parity = m_Defaults.RTU_DEFAULT_PARITY
     m_StopBits = m_Defaults.RTU_DEFAULT_STOPBITS
-    m_RTUTimeout = m_Defaults.RTU_DEFAULT_TIMEOUT
-    
-    ' Initialize buffer
-    Set m_RTUBuffer = New cByteBuffer
-    m_hSerialPort = INVALID_HANDLE_VALUE
+
+    ' TCP defaults
+    m_TCPPort = m_Defaults.TCP_PORT
+
+    ' Initialize data areas
+    m_CoilsSize = 1024
+    m_DiscreteInputsSize = 1024
+    m_HoldingRegistersSize = 1024
+    m_InputRegistersSize = 1024
+
+    ReDim m_CoilsData(m_CoilsSize - 1) As Boolean
+    ReDim m_DiscreteInputsData(m_DiscreteInputsSize - 1) As Boolean
+    ReDim m_HoldingRegistersData(m_HoldingRegistersSize - 1) As Integer
+    ReDim m_InputRegistersData(m_InputRegistersSize - 1) As Integer
 End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
-    '    Stop
-    Set m_RTUBuffer = Nothing
-    Set m_ListenSocket = Nothing
-    Set m_Clients = Nothing
+    [Stop]
+    Set m_TransportRTU = Nothing
+    Set m_TransportTCP = Nothing
 End Sub

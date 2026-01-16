@@ -1,7 +1,7 @@
 Type=Exe
 Form=FMaster.frm
-Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\..\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Reference=*\G{7E5EA666-4D8C-4A5D-8E55-3A5B5D5A5A5D}#1.0#0#..\..\..\..\Build\VBMANLIB.dll#VBMANLIB
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
+Reference=*\G{A638B373-E3B1-4281-8BD3-957EAD54B31C}#3f.0#0#..\..\..\..\dist\DLL\VBMAN.dll#VBMANLIB
 Startup="FMaster"
 ExeName32="MasterDemo2.exe"
 Command32=""

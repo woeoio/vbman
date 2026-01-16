@@ -351,7 +351,7 @@ EH:
 End Sub
 
 ' Start listening for incoming connections
-Public Sub Listen(Optional ByVal Port As Long)
+Public Sub Listen(Optional ByVal Port As Long, Optional ByVal LocalAddress As String = "")
     Dim eSocketType As UcsAsyncSocketTypeEnum
 
     On Error GoTo EH
@@ -369,7 +369,7 @@ Public Sub Listen(Optional ByVal Port As Long)
 
     ' Create socket
     Set m_oSocket = New cAsyncSocket
-    If Not m_oSocket.Create(SocketPort:=m_lLocalPort, SocketType:=eSocketType) Then
+    If Not m_oSocket.Create(SocketPort:=m_lLocalPort, SocketType:=eSocketType, SocketAddress:=LocalAddress) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
     End If

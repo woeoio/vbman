@@ -20,6 +20,23 @@ Attribute VB_Exposed = True
 '          - Handle read/write requests from master
 '          - Support for RTU (Serial) and TCP modes
 '
+' Usage Example:
+'   Dim slave As New cModbusSlave
+'
+'   ' TCP Mode - Listen on all interfaces (default)
+'   slave.Start 502
+'
+'   ' TCP Mode - Listen on localhost only
+'   slave.BindAddress = "127.0.0.1"
+'   slave.Start 502
+'
+'   ' TCP Mode - Listen on specific network interface
+'   slave.Start 502, "192.168.1.100"
+'
+'   ' RTU Mode
+'   slave.ProtocolType = MB_PROTOCOL_RTU
+'   slave.Start "COM1"
+'
 ' Author: Auto
 ' Date: 2026-01-15
 '
@@ -264,6 +281,9 @@ Attribute m_ListenSocket.VB_VarHelpID = -1
 Private m_Clients As Collection
 Private m_ClientCounter As Long
 
+' TCP Mode bind address
+Private m_BindAddress As String
+
 ' RTU Mode (Serial Port)
 Private m_hSerialPort As Long
 Private m_SerialPort As String
@@ -382,6 +402,19 @@ Public Property Get Port() As Long
     End If
 End Property
 
+' Bind address for TCP listening (e.g., "0.0.0.0" for all interfaces, "127.0.0.1" for localhost only)
+Public Property Get BindAddress() As String
+    BindAddress = m_BindAddress
+End Property
+
+Public Property Let BindAddress(ByVal Value As String)
+    If m_State = MB_SLAVE_STATE_RUNNING Then
+        RaiseError "Cannot change bind address while running"
+        Exit Property
+    End If
+    m_BindAddress = Value
+End Property
+
 ' Connected client count (TCP mode only)
 Public Property Get ClientCount() As Long
     On Error Resume Next
@@ -395,12 +428,17 @@ End Property
 '=========================================================================
 
 ' Start server (listen on TCP port or open serial port)
-Public Sub Start(Optional ByVal PortOrSerial As String = "")
+Public Sub Start(Optional ByVal PortOrSerial As String = "", Optional ByVal BindAddress As String = "")
     On Error GoTo ErrorHandler
     
     If m_State = MB_SLAVE_STATE_RUNNING Then
         RaiseError "Server already running"
         Exit Sub
+    End If
+    
+    ' Set bind address if provided
+    If LenB(BindAddress) > 0 Then
+        m_BindAddress = BindAddress
     End If
     
     m_State = MB_SLAVE_STATE_STARTING
@@ -764,19 +802,28 @@ End Function
 
 Private Sub StartTCP(ByVal Port As Long)
     On Error GoTo ErrorHandler
-    
+
     ' Create listening socket
     Set m_ListenSocket = New cWinsock
     m_ListenSocket.Protocol = wskTCPProtocol
-    m_ListenSocket.Listen Port
-    
+
+    ' Start listening with bind address
+    ' - "0.0.0.0" or empty: Listen on all available network interfaces (default)
+    ' - "127.0.0.1": Listen on localhost only
+    ' - "192.168.1.100": Listen on specific network interface
+    If LenB(m_BindAddress) > 0 And m_BindAddress <> "0.0.0.0" Then
+        m_ListenSocket.Listen Port, m_BindAddress
+    Else
+        m_ListenSocket.Listen Port
+    End If
+
     ' Initialize clients collection
     Set m_Clients = New Collection
     m_ClientCounter = 0
-    
+
     m_State = MB_SLAVE_STATE_RUNNING
     RaiseEvent OnStarted
-    
+
     Exit Sub
 ErrorHandler:
     m_State = MB_SLAVE_STATE_ERROR
@@ -1666,6 +1713,7 @@ Private Sub Class_Initialize()
     m_SlaveID = 1
     m_ClientCounter = 0
     m_RTUProcessing = False
+    m_BindAddress = "0.0.0.0"  ' Default: listen on all interfaces
     
     ' Initialize Defaults constants structure
     m_Defaults.TCP_PORT = 502

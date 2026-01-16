@@ -456,7 +456,7 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not m_Master Is Nothing Then
-        If m_Master.State = MB_STATE_CONNECTED Then
+        If m_Master.State = ModbusMasterState.MB_STATE_CONNECTED Then
             m_Master.Disconnect
         End If
         Set m_Master = Nothing

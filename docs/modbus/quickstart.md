@@ -213,7 +213,7 @@ End Sub
 Private Sub cmdStop_Click()
     On Error Resume Next
     
-    mbSlave.Stop
+    mbSlave.StopMe
     LogMessage "服务器已停止"
     UpdateServerUI False
 End Sub
@@ -294,7 +294,7 @@ End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
-    mbSlave.Stop
+    mbSlave.StopMe
 End Sub
 ```
 
@@ -630,4 +630,11 @@ End Sub
 
 ---
 
-**最后更新**: 2026-01-15
+**最后更新**: 2026-01-16
+
+### 更新日志
+
+#### 2026-01-16 (v1.1.0)
+- 更新从站示例代码，使用 `StopMe()` 替代 `Stop()`
+- 添加 `BindAddress` 使用示例（从站）
+- 更新枚举引用（适配 v1.1.0 命名规范）

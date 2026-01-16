@@ -404,8 +404,8 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not m_Slave Is Nothing Then
-        If m_Slave.State = MB_SLAVE_STATE_RUNNING Then
-            m_Slave.Stop
+        If m_Slave.State = ModbusSlaveState.MB_SLAVE_STATE_RUNNING Then
+            m_Slave.StopMe
         End If
         Set m_Slave = Nothing
     End If
@@ -468,7 +468,7 @@ End Sub
 
 Private Sub cmdStop_Click()
     On Error Resume Next
-    m_Slave.Stop
+    m_Slave.StopMe
     LogMessage "服务器已停止"
 End Sub
 
@@ -602,7 +602,7 @@ Private Sub m_Slave_OnDataReceived(ByVal ClientID As String, Data() As Byte)
     ' End If
 End Sub
 
-Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
+Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
     Dim sFCName As String
     
     Select Case FunctionCode
@@ -621,7 +621,7 @@ Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode A
     LogMessage "读请求 [" & ClientID & "]: " & sFCName & ", 地址=" & Address & ", 数量=" & Quantity
 End Sub
 
-Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusFunctionCode, ByVal Address As Long, ByRef Data As Variant)
+Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
     Dim sFCName As String
     
     Select Case FunctionCode

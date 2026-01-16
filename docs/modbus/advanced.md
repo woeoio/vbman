@@ -43,6 +43,7 @@ Private Sub Form_Load()
     ' 初始化从站 - 向下位机提供数据
     mbSlave.ProtocolType = MB_PROTOCOL_TCP
     mbSlave.SlaveID = 2
+    mbSlave.BindAddress = "0.0.0.0"  ' 监听所有接口
     mbSlave.Start 1502
 End Sub
 
@@ -532,7 +533,7 @@ Option Explicit
 Private Type DeviceConfig
     DeviceID As Long
     Name As String
-    ProtocolType As ModbusProtocolType
+    ProtocolType As ModbusMasterProtocolType
     Host As String
     Port As Long
     SerialPort As String
@@ -1750,3 +1751,10 @@ End Sub
 ---
 
 **最后更新**: 2026-01-16
+
+### 更新日志
+
+#### 2026-01-16 (v1.1.0)
+- 更新设备配置结构体，使用 `ModbusMasterProtocolType`
+- 添加 `BindAddress` 配置示例（从站）
+- 更新枚举引用（适配 v1.1.0 命名规范）

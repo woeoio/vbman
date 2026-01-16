@@ -315,21 +315,21 @@ End Property
 
 Public Sub Start(Optional ByVal SerialPortOrPort As String = "")
     On Error GoTo ErrorHandler
-
+    
     If m_State = MB_SLAVE_STATE_RUNNING Then
         RaiseError "Already running"
         Exit Sub
     End If
-
+    
     ' Validate database sizes
     If m_CoilsSize = 0 And m_DiscreteInputsSize = 0 And _
-       m_HoldingRegistersSize = 0 And m_InputRegistersSize = 0 Then
+        m_HoldingRegistersSize = 0 And m_InputRegistersSize = 0 Then
         RaiseError "No data areas initialized"
         Exit Sub
     End If
-
+    
     m_State = MB_SLAVE_STATE_STARTING
-
+    
     If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         If LenB(SerialPortOrPort) > 0 Then m_SerialPort = SerialPortOrPort
         StartRTU
@@ -339,14 +339,14 @@ Public Sub Start(Optional ByVal SerialPortOrPort As String = "")
     Else
         RaiseError "Invalid protocol type"
     End If
-
+    
     Exit Sub
 ErrorHandler:
     m_State = MB_SLAVE_STATE_ERROR
     RaiseError "Start failed: " & ERR.Description
 End Sub
 
-Public Sub [Stop]()
+Public Sub StopMe()
     On Error Resume Next
 
     If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
@@ -355,7 +355,7 @@ Public Sub [Stop]()
         End If
     ElseIf m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         If Not m_TransportTCP Is Nothing Then
-            m_TransportTCP.Disconnect
+            m_TransportTCP.DisConnect
         End If
     End If
 
@@ -482,17 +482,17 @@ End Sub
 Public Sub SetCoils(ByVal StartAddress As Long, ByRef Values() As Boolean)
     Dim i As Long
     Dim lQuantity As Long
-
+    
     lQuantity = UBound(Values) + 1
     If StartAddress < 0 Or StartAddress + lQuantity > m_CoilsSize Then
         RaiseError "Coils address range out of bounds"
         Exit Sub
     End If
-
+    
     For i = 0 To lQuantity - 1
         m_CoilsData(StartAddress + i) = Values(i)
     Next i
-
+    
     RaiseEvent OnCoilsChanged(StartAddress, lQuantity, Values)
 End Sub
 
@@ -605,12 +605,12 @@ End Sub
 
 Private Sub StartTCP()
     On Error GoTo ErrorHandler
-
+    
     If m_TCPPort = 0 Then m_TCPPort = m_Defaults.TCP_PORT
-
+    
     Set m_TransportTCP = New cModbusTransportTCP
-    m_TransportTCP.StartServer m_TCPPort
-
+    m_TransportTCP.Listen m_TCPPort
+    
     Exit Sub
 ErrorHandler:
     m_State = MB_SLAVE_STATE_ERROR
@@ -1073,7 +1073,7 @@ End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
-    [Stop]
+    Stop
     Set m_TransportRTU = Nothing
     Set m_TransportTCP = Nothing
 End Sub

@@ -370,7 +370,7 @@ End Sub
 '=========================================================================
 
 ' Copy memory
-Public Sub Modbus_CopyMemory(ByRef Destination As Any, ByRef Source As Any, ByVal Length As Long)
+Public Sub Modbus_CopyMemory(ByRef Destination As Variant, ByRef Source As Variant, ByVal Length As Long)
     CopyMemory Destination, Source, Length
 End Sub
 

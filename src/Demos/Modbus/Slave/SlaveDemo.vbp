@@ -3,6 +3,7 @@ Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\st
 Reference=*\G{A638B373-E3B1-4281-8BD3-957EAD54B31C}#3a.0#0#..\..\..\..\dist\DLL\VBMAN.dll#VBMANLIB
 Form=FSlaveDemo.frm
 Startup="FSlaveDemo"
+ExeName32="SlaveDemo.exe"
 Command32=""
 Name="SlaveDemo"
 HelpContextID="0"
@@ -31,6 +32,7 @@ MaxNumberOfThreads=1
 
 [MS Transaction Server]
 AutoRefresh=1
+
 [AmicForVB]
 XPSTYLE=0
 DLLOUT=0

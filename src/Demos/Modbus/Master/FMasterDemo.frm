@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form FMasterDemo
+Begin VB.Form FMasterDemo 
    Caption         =   "Modbus 主站演示程序 (Master)"
    ClientHeight    =   7455
    ClientLeft      =   120
@@ -9,22 +9,22 @@ Begin VB.Form FMasterDemo
    ScaleHeight     =   7455
    ScaleWidth      =   9735
    StartUpPosition =   2  '屏幕中心
-   Begin VB.Frame fraSlaveData
+   Begin VB.Frame fraSlaveData 
       Caption         =   "从站数据状态"
-      Height          =   1935
+      Height          =   2895
       Left            =   5040
       TabIndex        =   30
-      Top             =   5400
+      Top             =   4440
       Width           =   4575
-      Begin VB.TextBox txtCoilStatus
+      Begin VB.TextBox txtCoilStatus 
          Height          =   615
          Left            =   120
          MultiLine       =   -1  'True
          TabIndex        =   34
-         Top             =   1200
+         Top             =   2040
          Width           =   4335
       End
-      Begin VB.CommandButton cmdRefreshSlaveData
+      Begin VB.CommandButton cmdRefreshSlaveData 
          Caption         =   "刷新从站数据"
          Height          =   375
          Left            =   2760
@@ -32,39 +32,39 @@ Begin VB.Form FMasterDemo
          Top             =   240
          Width           =   1695
       End
-      Begin VB.TextBox txtRegStatus
+      Begin VB.TextBox txtRegStatus 
          Height          =   615
          Left            =   120
          MultiLine       =   -1  'True
          TabIndex        =   32
-         Top             =   480
+         Top             =   1080
          Width           =   4335
       End
-      Begin VB.Label lblCoilStatus
+      Begin VB.Label lblCoilStatus 
          Caption         =   "线圈状态:"
          Height          =   255
          Left            =   120
          TabIndex        =   31
-         Top             =   960
+         Top             =   1800
          Width           =   1215
       End
-      Begin VB.Label lblRegStatus
+      Begin VB.Label lblRegStatus 
          Caption         =   "寄存器状态:"
          Height          =   255
          Left            =   120
          TabIndex        =   36
-         Top             =   240
+         Top             =   720
          Width           =   1215
       End
    End
-   Begin VB.Frame fraLog
+   Begin VB.Frame fraLog 
       Caption         =   "操作日志"
       Height          =   1815
       Left            =   120
       TabIndex        =   28
       Top             =   5520
       Width           =   4815
-      Begin VB.TextBox txtLog
+      Begin VB.TextBox txtLog 
          Height          =   1455
          Left            =   120
          MultiLine       =   -1  'True
@@ -74,14 +74,14 @@ Begin VB.Form FMasterDemo
          Width           =   4575
       End
    End
-   Begin VB.Frame fraWrite
+   Begin VB.Frame fraWrite 
       Caption         =   "写入操作"
       Height          =   1935
       Left            =   5040
       TabIndex        =   17
-      Top             =   3360
+      Top             =   2280
       Width           =   4575
-      Begin VB.CommandButton cmdWriteMultipleRegs
+      Begin VB.CommandButton cmdWriteMultipleRegs 
          Caption         =   "写多个寄存器"
          Height          =   375
          Left            =   2520
@@ -89,7 +89,7 @@ Begin VB.Form FMasterDemo
          Top             =   1440
          Width           =   1935
       End
-      Begin VB.CommandButton cmdWriteSingleReg
+      Begin VB.CommandButton cmdWriteSingleReg 
          Caption         =   "写单个寄存器"
          Height          =   375
          Left            =   120
@@ -97,7 +97,7 @@ Begin VB.Form FMasterDemo
          Top             =   1440
          Width           =   1935
       End
-      Begin VB.CommandButton cmdWriteMultipleCoils
+      Begin VB.CommandButton cmdWriteMultipleCoils 
          Caption         =   "写多个线圈"
          Height          =   375
          Left            =   2520
@@ -105,7 +105,7 @@ Begin VB.Form FMasterDemo
          Top             =   960
          Width           =   1935
       End
-      Begin VB.CommandButton cmdWriteSingleCoil
+      Begin VB.CommandButton cmdWriteSingleCoil 
          Caption         =   "写单个线圈"
          Height          =   375
          Left            =   120
@@ -113,7 +113,7 @@ Begin VB.Form FMasterDemo
          Top             =   960
          Width           =   1935
       End
-      Begin VB.TextBox txtWriteValue
+      Begin VB.TextBox txtWriteValue 
          Height          =   285
          Left            =   2520
          TabIndex        =   23
@@ -121,7 +121,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   855
       End
-      Begin VB.TextBox txtWriteAddress
+      Begin VB.TextBox txtWriteAddress 
          Height          =   285
          Left            =   960
          TabIndex        =   22
@@ -129,7 +129,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   855
       End
-      Begin VB.Label lblWriteValue
+      Begin VB.Label lblWriteValue 
          Caption         =   "值:"
          Height          =   255
          Left            =   2160
@@ -137,7 +137,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   375
       End
-      Begin VB.Label lblWriteAddress
+      Begin VB.Label lblWriteAddress 
          Caption         =   "地址:"
          Height          =   255
          Left            =   120
@@ -146,14 +146,14 @@ Begin VB.Form FMasterDemo
          Width           =   615
       End
    End
-   Begin VB.Frame fraRead
+   Begin VB.Frame fraRead 
       Caption         =   "读取操作"
       Height          =   1935
       Left            =   5040
       TabIndex        =   6
-      Top             =   1320
+      Top             =   120
       Width           =   4575
-      Begin VB.CommandButton cmdReadInputRegs
+      Begin VB.CommandButton cmdReadInputRegs 
          Caption         =   "读输入寄存器"
          Height          =   375
          Left            =   2520
@@ -161,7 +161,7 @@ Begin VB.Form FMasterDemo
          Top             =   1440
          Width           =   1935
       End
-      Begin VB.CommandButton cmdReadHoldingRegs
+      Begin VB.CommandButton cmdReadHoldingRegs 
          Caption         =   "读保持寄存器"
          Height          =   375
          Left            =   120
@@ -169,7 +169,7 @@ Begin VB.Form FMasterDemo
          Top             =   1440
          Width           =   1935
       End
-      Begin VB.CommandButton cmdReadDiscreteInputs
+      Begin VB.CommandButton cmdReadDiscreteInputs 
          Caption         =   "读离散输入"
          Height          =   375
          Left            =   2520
@@ -177,7 +177,7 @@ Begin VB.Form FMasterDemo
          Top             =   960
          Width           =   1935
       End
-      Begin VB.CommandButton cmdReadCoils
+      Begin VB.CommandButton cmdReadCoils 
          Caption         =   "读线圈"
          Height          =   375
          Left            =   120
@@ -185,7 +185,7 @@ Begin VB.Form FMasterDemo
          Top             =   960
          Width           =   1935
       End
-      Begin VB.TextBox txtReadQuantity
+      Begin VB.TextBox txtReadQuantity 
          Height          =   285
          Left            =   2760
          TabIndex        =   14
@@ -193,7 +193,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   615
       End
-      Begin VB.TextBox txtReadAddress
+      Begin VB.TextBox txtReadAddress 
          Height          =   285
          Left            =   960
          TabIndex        =   13
@@ -201,7 +201,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   855
       End
-      Begin VB.Label lblReadQuantity
+      Begin VB.Label lblReadQuantity 
          Caption         =   "数量:"
          Height          =   255
          Left            =   2160
@@ -209,7 +209,7 @@ Begin VB.Form FMasterDemo
          Top             =   360
          Width           =   615
       End
-      Begin VB.Label lblReadAddress
+      Begin VB.Label lblReadAddress 
          Caption         =   "地址:"
          Height          =   255
          Left            =   120
@@ -218,53 +218,53 @@ Begin VB.Form FMasterDemo
          Width           =   615
       End
    End
-   Begin VB.Frame fraConnection
+   Begin VB.Frame fraConnection 
       Caption         =   "连接设置"
-      Height          =   2895
+      Height          =   5175
       Left            =   120
       TabIndex        =   0
       Top             =   120
       Width           =   4815
-      Begin VB.Frame fraRTU
+      Begin VB.Frame fraRTU 
          Caption         =   "RTU 设置"
          Height          =   1575
          Left            =   120
          TabIndex        =   1
-         Top             =   1200
+         Top             =   2400
          Width           =   4575
-         Begin VB.TextBox txtStopBits
+         Begin VB.TextBox txtStopBits 
             Height          =   285
-            Left            =   3120
+            Left            =   3240
             TabIndex        =   9
             Text            =   "1"
-            Top             =   1080
+            Top             =   840
             Width           =   855
          End
-         Begin VB.TextBox txtParity
+         Begin VB.TextBox txtParity 
             Height          =   285
-            Left            =   3120
+            Left            =   3240
             TabIndex        =   8
             Text            =   "N"
-            Top             =   720
+            Top             =   480
             Width           =   855
          End
-         Begin VB.TextBox txtDataBits
+         Begin VB.TextBox txtDataBits 
             Height          =   285
-            Left            =   3120
+            Left            =   1200
             TabIndex        =   7
             Text            =   "8"
-            Top             =   360
+            Top             =   840
             Width           =   855
          End
-         Begin VB.TextBox txtBaudRate
+         Begin VB.TextBox txtBaudRate 
             Height          =   285
-            Left            =   3120
-            TabIndex        =   6
+            Left            =   1200
+            TabIndex        =   38
             Text            =   "9600"
-            Top             =   0
+            Top             =   480
             Width           =   855
          End
-         Begin VB.TextBox txtSerialPort
+         Begin VB.TextBox txtSerialPort 
             Height          =   285
             Left            =   3120
             TabIndex        =   5
@@ -272,145 +272,145 @@ Begin VB.Form FMasterDemo
             Top             =   -360
             Width           =   855
          End
-         Begin VB.Label lblStopBits
+         Begin VB.Label lblStopBits 
             Caption         =   "停止位:"
             Height          =   255
-            Left            =   2400
+            Left            =   2520
             TabIndex        =   10
-            Top             =   1080
+            Top             =   840
             Width           =   735
          End
-         Begin VB.Label lblParity
+         Begin VB.Label lblParity 
             Caption         =   "校验位:"
             Height          =   255
-            Left            =   2400
+            Left            =   2520
             TabIndex        =   4
-            Top             =   720
+            Top             =   480
             Width           =   735
          End
-         Begin VB.Label lblDataBits
+         Begin VB.Label lblDataBits 
             Caption         =   "数据位:"
             Height          =   255
-            Left            =   2400
+            Left            =   480
             TabIndex        =   3
-            Top             =   360
+            Top             =   840
             Width           =   735
          End
-         Begin VB.Label lblBaudRate
+         Begin VB.Label lblBaudRate 
             Caption         =   "波特率:"
             Height          =   255
-            Left            =   2400
+            Left            =   480
             TabIndex        =   2
-            Top             =   0
+            Top             =   480
             Width           =   735
          End
-         Begin VB.Label lblSerialPort
+         Begin VB.Label lblSerialPort 
             Caption         =   "串口:"
             Height          =   255
             Left            =   2400
             TabIndex        =   35
-            Top             = -360
+            Top             =   -360
             Width           =   615
          End
       End
-      Begin VB.Frame fraTCP
+      Begin VB.Frame fraTCP 
          Caption         =   "TCP 设置"
          Height          =   975
          Left            =   120
-         TabIndex        =   32
+         TabIndex        =   39
          Top             =   1200
          Width           =   4575
-         Begin VB.TextBox txtTCPPort
+         Begin VB.TextBox txtTCPPort 
             Height          =   285
-            Left            =   2760
-            TabIndex        =   34
+            Left            =   3240
+            TabIndex        =   40
             Text            =   "502"
             Top             =   480
             Width           =   855
          End
-         Begin VB.TextBox txtTCPHost
+         Begin VB.TextBox txtTCPHost 
             Height          =   285
             Left            =   960
-            TabIndex        =   33
+            TabIndex        =   41
             Text            =   "127.0.0.1"
             Top             =   480
             Width           =   1455
          End
-         Begin VB.Label lblTCPPort
+         Begin VB.Label lblTCPPort 
             Caption         =   "端口:"
             Height          =   255
-            Left            =   2400
+            Left            =   2640
             TabIndex        =   37
             Top             =   480
-            Width           =   375
+            Width           =   495
          End
-         Begin VB.Label lblTCPHost
+         Begin VB.Label lblTCPHost 
             Caption         =   "主机:"
             Height          =   255
-            Left            =   120
-            TabIndex        =   36
+            Left            =   360
+            TabIndex        =   42
             Top             =   480
-            Width           =   735
+            Width           =   495
          End
       End
-      Begin VB.CommandButton cmdDisconnect
+      Begin VB.CommandButton cmdDisconnect 
          Caption         =   "断开连接"
          Enabled         =   0   'False
          Height          =   375
          Left            =   2760
-         TabIndex        =   31
-         Top             =   2400
+         TabIndex        =   43
+         Top             =   4320
          Width           =   1935
       End
-      Begin VB.CommandButton cmdConnect
+      Begin VB.CommandButton cmdConnect 
          Caption         =   "连接"
          Height          =   375
          Left            =   120
-         TabIndex        =   30
-         Top             =   2400
+         TabIndex        =   44
+         Top             =   4320
          Width           =   1935
       End
-      Begin VB.OptionButton optProtocol
+      Begin VB.OptionButton optProtocol 
          Caption         =   "TCP"
          Height          =   255
          Index           =   1
-         Left            =   2640
-         TabIndex        =   29
-         Top             =   960
+         Left            =   2400
+         TabIndex        =   45
+         Top             =   720
          Value           =   -1  'True
          Width           =   855
       End
-      Begin VB.OptionButton optProtocol
+      Begin VB.OptionButton optProtocol 
          Caption         =   "RTU"
          Height          =   255
          Index           =   0
-         Left            =   1680
-         TabIndex        =   28
-         Top             =   960
+         Left            =   1440
+         TabIndex        =   46
+         Top             =   720
          Width           =   855
       End
-      Begin VB.TextBox txtSlaveID
+      Begin VB.TextBox txtSlaveID 
          Height          =   285
-         Left            =   2760
-         TabIndex        =   27
+         Left            =   3600
+         TabIndex        =   47
          Text            =   "1"
-         Top             =   600
+         Top             =   360
          Width           =   855
       End
-      Begin VB.Label lblSlaveID
+      Begin VB.Label lblSlaveID 
          Caption         =   "从站ID:"
          Height          =   255
-         Left            =   1920
-         TabIndex        =   26
-         Top             =   600
+         Left            =   2760
+         TabIndex        =   48
+         Top             =   360
          Width           =   735
       End
-      Begin VB.Label lblProtocol
+      Begin VB.Label lblProtocol 
          Caption         =   "协议类型:"
          Height          =   255
-         Left            =   480
-         TabIndex        =   25
-         Top             =   960
+         Left            =   240
+         TabIndex        =   49
+         Top             =   720
          Width           =   1095
       End
    End
@@ -457,7 +457,7 @@ Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not m_Master Is Nothing Then
         If m_Master.State = MB_MASTER_STATE_CONNECTED Then
-            m_Master.Disconnect
+            m_Master.DisConnect
         End If
         Set m_Master = Nothing
     End If
@@ -521,7 +521,7 @@ End Sub
 
 Private Sub cmdDisconnect_Click()
     On Error Resume Next
-    m_Master.Disconnect
+    m_Master.DisConnect
     LogMessage "已断开连接"
 End Sub
 

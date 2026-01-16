@@ -24,7 +24,7 @@ Public Sub TestModbusTCP()
     On Error GoTo ErrorHandler
     
     ' 配置 TCP 连接
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"
     mb.TCPPort = 502
@@ -105,7 +105,7 @@ Public Sub TestModbusRTU()
     On Error GoTo ErrorHandler
     
     ' 配置 RTU 连接
-    mb.ProtocolType = MB_PROTOCOL_RTU
+    mb.ProtocolType = MB_MASTER_PROTOCOL_RTU
     mb.SlaveID = 1
     mb.SerialPort = "COM3"
     mb.BaudRate = 9600
@@ -227,7 +227,7 @@ Public Sub QuickTest()
     On Error GoTo ErrorHandler
     
     ' 快速 TCP 测试
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"
     mb.TCPPort = 502

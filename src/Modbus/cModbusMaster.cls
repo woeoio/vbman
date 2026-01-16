@@ -32,20 +32,20 @@ Option Explicit
 
 Public Enum ModbusMasterFunctionCode
 ' Read Functions
-    MB_FC_READ_COILS = &H1                                                      ' Read Coils (01)
-    MB_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
-    MB_FC_READ_HOLDING_REGISTERS = &H3                                          ' Read Holding Registers (03)
-    MB_FC_READ_INPUT_REGISTERS = &H4                                            ' Read Input Registers (04)
+    MB_MASTER_FC_READ_COILS = &H1                                                      ' Read Coils (01)
+    MB_MASTER_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
+    MB_MASTER_FC_READ_HOLDING_REGISTERS = &H3                                          ' Read Holding Registers (03)
+    MB_MASTER_FC_READ_INPUT_REGISTERS = &H4                                            ' Read Input Registers (04)
 
     ' Write Functions
-    MB_FC_WRITE_SINGLE_COIL = &H5                                               ' Write Single Coil (05)
-    MB_FC_WRITE_SINGLE_REGISTER = &H6                                           ' Write Single Register (06)
-    MB_FC_WRITE_MULTIPLE_COILS = &HF                                            ' Write Multiple Coils (15)
-    MB_FC_WRITE_MULTIPLE_REGISTERS = &H10                                       ' Write Multiple Registers (16)
+    MB_MASTER_FC_WRITE_SINGLE_COIL = &H5                                               ' Write Single Coil (05)
+    MB_MASTER_FC_WRITE_SINGLE_REGISTER = &H6                                           ' Write Single Register (06)
+    MB_MASTER_FC_WRITE_MULTIPLE_COILS = &HF                                            ' Write Multiple Coils (15)
+    MB_MASTER_FC_WRITE_MULTIPLE_REGISTERS = &H10                                       ' Write Multiple Registers (16)
 
     ' Advanced Functions (optional)
-    MB_FC_MASK_WRITE_REGISTER = &H16                                            ' Mask Write Register (22)
-    MB_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17                                  ' Read/Write Multiple (23)
+    MB_MASTER_FC_MASK_WRITE_REGISTER = &H16                                            ' Mask Write Register (22)
+    MB_MASTER_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17                                  ' Read/Write Multiple (23)
 End Enum
 
 '=========================================================================
@@ -53,15 +53,15 @@ End Enum
 '=========================================================================
 
 Public Enum ModbusMasterExceptionCode
-    MB_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
-    MB_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
-    MB_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
-    MB_EX_SLAVE_DEVICE_FAILURE = &H4                                            ' Slave Device Failure
-    MB_EX_ACKNOWLEDGE = &H5                                                     ' Acknowledge
-    MB_EX_SLAVE_DEVICE_BUSY = &H6                                               ' Slave Device Busy
-    MB_EX_MEMORY_PARITY_ERROR = &H8                                             ' Memory Parity Error
-    MB_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                        ' Gateway Path Unavailable
-    MB_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                    ' Gateway Target Device Failed to Respond
+    MB_MASTER_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
+    MB_MASTER_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
+    MB_MASTER_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
+    MB_MASTER_EX_SLAVE_DEVICE_FAILURE = &H4                                            ' Slave Device Failure
+    MB_MASTER_EX_ACKNOWLEDGE = &H5                                                     ' Acknowledge
+    MB_MASTER_EX_SLAVE_DEVICE_BUSY = &H6                                               ' Slave Device Busy
+    MB_MASTER_EX_MEMORY_PARITY_ERROR = &H8                                             ' Memory Parity Error
+    MB_MASTER_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                        ' Gateway Path Unavailable
+    MB_MASTER_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                    ' Gateway Target Device Failed to Respond
 End Enum
 
 '=========================================================================
@@ -69,10 +69,10 @@ End Enum
 '=========================================================================
 
 Public Enum ModbusMasterState
-    MB_STATE_DISCONNECTED = 0                                                   ' Disconnected
-    MB_STATE_CONNECTING = 1                                                     ' Connecting
-    MB_STATE_CONNECTED = 2                                                      ' Connected
-    MB_STATE_ERROR = 3                                                          ' Error
+    MB_MASTER_STATE_DISCONNECTED = 0                                                   ' Disconnected
+    MB_MASTER_STATE_CONNECTING = 1                                                     ' Connecting
+    MB_MASTER_STATE_CONNECTED = 2                                                      ' Connected
+    MB_MASTER_STATE_ERROR = 3                                                          ' Error
 End Enum
 
 '=========================================================================
@@ -80,8 +80,8 @@ End Enum
 '=========================================================================
 
 Public Enum ModbusMasterProtocolType
-    MB_PROTOCOL_RTU = 1                                                         ' RTU over Serial
-    MB_PROTOCOL_TCP = 2                                                         ' TCP/IP
+    MB_MASTER_PROTOCOL_RTU = 1                                                         ' RTU over Serial
+    MB_MASTER_PROTOCOL_TCP = 2                                                         ' TCP/IP
 End Enum
 
 
@@ -263,7 +263,7 @@ Public Property Get ProtocolType() As ModbusMasterProtocolType
 End Property
 
 Public Property Let ProtocolType(ByVal Value As ModbusMasterProtocolType)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change protocol type while connected"
         Exit Property
     End If
@@ -304,7 +304,7 @@ Public Property Get SerialPort() As String
 End Property
 
 Public Property Let SerialPort(ByVal Value As String)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change serial port while connected"
         Exit Property
     End If
@@ -316,7 +316,7 @@ Public Property Get BaudRate() As Long
 End Property
 
 Public Property Let BaudRate(ByVal Value As Long)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change baud rate while connected"
         Exit Property
     End If
@@ -328,7 +328,7 @@ Public Property Get DataBits() As Long
 End Property
 
 Public Property Let DataBits(ByVal Value As Long)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change data bits while connected"
         Exit Property
     End If
@@ -340,7 +340,7 @@ Public Property Get Parity() As String
 End Property
 
 Public Property Let Parity(ByVal Value As String)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change parity while connected"
         Exit Property
     End If
@@ -352,7 +352,7 @@ Public Property Get StopBits() As Long
 End Property
 
 Public Property Let StopBits(ByVal Value As Long)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change stop bits while connected"
         Exit Property
     End If
@@ -365,7 +365,7 @@ Public Property Get TCPHost() As String
 End Property
 
 Public Property Let TCPHost(ByVal Value As String)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change TCP host while connected"
         Exit Property
     End If
@@ -377,7 +377,7 @@ Public Property Get TCPPort() As Long
 End Property
 
 Public Property Let TCPPort(ByVal Value As Long)
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Cannot change TCP port while connected"
         Exit Property
     End If
@@ -394,17 +394,17 @@ Public Sub Connect(Optional ByVal SerialPort As String = "", _
                    Optional ByVal TCPPort As Long = 0)
     On Error GoTo ErrorHandler
     
-    If m_State = MB_STATE_CONNECTED Then
+    If m_State = MB_MASTER_STATE_CONNECTED Then
         RaiseError "Already connected"
         Exit Sub
     End If
     
-    m_State = MB_STATE_CONNECTING
+    m_State = MB_MASTER_STATE_CONNECTING
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_MASTER_PROTOCOL_RTU Then
         If LenB(SerialPort) > 0 Then m_SerialPort = SerialPort
         ConnectRTU
-    ElseIf m_ProtocolType = MB_PROTOCOL_TCP Then
+    ElseIf m_ProtocolType = MB_MASTER_PROTOCOL_TCP Then
         If LenB(TCPHost) > 0 Then m_TCPHost = TCPHost
         If TCPPort > 0 Then m_TCPPort = TCPPort
         ConnectTCP
@@ -414,7 +414,7 @@ Public Sub Connect(Optional ByVal SerialPort As String = "", _
     
     Exit Sub
 ErrorHandler:
-    m_State = MB_STATE_ERROR
+    m_State = MB_MASTER_STATE_ERROR
     RaiseError "Connect failed: " & ERR.Description
 End Sub
 
@@ -422,13 +422,13 @@ End Sub
 Public Sub DisConnect()
     On Error Resume Next
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_MASTER_PROTOCOL_RTU Then
         DisconnectRTU
-    ElseIf m_ProtocolType = MB_PROTOCOL_TCP Then
+    ElseIf m_ProtocolType = MB_MASTER_PROTOCOL_TCP Then
         DisconnectTCP
     End If
     
-    m_State = MB_STATE_DISCONNECTED
+    m_State = MB_MASTER_STATE_DISCONNECTED
     RaiseEvent OnDisconnect
 End Sub
 
@@ -452,7 +452,7 @@ Public Function ReadCoils(ByVal StartAddress As Long, ByVal Quantity As Long) As
     
     ValidateQuantity Quantity, m_Defaults.MAX_COILS
     
-    baRequest = BuildReadRequest(MB_FC_READ_COILS, StartAddress, Quantity)
+    baRequest = BuildReadRequest(MB_MASTER_FC_READ_COILS, StartAddress, Quantity)
     baResponse = SendRequest(baRequest)
     
     If UBound(baResponse) >= 0 Then
@@ -491,7 +491,7 @@ Public Function ReadDiscreteInputs(ByVal StartAddress As Long, ByVal Quantity As
     
     ValidateQuantity Quantity, m_Defaults.MAX_COILS
     
-    baRequest = BuildReadRequest(MB_FC_READ_DISCRETE_INPUTS, StartAddress, Quantity)
+    baRequest = BuildReadRequest(MB_MASTER_FC_READ_DISCRETE_INPUTS, StartAddress, Quantity)
     baResponse = SendRequest(baRequest)
     
     If UBound(baResponse) >= 0 Then
@@ -533,7 +533,7 @@ Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity 
     
     ValidateQuantity Quantity, m_Defaults.MAX_REGISTERS
     
-    baRequest = BuildReadRequest(MB_FC_READ_HOLDING_REGISTERS, StartAddress, Quantity)
+    baRequest = BuildReadRequest(MB_MASTER_FC_READ_HOLDING_REGISTERS, StartAddress, Quantity)
     baResponse = SendRequest(baRequest)
     
     If UBound(baResponse) >= 0 Then
@@ -565,7 +565,7 @@ Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As
     
     ValidateQuantity Quantity, m_Defaults.MAX_REGISTERS
     
-    baRequest = BuildReadRequest(MB_FC_READ_INPUT_REGISTERS, StartAddress, Quantity)
+    baRequest = BuildReadRequest(MB_MASTER_FC_READ_INPUT_REGISTERS, StartAddress, Quantity)
     baResponse = SendRequest(baRequest)
     
     If UBound(baResponse) >= 0 Then
@@ -775,7 +775,7 @@ Private Sub ConnectRTU()
     ' Purge buffers
     PurgeComm m_hSerialPort, PURGE_TXCLEAR Or PURGE_RXCLEAR
     
-    m_State = MB_STATE_CONNECTED
+    m_State = MB_MASTER_STATE_CONNECTED
     RaiseEvent OnConnect
     
     Exit Sub
@@ -858,7 +858,7 @@ Private Function BuildWriteSingleCoilRequest(ByVal Address As Long, ByVal Value 
     ReDim baPDU(5) As Byte
     
     baPDU(0) = m_SlaveID
-    baPDU(1) = MB_FC_WRITE_SINGLE_COIL
+    baPDU(1) = MB_MASTER_FC_WRITE_SINGLE_COIL
     baPDU(2) = (Address \ 256) And &HFF
     baPDU(3) = Address And &HFF
     If Value Then
@@ -877,7 +877,7 @@ Private Function BuildWriteSingleRegisterRequest(ByVal Address As Long, ByVal Va
     ReDim baPDU(5) As Byte
     
     baPDU(0) = m_SlaveID
-    baPDU(1) = MB_FC_WRITE_SINGLE_REGISTER
+    baPDU(1) = MB_MASTER_FC_WRITE_SINGLE_REGISTER
     baPDU(2) = (Address \ 256) And &HFF
     baPDU(3) = Address And &HFF
     baPDU(4) = (Value \ 256) And &HFF
@@ -901,7 +901,7 @@ Private Function BuildWriteMultipleCoilsRequest(ByVal StartAddress As Long, ByRe
     ReDim baPDU(6 + lByteCount) As Byte
     
     baPDU(0) = m_SlaveID
-    baPDU(1) = MB_FC_WRITE_MULTIPLE_COILS
+    baPDU(1) = MB_MASTER_FC_WRITE_MULTIPLE_COILS
     baPDU(2) = (StartAddress \ 256) And &HFF
     baPDU(3) = StartAddress And &HFF
     baPDU(4) = (lQuantity \ 256) And &HFF
@@ -934,7 +934,7 @@ Private Function BuildWriteMultipleRegistersRequest(ByVal StartAddress As Long, 
     ReDim baPDU(6 + lQuantity * 2) As Byte
     
     baPDU(0) = m_SlaveID
-    baPDU(1) = MB_FC_WRITE_MULTIPLE_REGISTERS
+    baPDU(1) = MB_MASTER_FC_WRITE_MULTIPLE_REGISTERS
     baPDU(2) = (StartAddress \ 256) And &HFF
     baPDU(3) = StartAddress And &HFF
     baPDU(4) = (lQuantity \ 256) And &HFF
@@ -956,7 +956,7 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
     
     lPDULen = UBound(PDU) + 1
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_MASTER_PROTOCOL_RTU Then
         ' RTU: PDU + CRC16
         ReDim baFrame(lPDULen + 1) As Byte
         CopyMemory baFrame(0), PDU(0), lPDULen
@@ -995,12 +995,12 @@ Private Function SendRequest(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_State <> MB_STATE_CONNECTED Then
+    If m_State <> MB_MASTER_STATE_CONNECTED Then
         RaiseError "Not connected"
         Exit Function
     End If
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_MASTER_PROTOCOL_RTU Then
         baResponse = SendRequestRTU(Request)
     Else
         baResponse = SendRequestTCP(Request)
@@ -1102,13 +1102,13 @@ Private Function ParseRTUFrame() As Byte()
         lPDULen = 5
     Else
         Select Case bFC
-            Case MB_FC_READ_COILS, MB_FC_READ_DISCRETE_INPUTS, MB_FC_READ_HOLDING_REGISTERS, MB_FC_READ_INPUT_REGISTERS
+            Case MB_MASTER_FC_READ_COILS, MB_MASTER_FC_READ_DISCRETE_INPUTS, MB_MASTER_FC_READ_HOLDING_REGISTERS, MB_MASTER_FC_READ_INPUT_REGISTERS
                 If m_RTUBuffer.Size < 5 Then Exit Function
                 lByteCount = m_RTUBuffer.PeekByte(2)
                 lPDULen = 3 + lByteCount + 2
-            Case MB_FC_WRITE_SINGLE_COIL, MB_FC_WRITE_SINGLE_REGISTER
+            Case MB_MASTER_FC_WRITE_SINGLE_COIL, MB_MASTER_FC_WRITE_SINGLE_REGISTER
                 lPDULen = 6
-            Case MB_FC_WRITE_MULTIPLE_COILS, MB_FC_WRITE_MULTIPLE_REGISTERS
+            Case MB_MASTER_FC_WRITE_MULTIPLE_COILS, MB_MASTER_FC_WRITE_MULTIPLE_REGISTERS
                 lPDULen = 6
             Case Else
                 lPDULen = 4
@@ -1220,23 +1220,23 @@ End Function
 
 Private Function GetModbusExceptionDescription(ByVal ExceptionCode As ModbusMasterExceptionCode) As String
     Select Case ExceptionCode
-    Case MB_EX_ILLEGAL_FUNCTION
+    Case MB_MASTER_EX_ILLEGAL_FUNCTION
         GetModbusExceptionDescription = "Illegal Function"
-    Case MB_EX_ILLEGAL_DATA_ADDRESS
+    Case MB_MASTER_EX_ILLEGAL_DATA_ADDRESS
         GetModbusExceptionDescription = "Illegal Data Address"
-    Case MB_EX_ILLEGAL_DATA_VALUE
+    Case MB_MASTER_EX_ILLEGAL_DATA_VALUE
         GetModbusExceptionDescription = "Illegal Data Value"
-    Case MB_EX_SLAVE_DEVICE_FAILURE
+    Case MB_MASTER_EX_SLAVE_DEVICE_FAILURE
         GetModbusExceptionDescription = "Slave Device Failure"
-    Case MB_EX_ACKNOWLEDGE
+    Case MB_MASTER_EX_ACKNOWLEDGE
         GetModbusExceptionDescription = "Acknowledge"
-    Case MB_EX_SLAVE_DEVICE_BUSY
+    Case MB_MASTER_EX_SLAVE_DEVICE_BUSY
         GetModbusExceptionDescription = "Slave Device Busy"
-    Case MB_EX_MEMORY_PARITY_ERROR
+    Case MB_MASTER_EX_MEMORY_PARITY_ERROR
         GetModbusExceptionDescription = "Memory Parity Error"
-    Case MB_EX_GATEWAY_PATH_UNAVAILABLE
+    Case MB_MASTER_EX_GATEWAY_PATH_UNAVAILABLE
         GetModbusExceptionDescription = "Gateway Path Unavailable"
-    Case MB_EX_GATEWAY_TARGET_DEVICE_FAILED
+    Case MB_MASTER_EX_GATEWAY_TARGET_DEVICE_FAILED
         GetModbusExceptionDescription = "Gateway Target Device Failed to Respond"
     Case Else
         GetModbusExceptionDescription = "Unknown Exception (" & Hex$(ExceptionCode) & ")"
@@ -1253,17 +1253,17 @@ End Sub
 '=========================================================================
 
 Private Sub m_Socket_Connect(Client As cWinsock)
-    m_State = MB_STATE_CONNECTED
+    m_State = MB_MASTER_STATE_CONNECTED
     RaiseEvent OnConnect
 End Sub
 
 Private Sub m_Socket_CloseEvent(Client As cWinsock)
-    m_State = MB_STATE_DISCONNECTED
+    m_State = MB_MASTER_STATE_DISCONNECTED
     RaiseEvent OnDisconnect
 End Sub
 
 Private Sub m_Socket_Error(Client As cWinsock, ByVal Number As Long, Description As String, ByVal Scode As Long)
-    m_State = MB_STATE_ERROR
+    m_State = MB_MASTER_STATE_ERROR
     RaiseError "Socket error: " & Description
 End Sub
 
@@ -1272,8 +1272,8 @@ End Sub
 '=========================================================================
 
 Private Sub Class_Initialize()
-    m_ProtocolType = MB_PROTOCOL_TCP
-    m_State = MB_STATE_DISCONNECTED
+    m_ProtocolType = MB_MASTER_PROTOCOL_TCP
+    m_State = MB_MASTER_STATE_DISCONNECTED
     m_SlaveID = 1
     m_ResponseTimeout = 1000
     m_TransactionID = 0

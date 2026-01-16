@@ -24,7 +24,7 @@ Public Sub SendCurrentTimeToPLC()
     On Error GoTo ErrorHandler
     
     ' ========== 配置连接 ==========
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"  ' 修改为你的 PLC IP 地址
     mb.TCPPort = 502
@@ -104,7 +104,7 @@ Public Sub SendUnixTimestampToPLC()
     On Error GoTo ErrorHandler
     
     ' ========== 配置连接 ==========
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"  ' 修改为你的 PLC IP 地址
     mb.TCPPort = 502
@@ -173,7 +173,7 @@ Public Sub CompleteReadWriteExample()
     On Error GoTo ErrorHandler
     
     ' ========== 配置连接 ==========
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"  ' 修改为你的 PLC IP 地址
     mb.TCPPort = 502
@@ -301,7 +301,7 @@ Public Sub SendTimeRTU()
     On Error GoTo ErrorHandler
     
     ' ========== 配置 RTU 连接 ==========
-    mb.ProtocolType = MB_PROTOCOL_RTU
+    mb.ProtocolType = MB_MASTER_PROTOCOL_RTU
     mb.SlaveID = 1
     mb.SerialPort = "COM3"        ' 修改为你的串口
     mb.BaudRate = 9600

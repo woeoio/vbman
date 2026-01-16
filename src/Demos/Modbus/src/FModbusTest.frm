@@ -404,7 +404,7 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not m_Modbus Is Nothing Then
-        If m_Modbus.State = MB_STATE_CONNECTED Then
+        If m_Modbus.State = MB_MASTER_STATE_CONNECTED Then
             m_Modbus.Disconnect
         End If
         Set m_Modbus = Nothing
@@ -424,12 +424,12 @@ Private Sub UpdateProtocolUI()
         ' TCP ģʽ
         FrameTCP.Visible = True
         FrameRTU.Visible = False
-        m_Modbus.ProtocolType = MB_PROTOCOL_TCP
+        m_Modbus.ProtocolType = MB_MASTER_PROTOCOL_TCP
     Else
         ' RTU ģʽ
         FrameTCP.Visible = False
         FrameRTU.Visible = True
-        m_Modbus.ProtocolType = MB_PROTOCOL_RTU
+        m_Modbus.ProtocolType = MB_MASTER_PROTOCOL_RTU
     End If
 End Sub
 

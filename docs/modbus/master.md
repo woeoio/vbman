@@ -28,17 +28,17 @@
 
 | 常量 | 值 | 说明 |
 |------|-----|------|
-| `MB_PROTOCOL_RTU` | 1 | RTU 模式（串口通信） |
-| `MB_PROTOCOL_TCP` | 2 | TCP 模式（网络通信） |
+| `MB_MASTER_PROTOCOL_RTU` | 1 | RTU 模式（串口通信） |
+| `MB_MASTER_PROTOCOL_TCP` | 2 | TCP 模式（网络通信） |
 
 **示例**:
 
 ```vb
 ' 设置为 TCP 模式
-mbMaster.ProtocolType = MB_PROTOCOL_TCP
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
 
 ' 设置为 RTU 模式
-mbMaster.ProtocolType = MB_PROTOCOL_RTU
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_RTU
 ```
 
 ---
@@ -52,15 +52,15 @@ mbMaster.ProtocolType = MB_PROTOCOL_RTU
 
 | 常量 | 值 | 说明 |
 |------|-----|------|
-| `MB_STATE_DISCONNECTED` | 0 | 已断开 |
-| `MB_STATE_CONNECTING` | 1 | 正在连接 |
-| `MB_STATE_CONNECTED` | 2 | 已连接 |
-| `MB_STATE_ERROR` | 3 | 错误状态 |
+| `MB_MASTER_STATE_DISCONNECTED` | 0 | 已断开 |
+| `MB_MASTER_STATE_CONNECTING` | 1 | 正在连接 |
+| `MB_MASTER_STATE_CONNECTED` | 2 | 已连接 |
+| `MB_MASTER_STATE_ERROR` | 3 | 错误状态 |
 
 **示例**:
 
 ```vb
-If mbMaster.State = MB_STATE_CONNECTED Then
+If mbMaster.State = MB_MASTER_STATE_CONNECTED Then
     Debug.Print "已连接"
 Else
     Debug.Print "未连接"
@@ -251,14 +251,14 @@ Public Sub Connect(Optional ByVal SerialPort As String = "", _
 
 ```vb
 ' TCP 连接
-mbMaster.ProtocolType = MB_PROTOCOL_TCP
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mbMaster.TCPHost = "192.168.1.100"
 mbMaster.TCPPort = 502
 mbMaster.SlaveID = 1
 mbMaster.Connect
 
 ' RTU 连接
-mbMaster.ProtocolType = MB_PROTOCOL_RTU
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_RTU
 mbMaster.SerialPort = "COM1"
 mbMaster.BaudRate = 9600
 mbMaster.DataBits = 8
@@ -650,7 +650,7 @@ Private WithEvents mbMaster As cModbusMaster
 
 Private Sub Form_Load()
     Set mbMaster = New cModbusMaster
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = "127.0.0.1"
     mbMaster.TCPPort = 502
     mbMaster.SlaveID = 1
@@ -699,7 +699,7 @@ Private Sub Form_Load()
     tmrReconnect.Interval = 5000  ' 5 秒后重连
     m_bAutoReconnect = True
     
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = "127.0.0.1"
     mbMaster.TCPPort = 502
     mbMaster.SlaveID = 1
@@ -708,7 +708,7 @@ Private Sub Form_Load()
 End Sub
 
 Private Sub ConnectToServer()
-    If mbMaster.State = MB_STATE_DISCONNECTED Then
+    If mbMaster.State = MB_MASTER_STATE_DISCONNECTED Then
         Debug.Print "正在连接..."
         mbMaster.Connect
     End If
@@ -753,7 +753,7 @@ Private Sub Form_Load()
     
     tmrPoll.Interval = 1000  ' 每秒采集一次
     
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = "127.0.0.1"
     mbMaster.TCPPort = 502
     mbMaster.SlaveID = 1

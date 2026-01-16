@@ -32,17 +32,17 @@
 
 | 常量 | 值 | 说明 |
 |------|-----|------|
-| `MB_PROTOCOL_RTU` | 1 | RTU 模式（串口通信） |
-| `MB_PROTOCOL_TCP` | 2 | TCP 模式（网络通信） |
+| `MB_SLAVE_PROTOCOL_RTU` | 1 | RTU 模式（串口通信） |
+| `MB_SLAVE_PROTOCOL_TCP` | 2 | TCP 模式（网络通信） |
 
 **示例**:
 
 ```vb
 ' 设置为 TCP 模式
-mbSlave.ProtocolType = MB_PROTOCOL_TCP
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
 
 ' 设置为 RTU 模式
-mbSlave.ProtocolType = MB_PROTOCOL_RTU
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
 ```
 
 ---
@@ -234,7 +234,7 @@ Public Sub Start(Optional ByVal PortOrSerial As String = "", Optional ByVal Bind
 
 ```vb
 ' TCP 模式 - 启动服务器
-mbSlave.ProtocolType = MB_PROTOCOL_TCP
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
 mbSlave.SlaveID = 1
 mbSlave.Start 502
 
@@ -243,7 +243,7 @@ mbSlave.Start 502, "127.0.0.1"  ' 仅监听本地
 mbSlave.Start 502, "0.0.0.0"    ' 监听所有接口
 
 ' RTU 模式 - 启动服务器
-mbSlave.ProtocolType = MB_PROTOCOL_RTU
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
 mbSlave.SerialPort = "COM1"
 mbSlave.BaudRate = 9600
 mbSlave.DataBits = 8
@@ -606,9 +606,9 @@ Private Sub mbSlave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode A
     
     ' 根据功能码处理
     Select Case FunctionCode
-        Case MB_FC_READ_COILS
+        Case MB_SLAVE_FC_READ_COILS
             Debug.Print "读取线圈"
-        Case MB_FC_READ_HOLDING_REGISTERS
+        Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
             Debug.Print "读取保持寄存器"
     End Select
 End Sub
@@ -634,9 +634,9 @@ Private Sub mbSlave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode 
     
     ' 根据功能码处理
     Select Case FunctionCode
-        Case MB_FC_WRITE_SINGLE_REGISTER
+        Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
             Debug.Print "写入单个寄存器"
-        Case MB_FC_WRITE_MULTIPLE_REGISTERS
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
             Debug.Print "写入多个寄存器"
     End Select
 End Sub
@@ -705,7 +705,7 @@ Private Sub Form_Load()
 End Sub
 
 Private Sub cmdStart_Click()
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = 1
     mbSlave.Start 502
 End Sub
@@ -743,7 +743,7 @@ Private Sub Form_Load()
     
     tmrUpdate.Interval = 1000  ' 每秒更新
     
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = 1
     mbSlave.Start 502
 End Sub
@@ -800,7 +800,7 @@ Private Sub Form_Load()
     Set mbSlave = New cModbusSlave
     Set m_Clients = New Collection
     
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = 1
     mbSlave.Start 502
 End Sub

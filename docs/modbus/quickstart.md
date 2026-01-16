@@ -62,7 +62,7 @@ End Sub
 Private Sub cmdConnect_Click()
     On Error GoTo EH
     
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = txtHost.Text
     mbMaster.TCPPort = CLng(txtPort.Text)
     mbMaster.SlaveID = CByte(txtSlaveID.Text)
@@ -86,7 +86,7 @@ End Sub
 Private Sub cmdRead_Click()
     On Error GoTo EH
     
-    If mbMaster.State <> MB_STATE_CONNECTED Then
+    If mbMaster.State <> MB_MASTER_STATE_CONNECTED Then
         LogMessage "未连接"
         Exit Sub
     End If
@@ -199,7 +199,7 @@ End Sub
 Private Sub cmdStart_Click()
     On Error GoTo EH
     
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = CByte(txtSlaveID.Text)
     mbSlave.Start CLng(txtPort.Text)
     
@@ -326,7 +326,7 @@ Private Sub Form_Load()
     mbSlave.SetHoldingRegister 4, 500
     
     ' 启动服务器
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = 1
     mbSlave.Start 502
 End Sub
@@ -337,7 +337,7 @@ End Sub
 ```vb
 Private Sub cmdRead_Click()
     ' 连接从站
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = "127.0.0.1"
     mbMaster.TCPPort = 502
     mbMaster.SlaveID = 1
@@ -369,7 +369,7 @@ End Sub
 
 ```vb
 ' 配置 RTU 模式
-mbMaster.ProtocolType = MB_PROTOCOL_RTU
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_RTU
 mbMaster.SerialPort = "COM1"
 mbMaster.BaudRate = 9600
 mbMaster.DataBits = 8
@@ -389,7 +389,7 @@ iRegs = mbMaster.ReadHoldingRegisters(0, 10)
 
 ```vb
 ' 配置 RTU 模式
-mbSlave.ProtocolType = MB_PROTOCOL_RTU
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
 mbSlave.SerialPort = "COM1"
 mbSlave.BaudRate = 9600
 mbSlave.DataBits = 8

@@ -37,14 +37,14 @@ Modbus 类库是一个为 VB6 设计的轻量级 Modbus 通信库，完全符合 Modbus 协议规范（RT
 ```vb
 ' cModbusMaster - Modbus 主站（客户端）
 Set mbMaster = New cModbusMaster
-mbMaster.ProtocolType = MB_PROTOCOL_TCP
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mbMaster.TCPHost = "192.168.1.100"
 mbMaster.TCPPort = 502
 mbMaster.Connect
 
 ' cModbusSlave - Modbus 从站（服务器）
 Set mbSlave = New cModbusSlave
-mbSlave.ProtocolType = MB_PROTOCOL_TCP
+mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
 mbSlave.SlaveID = 1
 mbSlave.BindAddress = "0.0.0.0"  ' 监听所有接口（默认）
 mbSlave.Start 502
@@ -61,7 +61,7 @@ mbSlave.Start 502
 
 #### TCP 模式
 ```vb
-mbMaster.ProtocolType = MB_PROTOCOL_TCP
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mbMaster.TCPHost = "192.168.1.100"
 mbMaster.TCPPort = 502
 mbMaster.Connect
@@ -69,7 +69,7 @@ mbMaster.Connect
 
 #### RTU 模式
 ```vb
-mbMaster.ProtocolType = MB_PROTOCOL_RTU
+mbMaster.ProtocolType = MB_MASTER_PROTOCOL_RTU
 mbMaster.SerialPort = "COM1"
 mbMaster.BaudRate = 9600
 mbMaster.DataBits = 8

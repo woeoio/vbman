@@ -35,13 +35,13 @@ Private Sub Form_Load()
     Set mbSlave = New cModbusSlave
     
     ' 初始化主站 - 向上位机请求数据
-    mbMaster.ProtocolType = MB_PROTOCOL_TCP
+    mbMaster.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mbMaster.TCPHost = "192.168.1.100"
     mbMaster.TCPPort = 502
     mbMaster.SlaveID = 1
     
     ' 初始化从站 - 向下位机提供数据
-    mbSlave.ProtocolType = MB_PROTOCOL_TCP
+    mbSlave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     mbSlave.SlaveID = 2
     mbSlave.BindAddress = "0.0.0.0"  ' 监听所有接口
     mbSlave.Start 1502
@@ -86,7 +86,7 @@ Private Function ReadWithRetry(StartAddr As Long, Quantity As Long) As Integer()
     For iRetry = 1 To MAX_RETRIES
         On Error Resume Next
         
-        If mbMaster.State = MB_STATE_DISCONNECTED Then
+        If mbMaster.State = MB_MASTER_STATE_DISCONNECTED Then
             mbMaster.Connect
         End If
         
@@ -360,7 +360,7 @@ Public Function GetDevice(DeviceID As Long) As cModbusMaster
             m_Devices(i).LastUsed = Timer
             
             Set mbDev = New cModbusMaster
-            mbDev.ProtocolType = MB_PROTOCOL_TCP
+            mbDev.ProtocolType = MB_MASTER_PROTOCOL_TCP
             mbDev.TCPHost = m_Devices(i).Host
             mbDev.TCPPort = m_Devices(i).Port
             mbDev.SlaveID = m_Devices(i).SlaveID
@@ -408,7 +408,7 @@ Public Function SafeReadRegisters(StartAddr As Long, Quantity As Long) As Intege
     On Error GoTo ErrorHandler
     
     ' 检查连接状态
-    If mbMaster.State <> MB_STATE_CONNECTED Then
+    If mbMaster.State <> MB_MASTER_STATE_CONNECTED Then
         Err.Raise vbObjectError + 1, "SafeReadRegisters", "Not connected"
     End If
     
@@ -597,7 +597,7 @@ Private Sub ConnectDevice(Index As Long)
         mbDev.ProtocolType = .ProtocolType
         mbDev.SlaveID = .SlaveID
         
-        If .ProtocolType = MB_PROTOCOL_TCP Then
+        If .ProtocolType = MB_MASTER_PROTOCOL_TCP Then
             mbDev.TCPHost = .Host
             mbDev.TCPPort = .Port
             mbDev.Connect
@@ -663,7 +663,7 @@ Private Sub PollDevice(Index As Long)
     End If
     
     ' 检查连接状态
-    If mbDev.State <> MB_STATE_CONNECTED Then
+    If mbDev.State <> MB_MASTER_STATE_CONNECTED Then
         ConnectDevice Index
         Exit Sub
     End If
@@ -1730,7 +1730,7 @@ Private Sub tmrReconnect_Timer()
     On Error Resume Next
     mbMaster.Connect
     
-    If Err.Number = 0 And mbMaster.State = MB_STATE_CONNECTED Then
+    If Err.Number = 0 And mbMaster.State = MB_MASTER_STATE_CONNECTED Then
         Debug.Print "Reconnected successfully"
     Else
         ' 重连失败,继续尝试

@@ -86,7 +86,7 @@
 ```vb
 ' 1. 连接
 Dim mb As New cModbus
-mb.ProtocolType = MB_PROTOCOL_TCP
+mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mb.SlaveID = 1
 mb.TCPHost = "192.168.1.100"
 mb.TCPPort = 502
@@ -179,7 +179,7 @@ mb.Disconnect
 ```vb
 ' 1. 连接
 Dim mb As New cModbus
-mb.ProtocolType = MB_PROTOCOL_TCP
+mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mb.SlaveID = 1
 mb.TCPHost = "192.168.1.100"
 mb.TCPPort = 502
@@ -243,7 +243,7 @@ mb.Disconnect
 ```vb
 ' 1. 连接
 Dim mb As New cModbus
-mb.ProtocolType = MB_PROTOCOL_TCP
+mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
 mb.SlaveID = 1
 mb.TCPHost = "192.168.1.100"
 mb.TCPPort = 502

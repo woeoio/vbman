@@ -19,7 +19,7 @@ Public Sub DemoTCP()
     Dim mb As New cModbus
     
     ' 配置 TCP 连接
-    mb.ProtocolType = MB_PROTOCOL_TCP
+    mb.ProtocolType = MB_MASTER_PROTOCOL_TCP
     mb.SlaveID = 1
     mb.TCPHost = "192.168.1.100"
     mb.TCPPort = 502
@@ -47,7 +47,7 @@ Public Sub DemoRTU()
     Dim mbRTU As New cModbus
     
     ' 配置 RTU 连接
-    mbRTU.ProtocolType = MB_PROTOCOL_RTU
+    mbRTU.ProtocolType = MB_MASTER_PROTOCOL_RTU
     mbRTU.SlaveID = 1
     mbRTU.SerialPort = "COM1"
     mbRTU.BaudRate = 9600

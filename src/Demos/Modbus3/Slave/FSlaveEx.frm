@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form FSlaveEx
+Begin VB.Form FSlaveEx 
    Caption         =   "Modbus Slave Demo (TCP + RTU)"
    ClientHeight    =   8280
    ClientLeft      =   120
@@ -8,25 +8,25 @@ Begin VB.Form FSlaveEx
    LinkTopic       =   "Form1"
    ScaleHeight     =   8280
    ScaleWidth      =   10320
-   StartUpPosition =   2
-   Begin VB.Frame fraProtocol
+   StartUpPosition =   2  'ÆÁÄ»ÖÐÐÄ
+   Begin VB.Frame fraProtocol 
       Caption         =   "Protocol Settings"
       Height          =   1695
       Left            =   120
       TabIndex        =   0
       Top             =   120
       Width           =   5175
-      Begin VB.ComboBox cmbProtocol
+      Begin VB.ComboBox cmbProtocol 
          Height          =   315
          ItemData        =   "FSlaveEx.frx":0000
          Left            =   1560
-         List            =   "FSlaveEx.frx":000C
-         Style           =   2
-         TabIndex        =   0
+         List            =   "FSlaveEx.frx":0007
+         Style           =   2  'Dropdown List
+         TabIndex        =   8
          Top             =   240
          Width           =   3495
       End
-      Begin VB.Label lblProtocol
+      Begin VB.Label lblProtocol 
          Caption         =   "Protocol:"
          Height          =   255
          Left            =   120
@@ -35,14 +35,14 @@ Begin VB.Form FSlaveEx
          Width           =   1095
       End
    End
-   Begin VB.Frame fraTCP
+   Begin VB.Frame fraTCP 
       Caption         =   "TCP Settings"
       Height          =   1695
       Left            =   5400
       TabIndex        =   2
       Top             =   120
       Width           =   4920
-      Begin VB.TextBox txtTCPSlaveID
+      Begin VB.TextBox txtTCPSlaveID 
          Height          =   285
          Left            =   3360
          TabIndex        =   4
@@ -50,7 +50,7 @@ Begin VB.Form FSlaveEx
          Top             =   360
          Width           =   1440
       End
-      Begin VB.TextBox txtTCPPort
+      Begin VB.TextBox txtTCPPort 
          Height          =   285
          Left            =   3360
          TabIndex        =   3
@@ -58,7 +58,7 @@ Begin VB.Form FSlaveEx
          Top             =   720
          Width           =   1440
       End
-      Begin VB.Label lblTCPSlaveID
+      Begin VB.Label lblTCPSlaveID 
          Caption         =   "Slave ID:"
          Height          =   255
          Left            =   2640
@@ -66,7 +66,7 @@ Begin VB.Form FSlaveEx
          Top             =   360
          Width           =   735
       End
-      Begin VB.Label lblTCPPort
+      Begin VB.Label lblTCPPort 
          Caption         =   "Port:"
          Height          =   255
          Left            =   2640
@@ -75,39 +75,42 @@ Begin VB.Form FSlaveEx
          Width           =   615
       End
    End
-   Begin VB.Frame fraRTU
+   Begin VB.Frame fraRTU 
       Caption         =   "RTU Settings"
       Height          =   1695
       Left            =   120
       TabIndex        =   7
       Top             =   120
+      Visible         =   0   'False
       Width           =   5175
-      Visible         =   0
-      Begin VB.ComboBox cmbParity
+      Begin VB.ComboBox cmbParity 
          Height          =   315
-         ItemData        =   "FSlaveEx.frx":0024
+         ItemData        =   "FSlaveEx.frx":0018
          Left            =   3600
+         List            =   "FSlaveEx.frx":001A
          TabIndex        =   13
          Top             =   1080
          Width           =   1455
       End
-      Begin VB.ComboBox cmbStopBits
+      Begin VB.ComboBox cmbStopBits 
          Height          =   315
-         ItemData        =   "FSlaveEx.frx":0030
+         ItemData        =   "FSlaveEx.frx":001C
          Left            =   1200
+         List            =   "FSlaveEx.frx":001E
          TabIndex        =   12
          Top             =   1080
          Width           =   1575
       End
-      Begin VB.ComboBox cmbBaudRate
+      Begin VB.ComboBox cmbBaudRate 
          Height          =   315
-         ItemData        =   "FSlaveEx.frx":003C
+         ItemData        =   "FSlaveEx.frx":0020
          Left            =   1200
+         List            =   "FSlaveEx.frx":0022
          TabIndex        =   11
          Top             =   720
          Width           =   1575
       End
-      Begin VB.TextBox txtRTUSlaveID
+      Begin VB.TextBox txtRTUSlaveID 
          Height          =   285
          Left            =   3600
          TabIndex        =   10
@@ -115,7 +118,7 @@ Begin VB.Form FSlaveEx
          Top             =   360
          Width           =   1455
       End
-      Begin VB.TextBox txtSerialPort
+      Begin VB.TextBox txtSerialPort 
          Height          =   285
          Left            =   1200
          TabIndex        =   9
@@ -123,7 +126,7 @@ Begin VB.Form FSlaveEx
          Top             =   360
          Width           =   1575
       End
-      Begin VB.Label lblParity
+      Begin VB.Label lblParity 
          Caption         =   "Parity:"
          Height          =   255
          Left            =   2880
@@ -131,7 +134,7 @@ Begin VB.Form FSlaveEx
          Top             =   1080
          Width           =   735
       End
-      Begin VB.Label lblStopBits
+      Begin VB.Label lblStopBits 
          Caption         =   "StopBits:"
          Height          =   255
          Left            =   120
@@ -139,7 +142,7 @@ Begin VB.Form FSlaveEx
          Top             =   1080
          Width           =   735
       End
-      Begin VB.Label lblBaudRate
+      Begin VB.Label lblBaudRate 
          Caption         =   "BaudRate:"
          Height          =   255
          Left            =   120
@@ -147,7 +150,7 @@ Begin VB.Form FSlaveEx
          Top             =   720
          Width           =   735
       End
-      Begin VB.Label lblRTUSlaveID
+      Begin VB.Label lblRTUSlaveID 
          Caption         =   "Slave ID:"
          Height          =   255
          Left            =   2880
@@ -155,7 +158,7 @@ Begin VB.Form FSlaveEx
          Top             =   360
          Width           =   735
       End
-      Begin VB.Label lblSerialPort
+      Begin VB.Label lblSerialPort 
          Caption         =   "Port:"
          Height          =   255
          Left            =   120
@@ -164,23 +167,23 @@ Begin VB.Form FSlaveEx
          Width           =   735
       End
    End
-   Begin VB.Frame fraServer
+   Begin VB.Frame fraServer 
       Caption         =   "Server Control"
       Height          =   1695
       Left            =   120
       TabIndex        =   19
       Top             =   1920
       Width           =   9900
-      Begin VB.CommandButton cmdStop
+      Begin VB.CommandButton cmdStop 
          Caption         =   "Stop Server"
-         Enabled         =   0
+         Enabled         =   0   'False
          Height          =   375
          Left            =   5160
          TabIndex        =   22
          Top             =   1080
          Width           =   2295
       End
-      Begin VB.CommandButton cmdStart
+      Begin VB.CommandButton cmdStart 
          Caption         =   "Start Server"
          Height          =   375
          Left            =   2640
@@ -188,7 +191,7 @@ Begin VB.Form FSlaveEx
          Top             =   1080
          Width           =   2295
       End
-      Begin VB.Label lblStatus
+      Begin VB.Label lblStatus 
          Caption         =   "Status: Stopped"
          ForeColor       =   &H000000FF&
          Height          =   255
@@ -198,14 +201,14 @@ Begin VB.Form FSlaveEx
          Width           =   3255
       End
    End
-   Begin VB.Frame fraSetData
+   Begin VB.Frame fraSetData 
       Caption         =   "Set Data Values"
       Height          =   1575
       Left            =   120
       TabIndex        =   23
       Top             =   3720
       Width           =   9900
-      Begin VB.CommandButton cmdSetInputReg
+      Begin VB.CommandButton cmdSetInputReg 
          Caption         =   "Set Input Reg"
          Height          =   375
          Left            =   7560
@@ -213,7 +216,7 @@ Begin VB.Form FSlaveEx
          Top             =   1000
          Width           =   2175
       End
-      Begin VB.CommandButton cmdSetHoldingReg
+      Begin VB.CommandButton cmdSetHoldingReg 
          Caption         =   "Set Holding Reg"
          Height          =   375
          Left            =   5040
@@ -221,7 +224,7 @@ Begin VB.Form FSlaveEx
          Top             =   1000
          Width           =   2295
       End
-      Begin VB.CommandButton cmdSetDiscreteInput
+      Begin VB.CommandButton cmdSetDiscreteInput 
          Caption         =   "Set Discrete Input"
          Height          =   375
          Left            =   7560
@@ -229,7 +232,7 @@ Begin VB.Form FSlaveEx
          Top             =   520
          Width           =   2175
       End
-      Begin VB.CommandButton cmdSetCoil
+      Begin VB.CommandButton cmdSetCoil 
          Caption         =   "Set Coil"
          Height          =   375
          Left            =   5040
@@ -237,7 +240,7 @@ Begin VB.Form FSlaveEx
          Top             =   520
          Width           =   2295
       End
-      Begin VB.TextBox txtDataValue
+      Begin VB.TextBox txtDataValue 
          Height          =   285
          Left            =   7560
          TabIndex        =   30
@@ -245,7 +248,7 @@ Begin VB.Form FSlaveEx
          Top             =   160
          Width           =   1095
       End
-      Begin VB.TextBox txtDataAddress
+      Begin VB.TextBox txtDataAddress 
          Height          =   285
          Left            =   2520
          TabIndex        =   28
@@ -253,7 +256,7 @@ Begin VB.Form FSlaveEx
          Top             =   160
          Width           =   1095
       End
-      Begin VB.Label lblDataValue
+      Begin VB.Label lblDataValue 
          Caption         =   "Value:"
          Height          =   255
          Left            =   6720
@@ -261,7 +264,7 @@ Begin VB.Form FSlaveEx
          Top             =   200
          Width           =   735
       End
-      Begin VB.Label lblDataAddress
+      Begin VB.Label lblDataAddress 
          Caption         =   "Address:"
          Height          =   255
          Left            =   120
@@ -270,52 +273,52 @@ Begin VB.Form FSlaveEx
          Width           =   2295
       End
    End
-   Begin VB.Frame fraCurrentData
+   Begin VB.Frame fraCurrentData 
       Caption         =   "Current Data Values"
       Height          =   1935
       Left            =   120
       TabIndex        =   36
       Top             =   5400
       Width           =   9900
-      Begin VB.CommandButton cmdRefresh
+      Begin VB.CommandButton cmdRefresh 
          Caption         =   "Refresh"
          Height          =   255
          Left            =   9360
-         TabIndex        =   38
+         TabIndex        =   24
          Top             =   240
          Width           =   495
       End
-      Begin VB.TextBox txtCurrentData
+      Begin VB.TextBox txtCurrentData 
          Height          =   1575
          Left            =   120
-         MultiLine       =   -1
-         ScrollBars      =   3
+         MultiLine       =   -1  'True
+         ScrollBars      =   3  'Both
          TabIndex        =   37
          Top             =   280
          Width           =   9215
       End
    End
-   Begin VB.Frame fraLog
+   Begin VB.Frame fraLog 
       Caption         =   "Communication Log"
       Height          =   1200
       Left            =   120
-      TabIndex        =   39
+      TabIndex        =   25
       Top             =   7440
       Width           =   9900
-      Begin VB.CommandButton cmdClearLog
+      Begin VB.CommandButton cmdClearLog 
          Caption         =   "Clear"
          Height          =   255
          Left            =   9360
-         TabIndex        =   41
+         TabIndex        =   26
          Top             =   240
          Width           =   495
       End
-      Begin VB.TextBox txtLog
+      Begin VB.TextBox txtLog 
          Height          =   855
          Left            =   120
-         MultiLine       =   -1
-         ScrollBars      =   3
-         TabIndex        =   40
+         MultiLine       =   -1  'True
+         ScrollBars      =   3  'Both
+         TabIndex        =   27
          Top             =   280
          Width           =   9215
       End
@@ -380,7 +383,7 @@ Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not m_Slave Is Nothing Then
         If m_Slave.State = MB_SLAVE_STATE_RUNNING Then
-            m_Slave.Stop
+            m_Slave.StopMe
         End If
         Set m_Slave = Nothing
     End If

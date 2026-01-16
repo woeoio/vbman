@@ -1,0 +1,5 @@
+行 19: 属性 List 在 cmbProtocol 中不能被设置。
+行 19: 属性 ItemData 在 cmbProtocol 中不能被设置。
+行 86: 属性 ItemData 在 cmbParity 中不能被设置。
+行 94: 属性 ItemData 在 cmbStopBits 中不能被设置。
+行 102: 属性 ItemData 在 cmbBaudRate 中不能被设置。

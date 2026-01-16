@@ -50,16 +50,16 @@ Option Explicit
 ' Modbus Function Codes
 Public Enum ModbusSlaveFunctionCode
 ' Read Functions
-    MB_SLAVE_FC_READ_COILS = &H1                                                      ' Read Coils (01)
-    MB_SLAVE_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
-    MB_SLAVE_FC_READ_HOLDING_REGISTERS = &H3                                          ' Read Holding Registers (03)
-    MB_SLAVE_FC_READ_INPUT_REGISTERS = &H4                                            ' Read Input Registers (04)
+    MB_SLAVE_FC_READ_COILS = &H1                                                ' Read Coils (01)
+    MB_SLAVE_FC_READ_DISCRETE_INPUTS = &H2                                      ' Read Discrete Inputs (02)
+    MB_SLAVE_FC_READ_HOLDING_REGISTERS = &H3                                    ' Read Holding Registers (03)
+    MB_SLAVE_FC_READ_INPUT_REGISTERS = &H4                                      ' Read Input Registers (04)
     
     ' Write Functions
-    MB_SLAVE_FC_WRITE_SINGLE_COIL = &H5                                               ' Write Single Coil (05)
-    MB_SLAVE_FC_WRITE_SINGLE_REGISTER = &H6                                           ' Write Single Register (06)
-    MB_SLAVE_FC_WRITE_MULTIPLE_COILS = &HF                                            ' Write Multiple Coils (15)
-    MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS = &H10                                       ' Write Multiple Registers (16)
+    MB_SLAVE_FC_WRITE_SINGLE_COIL = &H5                                         ' Write Single Coil (05)
+    MB_SLAVE_FC_WRITE_SINGLE_REGISTER = &H6                                     ' Write Single Register (06)
+    MB_SLAVE_FC_WRITE_MULTIPLE_COILS = &HF                                      ' Write Multiple Coils (15)
+    MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS = &H10                                 ' Write Multiple Registers (16)
     
     ' Mask Write Register (22)
     MB_SLAVE_FC_MASK_WRITE_REGISTER = &H16
@@ -70,15 +70,15 @@ End Enum
 
 ' Modbus Exception Codes
 Public Enum ModbusSlaveExceptionCode
-    MB_SLAVE_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
-    MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
-    MB_SLAVE_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
-    MB_SLAVE_EX_SLAVE_DEVICE_FAILURE = &H4                                            ' Slave Device Failure
-    MB_SLAVE_EX_ACKNOWLEDGE = &H5                                                     ' Acknowledge
-    MB_SLAVE_EX_SLAVE_DEVICE_BUSY = &H6                                               ' Slave Device Busy
-    MB_SLAVE_EX_MEMORY_PARITY_ERROR = &H8                                             ' Memory Parity Error
-    MB_SLAVE_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                        ' Gateway Path Unavailable
-    MB_SLAVE_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                    ' Gateway Target Device Failed to Respond
+    MB_SLAVE_EX_ILLEGAL_FUNCTION = &H1                                          ' Illegal Function
+    MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS = &H2                                      ' Illegal Data Address
+    MB_SLAVE_EX_ILLEGAL_DATA_VALUE = &H3                                        ' Illegal Data Value
+    MB_SLAVE_EX_SLAVE_DEVICE_FAILURE = &H4                                      ' Slave Device Failure
+    MB_SLAVE_EX_ACKNOWLEDGE = &H5                                               ' Acknowledge
+    MB_SLAVE_EX_SLAVE_DEVICE_BUSY = &H6                                         ' Slave Device Busy
+    MB_SLAVE_EX_MEMORY_PARITY_ERROR = &H8                                       ' Memory Parity Error
+    MB_SLAVE_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                  ' Gateway Path Unavailable
+    MB_SLAVE_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                              ' Gateway Target Device Failed to Respond
 End Enum
 
 ' Modbus Connection State
@@ -94,8 +94,8 @@ End Enum
 '=========================================================================
 
 Public Enum ModbusSlaveProtocolType
-    MB_SLAVE_PROTOCOL_RTU = 1                                                         ' RTU over Serial
-    MB_SLAVE_PROTOCOL_TCP = 2                                                         ' TCP/IP
+    MB_SLAVE_PROTOCOL_RTU = 1                                                   ' RTU over Serial
+    MB_SLAVE_PROTOCOL_TCP = 2                                                   ' TCP/IP
 End Enum
 
 '=========================================================================
@@ -1713,7 +1713,7 @@ Private Sub Class_Initialize()
     m_SlaveID = 1
     m_ClientCounter = 0
     m_RTUProcessing = False
-    m_BindAddress = "0.0.0.0"  ' Default: listen on all interfaces
+    m_BindAddress = "0.0.0.0"                                                   ' Default: listen on all interfaces
     
     ' Initialize Defaults constants structure
     m_Defaults.TCP_PORT = 502
@@ -1741,7 +1741,7 @@ End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
-    Stop
+    '    Stop
     Set m_RTUBuffer = Nothing
     Set m_ListenSocket = Nothing
     Set m_Clients = Nothing

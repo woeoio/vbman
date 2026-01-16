@@ -822,7 +822,7 @@ Private Sub ConnectTCP()
     
     Exit Sub
 ErrorHandler:
-    m_State = MB_STATE_ERROR
+    m_State = MB_MASTER_STATE_ERROR
     RaiseError "ConnectTCP failed: " & ERR.Description
 End Sub
 

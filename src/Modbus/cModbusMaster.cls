@@ -30,7 +30,7 @@ Option Explicit
 ' Modbus Function Codes
 '=========================================================================
 
-Public Enum ModbusFunctionCode
+Public Enum ModbusMasterFunctionCode
 ' Read Functions
     MB_FC_READ_COILS = &H1                                                      ' Read Coils (01)
     MB_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
@@ -52,7 +52,7 @@ End Enum
 ' Modbus Exception Codes
 '=========================================================================
 
-Public Enum ModbusExceptionCode
+Public Enum ModbusMasterExceptionCode
     MB_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
     MB_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
     MB_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
@@ -68,7 +68,7 @@ End Enum
 ' Connection State
 '=========================================================================
 
-Public Enum ModbusState
+Public Enum ModbusMasterState
     MB_STATE_DISCONNECTED = 0                                                   ' Disconnected
     MB_STATE_CONNECTING = 1                                                     ' Connecting
     MB_STATE_CONNECTED = 2                                                      ' Connected
@@ -79,7 +79,7 @@ End Enum
 ' Protocol Type
 '=========================================================================
 
-Public Enum ModbusProtocolType
+Public Enum ModbusMasterProtocolType
     MB_PROTOCOL_RTU = 1                                                         ' RTU over Serial
     MB_PROTOCOL_TCP = 2                                                         ' TCP/IP
 End Enum
@@ -89,7 +89,7 @@ End Enum
 ' Default Constants Structure
 '=========================================================================
 
-Public Type ModbusDefaults
+Public Type ModbusMasterDefaults
     TCP_PORT As Long                                                            ' Default TCP port (502)
     RTU_DEFAULT_BAUDRATE As Long                                                ' Default baudrate (9600)
     RTU_DEFAULT_DATABITS As Long                                                ' Default data bits (8)
@@ -222,13 +222,13 @@ End Type
 '=========================================================================
 
 ' Default constants
-Private m_Defaults As ModbusDefaults
+Private m_Defaults As ModbusMasterDefaults
 
 ' Protocol type
-Private m_ProtocolType As ModbusProtocolType
+Private m_ProtocolType As ModbusMasterProtocolType
 
 ' Connection state
-Private m_State As ModbusState
+Private m_State As ModbusMasterState
 
 ' RTU Mode (Serial Port)
 Private m_hSerialPort As Long
@@ -258,11 +258,11 @@ Private m_RTUBuffer As cByteBuffer
 '=========================================================================
 
 ' Protocol type (RTU or TCP)
-Public Property Get ProtocolType() As ModbusProtocolType
+Public Property Get ProtocolType() As ModbusMasterProtocolType
     ProtocolType = m_ProtocolType
 End Property
 
-Public Property Let ProtocolType(ByVal Value As ModbusProtocolType)
+Public Property Let ProtocolType(ByVal Value As ModbusMasterProtocolType)
     If m_State = MB_STATE_CONNECTED Then
         RaiseError "Cannot change protocol type while connected"
         Exit Property
@@ -271,7 +271,7 @@ Public Property Let ProtocolType(ByVal Value As ModbusProtocolType)
 End Property
 
 ' Connection state
-Public Property Get State() As ModbusState
+Public Property Get State() As ModbusMasterState
     State = m_State
 End Property
 
@@ -294,7 +294,7 @@ Public Property Let ResponseTimeout(ByVal Value As Long)
 End Property
 
 ' Defaults constants (read-only)
-Public Property Get Defaults() As ModbusDefaults
+Public Property Get Defaults() As ModbusMasterDefaults
     Defaults = m_Defaults
 End Property
 
@@ -839,7 +839,7 @@ End Sub
 ' Private Methods - Request Building
 '=========================================================================
 
-Private Function BuildReadRequest(ByVal FC As ModbusFunctionCode, ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
+Private Function BuildReadRequest(ByVal FC As ModbusMasterFunctionCode, ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
     Dim baPDU() As Byte
     ReDim baPDU(5) As Byte
     
@@ -1218,28 +1218,28 @@ Private Function ModbusCRC16(ByRef Data() As Byte, ByVal StartIndex As Long, ByV
     ModbusCRC16 = wCRC
 End Function
 
-Private Function GetModbusExceptionDescription(ByVal ExceptionCode As ModbusExceptionCode) As String
+Private Function GetModbusExceptionDescription(ByVal ExceptionCode As ModbusMasterExceptionCode) As String
     Select Case ExceptionCode
-        Case MB_EX_ILLEGAL_FUNCTION
-            GetModbusExceptionDescription = "Illegal Function"
-        Case MB_EX_ILLEGAL_DATA_ADDRESS
-            GetModbusExceptionDescription = "Illegal Data Address"
-        Case MB_EX_ILLEGAL_DATA_VALUE
-            GetModbusExceptionDescription = "Illegal Data Value"
-        Case MB_EX_SLAVE_DEVICE_FAILURE
-            GetModbusExceptionDescription = "Slave Device Failure"
-        Case MB_EX_ACKNOWLEDGE
-            GetModbusExceptionDescription = "Acknowledge"
-        Case MB_EX_SLAVE_DEVICE_BUSY
-            GetModbusExceptionDescription = "Slave Device Busy"
-        Case MB_EX_MEMORY_PARITY_ERROR
-            GetModbusExceptionDescription = "Memory Parity Error"
-        Case MB_EX_GATEWAY_PATH_UNAVAILABLE
-            GetModbusExceptionDescription = "Gateway Path Unavailable"
-        Case MB_EX_GATEWAY_TARGET_DEVICE_FAILED
-            GetModbusExceptionDescription = "Gateway Target Device Failed to Respond"
-        Case Else
-            GetModbusExceptionDescription = "Unknown Exception (" & Hex$(ExceptionCode) & ")"
+    Case MB_EX_ILLEGAL_FUNCTION
+        GetModbusExceptionDescription = "Illegal Function"
+    Case MB_EX_ILLEGAL_DATA_ADDRESS
+        GetModbusExceptionDescription = "Illegal Data Address"
+    Case MB_EX_ILLEGAL_DATA_VALUE
+        GetModbusExceptionDescription = "Illegal Data Value"
+    Case MB_EX_SLAVE_DEVICE_FAILURE
+        GetModbusExceptionDescription = "Slave Device Failure"
+    Case MB_EX_ACKNOWLEDGE
+        GetModbusExceptionDescription = "Acknowledge"
+    Case MB_EX_SLAVE_DEVICE_BUSY
+        GetModbusExceptionDescription = "Slave Device Busy"
+    Case MB_EX_MEMORY_PARITY_ERROR
+        GetModbusExceptionDescription = "Memory Parity Error"
+    Case MB_EX_GATEWAY_PATH_UNAVAILABLE
+        GetModbusExceptionDescription = "Gateway Path Unavailable"
+    Case MB_EX_GATEWAY_TARGET_DEVICE_FAILED
+        GetModbusExceptionDescription = "Gateway Target Device Failed to Respond"
+    Case Else
+        GetModbusExceptionDescription = "Unknown Exception (" & Hex$(ExceptionCode) & ")"
     End Select
 End Function
 

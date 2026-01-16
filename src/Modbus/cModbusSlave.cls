@@ -31,7 +31,7 @@ Option Explicit
 '=========================================================================
 
 ' Modbus Function Codes
-Public Enum ModbusFunctionCode
+Public Enum ModbusSlaveFunctionCode
 ' Read Functions
     MB_FC_READ_COILS = &H1                                                      ' Read Coils (01)
     MB_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
@@ -52,7 +52,7 @@ Public Enum ModbusFunctionCode
 End Enum
 
 ' Modbus Exception Codes
-Public Enum ModbusExceptionCode
+Public Enum ModbusSlaveExceptionCode
     MB_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
     MB_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
     MB_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
@@ -76,7 +76,7 @@ End Enum
 ' Modbus Protocol Type
 '=========================================================================
 
-Public Enum ModbusProtocolType
+Public Enum ModbusSlaveProtocolType
     MB_PROTOCOL_RTU = 1                                                         ' RTU over Serial
     MB_PROTOCOL_TCP = 2                                                         ' TCP/IP
 End Enum
@@ -104,10 +104,10 @@ Event OnError(ByVal Description As String)
 Event OnDataReceived(ByVal ClientID As String, Data() As Byte)
 
 ' Read request received (allow custom handling)
-Event OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
+Event OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
 
 ' Write request received
-Event OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusFunctionCode, ByVal Address As Long, ByRef Data As Variant)
+Event OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
 
 '=========================================================================
 ' API Declarations for Serial Port (RTU Mode)
@@ -223,7 +223,7 @@ Private Type COMSTAT
 End Type
 
 ' Modbus Defaults Structure
-Public Type ModbusDefaults
+Public Type ModbusSlaveDefaults
     TCP_PORT As Long
     RTU_DEFAULT_BAUDRATE As Long
     RTU_DEFAULT_DATABITS As Long
@@ -241,10 +241,10 @@ End Type
 '=========================================================================
 
 ' Default constants
-Private m_Defaults As ModbusDefaults
+Private m_Defaults As ModbusSlaveDefaults
 
 ' Protocol type
-Private m_ProtocolType As ModbusProtocolType
+Private m_ProtocolType As ModbusSlaveProtocolType
 
 ' Server state
 Private m_State As ModbusSlaveState
@@ -282,11 +282,11 @@ Private m_RTUProcessing As Boolean
 '=========================================================================
 
 ' Protocol type (RTU or TCP)
-Public Property Get ProtocolType() As ModbusProtocolType
+Public Property Get ProtocolType() As ModbusSlaveProtocolType
     ProtocolType = m_ProtocolType
 End Property
 
-Public Property Let ProtocolType(ByVal Value As ModbusProtocolType)
+Public Property Let ProtocolType(ByVal Value As ModbusSlaveProtocolType)
     If m_State = MB_SLAVE_STATE_RUNNING Then
         RaiseError "Cannot change protocol type while running"
         Exit Property
@@ -309,7 +309,7 @@ Public Property Let SlaveID(ByVal Value As Byte)
 End Property
 
 ' Defaults constants (read-only)
-Public Property Get Defaults() As ModbusDefaults
+Public Property Get Defaults() As ModbusSlaveDefaults
     Defaults = m_Defaults
 End Property
 
@@ -427,19 +427,19 @@ ErrorHandler:
 End Sub
 
 ' Stop server
-Public Sub Stop()
+Public Sub StopMe()
     On Error Resume Next
-    
+
     If m_State = MB_SLAVE_STATE_STOPPED Then
         Exit Sub
     End If
-    
+
     If m_ProtocolType = MB_PROTOCOL_RTU Then
         StopRTU
     ElseIf m_ProtocolType = MB_PROTOCOL_TCP Then
         StopTCP
     End If
-    
+
     m_State = MB_SLAVE_STATE_STOPPED
     RaiseEvent OnStopped
 End Sub
@@ -775,7 +775,7 @@ Private Sub StartTCP(ByVal Port As Long)
     m_ClientCounter = 0
     
     m_State = MB_SLAVE_STATE_RUNNING
-    RaiseEvent OnStarted(Port)
+    RaiseEvent OnStarted
     
     Exit Sub
 ErrorHandler:
@@ -1451,7 +1451,7 @@ End Function
 ' Private Methods - Response Building
 '=========================================================================
 
-Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal ExceptionCode As ModbusExceptionCode) As Byte()
+Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal ExceptionCode As ModbusSlaveExceptionCode) As Byte()
     Dim lMBAPSize As Long
     Dim baResponse() As Byte
     Dim bFC As Byte

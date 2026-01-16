@@ -33,30 +33,6 @@ Begin VB.Form FSlaveDemo
          Top             =   1200
          Width           =   2055
       End
-      Begin VB.Frame fraTCP 
-         Caption         =   "TCP 设置"
-         Height          =   1455
-         Left            =   120
-         TabIndex        =   1
-         Top             =   240
-         Width           =   4815
-         Begin VB.TextBox txtTCPPort 
-            Height          =   285
-            Left            =   3000
-            TabIndex        =   3
-            Text            =   "502"
-            Top             =   360
-            Width           =   855
-         End
-         Begin VB.Label lblTCPPort 
-            Caption         =   "监听端口:"
-            Height          =   255
-            Left            =   2040
-            TabIndex        =   2
-            Top             =   360
-            Width           =   975
-         End
-      End
       Begin VB.Frame fraRTU 
          Caption         =   "RTU 设置"
          Height          =   1455
@@ -66,7 +42,7 @@ Begin VB.Form FSlaveDemo
          Width           =   4815
          Begin VB.TextBox txtStopBits 
             Height          =   285
-            Left            =   3120
+            Left            =   2760
             TabIndex        =   14
             Text            =   "1"
             Top             =   840
@@ -74,7 +50,7 @@ Begin VB.Form FSlaveDemo
          End
          Begin VB.TextBox txtParity 
             Height          =   285
-            Left            =   3120
+            Left            =   2760
             TabIndex        =   13
             Text            =   "N"
             Top             =   480
@@ -98,16 +74,16 @@ Begin VB.Form FSlaveDemo
          End
          Begin VB.TextBox txtSerialPort 
             Height          =   285
-            Left            =   3120
+            Left            =   3840
             TabIndex        =   17
-            Text            =   "COM1"
-            Top             =   -480
+            Text            =   "COM4"
+            Top             =   840
             Width           =   855
          End
          Begin VB.Label lblStopBits 
             Caption         =   "停止位:"
             Height          =   255
-            Left            =   2400
+            Left            =   2040
             TabIndex        =   16
             Top             =   840
             Width           =   735
@@ -115,7 +91,7 @@ Begin VB.Form FSlaveDemo
          Begin VB.Label lblParity 
             Caption         =   "校验位:"
             Height          =   255
-            Left            =   2400
+            Left            =   2040
             TabIndex        =   15
             Top             =   480
             Width           =   735
@@ -139,9 +115,9 @@ Begin VB.Form FSlaveDemo
          Begin VB.Label lblSerialPort 
             Caption         =   "串口:"
             Height          =   255
-            Left            =   2400
+            Left            =   3840
             TabIndex        =   5
-            Top             =   -480
+            Top             =   480
             Width           =   615
          End
       End
@@ -171,6 +147,30 @@ Begin VB.Form FSlaveDemo
          TabIndex        =   20
          Top             =   720
          Width           =   855
+      End
+      Begin VB.Frame fraTCP 
+         Caption         =   "TCP 设置"
+         Height          =   1455
+         Left            =   120
+         TabIndex        =   1
+         Top             =   240
+         Width           =   4815
+         Begin VB.TextBox txtTCPPort 
+            Height          =   285
+            Left            =   3000
+            TabIndex        =   3
+            Text            =   "502"
+            Top             =   360
+            Width           =   855
+         End
+         Begin VB.Label lblTCPPort 
+            Caption         =   "监听端口:"
+            Height          =   255
+            Left            =   2040
+            TabIndex        =   2
+            Top             =   360
+            Width           =   975
+         End
       End
       Begin VB.Label lblSlaveID 
          Caption         =   "从站ID:"

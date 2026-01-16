@@ -227,7 +227,7 @@ Begin VB.Form FMasterDemo
       Width           =   4815
       Begin VB.Frame fraRTU 
          Caption         =   "RTU ÉèÖÃ"
-         Height          =   1575
+         Height          =   1815
          Left            =   120
          TabIndex        =   1
          Top             =   2400
@@ -266,10 +266,10 @@ Begin VB.Form FMasterDemo
          End
          Begin VB.TextBox txtSerialPort 
             Height          =   285
-            Left            =   3120
+            Left            =   3240
             TabIndex        =   5
-            Text            =   "COM1"
-            Top             =   -360
+            Text            =   "COM3"
+            Top             =   1200
             Width           =   855
          End
          Begin VB.Label lblStopBits 
@@ -307,9 +307,9 @@ Begin VB.Form FMasterDemo
          Begin VB.Label lblSerialPort 
             Caption         =   "´®¿Ú:"
             Height          =   255
-            Left            =   2400
+            Left            =   2520
             TabIndex        =   35
-            Top             =   -360
+            Top             =   1200
             Width           =   615
          End
       End

@@ -1,22 +1,22 @@
 VERSION 5.00
-Begin VB.Form FSlave
-   Caption         =   "Modbus ä»ç«™ç¤ºä¾‹ (Slave)"
-   ClientHeight    =   7200
+Begin VB.Form FSlave 
+   Caption         =   "Modbus ´ÓÕ¾Ê¾Àı (Slave)"
+   ClientHeight    =   8805
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   9600
    LinkTopic       =   "Form1"
-   ScaleHeight     =   7200
+   ScaleHeight     =   8805
    ScaleWidth      =   9600
-   StartUpPosition =   2  'å±å¹•ä¸­å¤®
-   Begin VB.Frame fraServer
-      Caption         =   "æœåŠ¡å™¨è®¾ç½®"
+   StartUpPosition =   2  'ÆÁÄ»ÖĞĞÄ
+   Begin VB.Frame fraServer 
+      Caption         =   "·şÎñÆ÷ÉèÖÃ"
       Height          =   1695
       Left            =   120
       TabIndex        =   0
       Top             =   120
       Width           =   4575
-      Begin VB.TextBox txtSlaveID
+      Begin VB.TextBox txtSlaveID 
          Height          =   285
          Left            =   3480
          TabIndex        =   5
@@ -24,7 +24,7 @@ Begin VB.Form FSlave
          Top             =   360
          Width           =   855
       End
-      Begin VB.TextBox txtPort
+      Begin VB.TextBox txtPort 
          Height          =   285
          Left            =   1200
          TabIndex        =   3
@@ -32,8 +32,8 @@ Begin VB.Form FSlave
          Top             =   720
          Width           =   855
       End
-      Begin VB.CommandButton cmdStop
-         Caption         =   "åœæ­¢"
+      Begin VB.CommandButton cmdStop 
+         Caption         =   "Í£Ö¹"
          Enabled         =   0   'False
          Height          =   375
          Left            =   2520
@@ -41,32 +41,32 @@ Begin VB.Form FSlave
          Top             =   1200
          Width           =   1935
       End
-      Begin VB.CommandButton cmdStart
-         Caption         =   "å¯åŠ¨"
+      Begin VB.CommandButton cmdStart 
+         Caption         =   "Æô¶¯"
          Height          =   375
          Left            =   120
          TabIndex        =   1
          Top             =   1200
          Width           =   1935
       End
-      Begin VB.Label lblSlaveID
-         Caption         =   "ä»ç«™ID:"
+      Begin VB.Label lblSlaveID 
+         Caption         =   "´ÓÕ¾ID:"
          Height          =   255
          Left            =   2640
          TabIndex        =   6
          Top             =   360
          Width           =   735
       End
-      Begin VB.Label lblPort
-         Caption         =   "ç›‘å¬ç«¯å£:"
+      Begin VB.Label lblPort 
+         Caption         =   "¼àÌı¶Ë¿Ú:"
          Height          =   255
          Left            =   120
          TabIndex        =   4
          Top             =   720
          Width           =   975
       End
-      Begin VB.Label lblStatus
-         Caption         =   "çŠ¶æ€: å·²åœæ­¢"
+      Begin VB.Label lblStatus 
+         Caption         =   "×´Ì¬: ÒÑÍ£Ö¹"
          ForeColor       =   &H000000FF&
          Height          =   255
          Left            =   120
@@ -75,46 +75,46 @@ Begin VB.Form FSlave
          Width           =   2295
       End
    End
-   Begin VB.Frame fraData
-      Caption         =   "æ•°æ®è®¾ç½®"
+   Begin VB.Frame fraData 
+      Caption         =   "Êı¾İÉèÖÃ"
       Height          =   1695
       Left            =   4800
       TabIndex        =   8
       Top             =   120
       Width           =   4695
-      Begin VB.CommandButton cmdSetInputReg
-         Caption         =   "è®¾ç½®è¾“å…¥å¯„å­˜å™¨"
+      Begin VB.CommandButton cmdSetInputReg 
+         Caption         =   "ÉèÖÃÊäÈë¼Ä´æÆ÷"
          Height          =   375
          Left            =   2400
          TabIndex        =   18
          Top             =   1200
          Width           =   2175
       End
-      Begin VB.CommandButton cmdSetHoldingReg
-         Caption         =   "è®¾ç½®ä¿æŒå¯„å­˜å™¨"
+      Begin VB.CommandButton cmdSetHoldingReg 
+         Caption         =   "ÉèÖÃ±£³Ö¼Ä´æÆ÷"
          Height          =   375
          Left            =   120
          TabIndex        =   17
          Top             =   1200
          Width           =   2175
       End
-      Begin VB.CommandButton cmdSetDiscreteInput
-         Caption         =   "è®¾ç½®ç¦»æ•£è¾“å…¥"
+      Begin VB.CommandButton cmdSetDiscreteInput 
+         Caption         =   "ÉèÖÃÀëÉ¢ÊäÈë"
          Height          =   375
          Left            =   2400
          TabIndex        =   16
          Top             =   720
          Width           =   2175
       End
-      Begin VB.CommandButton cmdSetCoil
-         Caption         =   "è®¾ç½®çº¿åœˆ"
+      Begin VB.CommandButton cmdSetCoil 
+         Caption         =   "ÉèÖÃÏßÈ¦"
          Height          =   375
          Left            =   120
          TabIndex        =   15
          Top             =   720
          Width           =   2175
       End
-      Begin VB.TextBox txtDataValue
+      Begin VB.TextBox txtDataValue 
          Height          =   285
          Left            =   2760
          TabIndex        =   12
@@ -122,7 +122,7 @@ Begin VB.Form FSlave
          Top             =   360
          Width           =   855
       End
-      Begin VB.TextBox txtDataAddress
+      Begin VB.TextBox txtDataAddress 
          Height          =   285
          Left            =   960
          TabIndex        =   10
@@ -130,16 +130,16 @@ Begin VB.Form FSlave
          Top             =   360
          Width           =   855
       End
-      Begin VB.Label lblDataValue
-         Caption         =   "å€¼:"
+      Begin VB.Label lblDataValue 
+         Caption         =   "Öµ:"
          Height          =   255
          Left            =   2400
          TabIndex        =   11
          Top             =   360
          Width           =   375
       End
-      Begin VB.Label lblDataAddress
-         Caption         =   "åœ°å€:"
+      Begin VB.Label lblDataAddress 
+         Caption         =   "µØÖ·:"
          Height          =   255
          Left            =   120
          TabIndex        =   9
@@ -147,23 +147,23 @@ Begin VB.Form FSlave
          Width           =   615
       End
    End
-   Begin VB.Frame fraCurrentData
-      Caption         =   "å½“å‰æ•°æ®çŠ¶æ€"
-      Height          =   1695
+   Begin VB.Frame fraCurrentData 
+      Caption         =   "µ±Ç°Êı¾İ×´Ì¬"
+      Height          =   2295
       Left            =   120
       TabIndex        =   13
       Top             =   1920
       Width           =   9375
-      Begin VB.CommandButton cmdRefresh
-         Caption         =   "åˆ·æ–°"
+      Begin VB.CommandButton cmdRefresh 
+         Caption         =   "Ë¢ĞÂ"
          Height          =   375
          Left            =   8280
          TabIndex        =   19
          Top             =   240
          Width           =   975
       End
-      Begin VB.TextBox txtCurrentData
-         Height          =   1335
+      Begin VB.TextBox txtCurrentData 
+         Height          =   1935
          Left            =   120
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
@@ -172,23 +172,23 @@ Begin VB.Form FSlave
          Width           =   8055
       End
    End
-   Begin VB.Frame fraLog
-      Caption         =   "é€šä¿¡æ—¥å¿—"
-      Height          =   3375
+   Begin VB.Frame fraLog 
+      Caption         =   "Í¨ĞÅÈÕÖ¾"
+      Height          =   4335
       Left            =   120
       TabIndex        =   20
-      Top             =   3720
+      Top             =   4320
       Width           =   9375
-      Begin VB.CommandButton cmdClearLog
-         Caption         =   "æ¸…ç©º"
+      Begin VB.CommandButton cmdClearLog 
+         Caption         =   "Çå¿Õ"
          Height          =   375
          Left            =   8400
          TabIndex        =   22
          Top             =   240
          Width           =   855
       End
-      Begin VB.TextBox txtLog
-         Height          =   2895
+      Begin VB.TextBox txtLog 
+         Height          =   3855
          Left            =   120
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
@@ -205,50 +205,50 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' FSlave - Modbus ä»ç«™ç¤ºä¾‹ç¨‹åº
+' FSlave - Modbus ´ÓÕ¾Ê¾Àı³ÌĞò
 '
-' åŠŸèƒ½: æ¼”ç¤º cModbusSlave ç±»çš„åŸºæœ¬ç”¨æ³•
-'       - TCP æ¨¡å¼ç›‘å¬ä¸»ç«™è¿æ¥
-'       - æä¾›çº¿åœˆã€ç¦»æ•£è¾“å…¥ã€ä¿æŒå¯„å­˜å™¨ã€è¾“å…¥å¯„å­˜å™¨æ•°æ®
-'       - å“åº”ä¸»ç«™çš„è¯»å†™è¯·æ±‚
+' ¹¦ÄÜ: ÑİÊ¾ cModbusSlave ÀàµÄ»ù±¾ÓÃ·¨
+'       - TCP Ä£Ê½¼àÌıÖ÷Õ¾Á¬½Ó
+'       - Ìá¹©ÏßÈ¦¡¢ÀëÉ¢ÊäÈë¡¢±£³Ö¼Ä´æÆ÷¡¢ÊäÈë¼Ä´æÆ÷Êı¾İ
+'       - ÏìÓ¦Ö÷Õ¾µÄ¶ÁĞ´ÇëÇó
 '
-' ä½¿ç”¨æ–¹æ³•:
-'   1. è®¾ç½®ç›‘å¬ç«¯å£å’Œä»ç«™ID
-'   2. ç‚¹å‡»"å¯åŠ¨"æŒ‰é’®å¯åŠ¨æœåŠ¡å™¨
-'   3. ç­‰å¾…ä¸»ç«™è¿æ¥å¹¶å¤„ç†è¯·æ±‚
+' Ê¹ÓÃ·½·¨:
+'   1. ÉèÖÃ¼àÌı¶Ë¿ÚºÍ´ÓÕ¾ID
+'   2. µã»÷"Æô¶¯"°´Å¥Æô¶¯·şÎñÆ÷
+'   3. µÈ´ıÖ÷Õ¾Á¬½Ó²¢´¦ÀíÇëÇó
 '
-' ä½œè€…: Auto
-' æ—¥æœŸ: 2026-01-16
+' ×÷Õß: Auto
+' ÈÕÆÚ: 2026-01-16
 '
 '=========================================================================
 Option Explicit
 
-' Modbus ä»ç«™å¯¹è±¡
+' Modbus ´ÓÕ¾¶ÔÏó
 Private WithEvents m_Slave As VBMANLIB.cModbusSlave
 Attribute m_Slave.VB_VarHelpID = -1
 
 '=========================================================================
-' çª—ä½“äº‹ä»¶
+' ´°ÌåÊÂ¼ş
 '=========================================================================
 
 Private Sub Form_Load()
-    ' åˆ›å»º Modbus ä»ç«™å¯¹è±¡
+    ' ´´½¨ Modbus ´ÓÕ¾¶ÔÏó
     Set m_Slave = New VBMANLIB.cModbusSlave
 
-    ' è®¾ç½®ä¸º TCP æ¨¡å¼
+    ' ÉèÖÃÎª TCP Ä£Ê½
     m_Slave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
 
-    ' åˆå§‹åŒ–æµ‹è¯•æ•°æ®
+    ' ³õÊ¼»¯²âÊÔÊı¾İ
     InitializeTestData
 
-    LogMessage "Modbus ä»ç«™ç¤ºä¾‹ç¨‹åºå·²å¯åŠ¨"
-    LogMessage "ç‚¹å‡»å¯åŠ¨æŒ‰é’®å¼€å§‹ç›‘å¬ä¸»ç«™è¿æ¥"
+    LogMessage "Modbus ´ÓÕ¾Ê¾Àı³ÌĞòÒÑÆô¶¯"
+    LogMessage "µã»÷Æô¶¯°´Å¥¿ªÊ¼¼àÌıÖ÷Õ¾Á¬½Ó"
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
 
-    ' åœæ­¢æœåŠ¡å™¨
+    ' Í£Ö¹·şÎñÆ÷
     If Not m_Slave Is Nothing Then
         If m_Slave.State = MB_SLAVE_STATE_RUNNING Then
             m_Slave.StopMe
@@ -258,7 +258,7 @@ Private Sub Form_Unload(Cancel As Integer)
 End Sub
 
 '=========================================================================
-' æœåŠ¡å™¨æ§åˆ¶
+' ·şÎñÆ÷¿ØÖÆ
 '=========================================================================
 
 Private Sub cmdStart_Click()
@@ -266,31 +266,31 @@ Private Sub cmdStart_Click()
 
     Dim lPort As Long
 
-    ' è®¾ç½®ä»ç«™ID
+    ' ÉèÖÃ´ÓÕ¾ID
     m_Slave.SlaveID = CByte(Val(txtSlaveID.Text))
 
-    ' è·å–ç«¯å£
+    ' »ñÈ¡¶Ë¿Ú
     lPort = CLng(Val(txtPort.Text))
 
-    LogMessage "æ­£åœ¨å¯åŠ¨ TCP æœåŠ¡å™¨, ç«¯å£: " & lPort
+    LogMessage "ÕıÔÚÆô¶¯ TCP ·şÎñÆ÷, ¶Ë¿Ú: " & lPort
 
-    ' å¯åŠ¨æœåŠ¡å™¨
+    ' Æô¶¯·şÎñÆ÷
     m_Slave.Start CStr(lPort)
 
     Exit Sub
 ErrorHandler:
-    LogMessage "å¯åŠ¨å¤±è´¥: " & Err.Description
-    MsgBox "å¯åŠ¨å¤±è´¥: " & Err.Description, vbCritical
+    LogMessage "Æô¶¯Ê§°Ü: " & Err.Description
+    MsgBox "Æô¶¯Ê§°Ü: " & Err.Description, vbCritical
 End Sub
 
 Private Sub cmdStop_Click()
     On Error Resume Next
     m_Slave.StopMe
-    LogMessage "æœåŠ¡å™¨å·²åœæ­¢"
+    LogMessage "·şÎñÆ÷ÒÑÍ£Ö¹"
 End Sub
 
 '=========================================================================
-' æ•°æ®è®¾ç½®
+' Êı¾İÉèÖÃ
 '=========================================================================
 
 Private Sub cmdSetCoil_Click()
@@ -303,12 +303,12 @@ Private Sub cmdSetCoil_Click()
     bValue = (Val(txtDataValue.Text) <> 0)
 
     m_Slave.SetCoil lAddress, bValue
-    LogMessage "è®¾ç½®çº¿åœˆ: åœ°å€=" & lAddress & ", å€¼=" & IIf(bValue, "ON", "OFF")
+    LogMessage "ÉèÖÃÏßÈ¦: µØÖ·=" & lAddress & ", Öµ=" & IIf(bValue, "ON", "OFF")
     RefreshDataDisplay
 
     Exit Sub
 ErrorHandler:
-    LogMessage "è®¾ç½®çº¿åœˆå¤±è´¥: " & Err.Description
+    LogMessage "ÉèÖÃÏßÈ¦Ê§°Ü: " & Err.Description
 End Sub
 
 Private Sub cmdSetDiscreteInput_Click()
@@ -321,12 +321,12 @@ Private Sub cmdSetDiscreteInput_Click()
     bValue = (Val(txtDataValue.Text) <> 0)
 
     m_Slave.SetDiscreteInput lAddress, bValue
-    LogMessage "è®¾ç½®ç¦»æ•£è¾“å…¥: åœ°å€=" & lAddress & ", å€¼=" & IIf(bValue, "ON", "OFF")
+    LogMessage "ÉèÖÃÀëÉ¢ÊäÈë: µØÖ·=" & lAddress & ", Öµ=" & IIf(bValue, "ON", "OFF")
     RefreshDataDisplay
 
     Exit Sub
 ErrorHandler:
-    LogMessage "è®¾ç½®ç¦»æ•£è¾“å…¥å¤±è´¥: " & Err.Description
+    LogMessage "ÉèÖÃÀëÉ¢ÊäÈëÊ§°Ü: " & Err.Description
 End Sub
 
 Private Sub cmdSetHoldingReg_Click()
@@ -339,12 +339,12 @@ Private Sub cmdSetHoldingReg_Click()
     iValue = CInt(Val(txtDataValue.Text))
 
     m_Slave.SetHoldingRegister lAddress, iValue
-    LogMessage "è®¾ç½®ä¿æŒå¯„å­˜å™¨: åœ°å€=" & lAddress & ", å€¼=" & iValue
+    LogMessage "ÉèÖÃ±£³Ö¼Ä´æÆ÷: µØÖ·=" & lAddress & ", Öµ=" & iValue
     RefreshDataDisplay
 
     Exit Sub
 ErrorHandler:
-    LogMessage "è®¾ç½®ä¿æŒå¯„å­˜å™¨å¤±è´¥: " & Err.Description
+    LogMessage "ÉèÖÃ±£³Ö¼Ä´æÆ÷Ê§°Ü: " & Err.Description
 End Sub
 
 Private Sub cmdSetInputReg_Click()
@@ -357,49 +357,49 @@ Private Sub cmdSetInputReg_Click()
     iValue = CInt(Val(txtDataValue.Text))
 
     m_Slave.SetInputRegister lAddress, iValue
-    LogMessage "è®¾ç½®è¾“å…¥å¯„å­˜å™¨: åœ°å€=" & lAddress & ", å€¼=" & iValue
+    LogMessage "ÉèÖÃÊäÈë¼Ä´æÆ÷: µØÖ·=" & lAddress & ", Öµ=" & iValue
     RefreshDataDisplay
 
     Exit Sub
 ErrorHandler:
-    LogMessage "è®¾ç½®è¾“å…¥å¯„å­˜å™¨å¤±è´¥: " & Err.Description
+    LogMessage "ÉèÖÃÊäÈë¼Ä´æÆ÷Ê§°Ü: " & Err.Description
 End Sub
 
 '=========================================================================
-' äº‹ä»¶å¤„ç†
+' ÊÂ¼ş´¦Àí
 '=========================================================================
 
 Private Sub m_Slave_OnStarted()
-    LogMessage "æœåŠ¡å™¨å·²å¯åŠ¨"
-    lblStatus.Caption = "çŠ¶æ€: è¿è¡Œä¸­"
+    LogMessage "·şÎñÆ÷ÒÑÆô¶¯"
+    lblStatus.Caption = "×´Ì¬: ÔËĞĞÖĞ"
     lblStatus.ForeColor = &HC000&
     cmdStart.Enabled = False
     cmdStop.Enabled = True
-    LogMessage "ç­‰å¾…ä¸»ç«™è¿æ¥..."
+    LogMessage "µÈ´ıÖ÷Õ¾Á¬½Ó..."
 End Sub
 
 Private Sub m_Slave_OnStopped()
-    LogMessage "æœåŠ¡å™¨å·²åœæ­¢"
-    lblStatus.Caption = "çŠ¶æ€: å·²åœæ­¢"
+    LogMessage "·şÎñÆ÷ÒÑÍ£Ö¹"
+    lblStatus.Caption = "×´Ì¬: ÒÑÍ£Ö¹"
     lblStatus.ForeColor = &HFF&
     cmdStart.Enabled = True
     cmdStop.Enabled = False
 End Sub
 
 Private Sub m_Slave_OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String)
-    LogMessage "å®¢æˆ·ç«¯å·²è¿æ¥: " & ClientID & " (" & RemoteAddress & ")"
+    LogMessage "¿Í»§¶ËÒÑÁ¬½Ó: " & ClientID & " (" & RemoteAddress & ")"
 End Sub
 
 Private Sub m_Slave_OnClientDisconnect(ByVal ClientID As String, ByVal Reason As String)
-    LogMessage "å®¢æˆ·ç«¯å·²æ–­å¼€: " & ClientID & " (" & Reason & ")"
+    LogMessage "¿Í»§¶ËÒÑ¶Ï¿ª: " & ClientID & " (" & Reason & ")"
 End Sub
 
 Private Sub m_Slave_OnError(ByVal Description As String)
-    LogMessage "é”™è¯¯: " & Description
+    LogMessage "´íÎó: " & Description
 End Sub
 
 Private Sub m_Slave_OnDataReceived(ByVal ClientID As String, Data() As Byte)
-    ' å¯é€‰: æ˜¾ç¤ºåŸå§‹æ•°æ®
+    ' ¿ÉÑ¡: ÏÔÊ¾Ô­Ê¼Êı¾İ
     ' Dim sHex As String
     ' Dim i As Long
     ' sHex = "RX [" & ClientID & "]: "
@@ -414,18 +414,18 @@ Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode A
 
     Select Case FunctionCode
         Case MB_SLAVE_FC_READ_COILS
-            sFCName = "è¯»çº¿åœˆ"
+            sFCName = "¶ÁÏßÈ¦"
         Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
-            sFCName = "è¯»ç¦»æ•£è¾“å…¥"
+            sFCName = "¶ÁÀëÉ¢ÊäÈë"
         Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
-            sFCName = "è¯»ä¿æŒå¯„å­˜å™¨"
+            sFCName = "¶Á±£³Ö¼Ä´æÆ÷"
         Case MB_SLAVE_FC_READ_INPUT_REGISTERS
-            sFCName = "è¯»è¾“å…¥å¯„å­˜å™¨"
+            sFCName = "¶ÁÊäÈë¼Ä´æÆ÷"
         Case Else
-            sFCName = "æœªçŸ¥(FC=" & Hex$(FunctionCode) & ")"
+            sFCName = "Î´Öª(FC=" & Hex$(FunctionCode) & ")"
     End Select
 
-    LogMessage "è¯»è¯·æ±‚ [" & ClientID & "]: " & sFCName & ", åœ°å€=" & Address & ", æ•°é‡=" & Quantity
+    LogMessage "¶ÁÇëÇó [" & ClientID & "]: " & sFCName & ", µØÖ·=" & Address & ", ÊıÁ¿=" & Quantity
 End Sub
 
 Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
@@ -433,53 +433,53 @@ Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode 
 
     Select Case FunctionCode
         Case MB_SLAVE_FC_WRITE_SINGLE_COIL
-            sFCName = "å†™å•çº¿åœˆ"
+            sFCName = "Ğ´µ¥ÏßÈ¦"
         Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-            sFCName = "å†™å•å¯„å­˜å™¨"
+            sFCName = "Ğ´µ¥¼Ä´æÆ÷"
         Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
-            sFCName = "å†™å¤šçº¿åœˆ"
+            sFCName = "Ğ´¶àÏßÈ¦"
         Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-            sFCName = "å†™å¤šå¯„å­˜å™¨"
+            sFCName = "Ğ´¶à¼Ä´æÆ÷"
         Case Else
-            sFCName = "æœªçŸ¥(FC=" & Hex$(FunctionCode) & ")"
+            sFCName = "Î´Öª(FC=" & Hex$(FunctionCode) & ")"
     End Select
 
-    LogMessage "å†™è¯·æ±‚ [" & ClientID & "]: " & sFCName & ", åœ°å€=" & Address
+    LogMessage "Ğ´ÇëÇó [" & ClientID & "]: " & sFCName & ", µØÖ·=" & Address
     RefreshDataDisplay
 End Sub
 
 '=========================================================================
-' è¾…åŠ©å‡½æ•°
+' ¸¨Öúº¯Êı
 '=========================================================================
 
 Private Sub InitializeTestData()
     Dim i As Long
 
-    ' åˆå§‹åŒ–çº¿åœˆ (0-15): äº¤æ›¿æ¨¡å¼
+    ' ³õÊ¼»¯ÏßÈ¦ (0-15): ½»ÌæÄ£Ê½
     For i = 0 To 15
         m_Slave.SetCoil i, ((i Mod 2) = 0)
     Next i
 
-    ' åˆå§‹åŒ–ç¦»æ•£è¾“å…¥ (0-15): æ¯3ä¸ªä¸º1
+    ' ³õÊ¼»¯ÀëÉ¢ÊäÈë (0-15): Ã¿3¸öÎª1
     For i = 0 To 15
         m_Slave.SetDiscreteInput i, ((i Mod 3) = 0)
     Next i
 
-    ' åˆå§‹åŒ–ä¿æŒå¯„å­˜å™¨ (0-99): å€¼ä¸º åœ°å€*10
+    ' ³õÊ¼»¯±£³Ö¼Ä´æÆ÷ (0-99): ÖµÎª µØÖ·*10
     For i = 0 To 99
         m_Slave.SetHoldingRegister i, i * 10
     Next i
 
-    ' åˆå§‹åŒ–è¾“å…¥å¯„å­˜å™¨ (0-99): å€¼ä¸º 1000+åœ°å€
+    ' ³õÊ¼»¯ÊäÈë¼Ä´æÆ÷ (0-99): ÖµÎª 1000+µØÖ·
     For i = 0 To 99
         m_Slave.SetInputRegister i, 1000 + i
     Next i
 
-    LogMessage "æµ‹è¯•æ•°æ®å·²åˆå§‹åŒ–:"
-    LogMessage "  çº¿åœˆ [0-15]: äº¤æ›¿æ¨¡å¼ (1,0,1,0...)"
-    LogMessage "  ç¦»æ•£è¾“å…¥ [0-15]: æ¯3ä¸ªä¸º1"
-    LogMessage "  ä¿æŒå¯„å­˜å™¨ [0-99]: å€¼=åœ°å€*10"
-    LogMessage "  è¾“å…¥å¯„å­˜å™¨ [0-99]: å€¼=1000+åœ°å€"
+    LogMessage "²âÊÔÊı¾İÒÑ³õÊ¼»¯:"
+    LogMessage "  ÏßÈ¦ [0-15]: ½»ÌæÄ£Ê½ (1,0,1,0...)"
+    LogMessage "  ÀëÉ¢ÊäÈë [0-15]: Ã¿3¸öÎª1"
+    LogMessage "  ±£³Ö¼Ä´æÆ÷ [0-99]: Öµ=µØÖ·*10"
+    LogMessage "  ÊäÈë¼Ä´æÆ÷ [0-99]: Öµ=1000+µØÖ·"
 
     RefreshDataDisplay
 End Sub
@@ -494,34 +494,34 @@ Private Sub RefreshDataDisplay()
     Dim sDisplay As String
     Dim i As Long
 
-    sDisplay = "=== å½“å‰æ•°æ®çŠ¶æ€ ===" & vbCrLf & vbCrLf
+    sDisplay = "=== µ±Ç°Êı¾İ×´Ì¬ ===" & vbCrLf & vbCrLf
 
-    ' æ˜¾ç¤ºçº¿åœˆ
-    sDisplay = sDisplay & "çº¿åœˆ [0-15]: "
+    ' ÏÔÊ¾ÏßÈ¦
+    sDisplay = sDisplay & "ÏßÈ¦ [0-15]: "
     For i = 0 To 15
         sDisplay = sDisplay & IIf(m_Slave.GetCoil(i), "1", "0")
         If (i + 1) Mod 8 = 0 Then sDisplay = sDisplay & " "
     Next i
     sDisplay = sDisplay & vbCrLf
 
-    ' æ˜¾ç¤ºç¦»æ•£è¾“å…¥
-    sDisplay = sDisplay & "ç¦»æ•£è¾“å…¥ [0-15]: "
+    ' ÏÔÊ¾ÀëÉ¢ÊäÈë
+    sDisplay = sDisplay & "ÀëÉ¢ÊäÈë [0-15]: "
     For i = 0 To 15
         sDisplay = sDisplay & IIf(m_Slave.GetDiscreteInput(i), "1", "0")
         If (i + 1) Mod 8 = 0 Then sDisplay = sDisplay & " "
     Next i
     sDisplay = sDisplay & vbCrLf & vbCrLf
 
-    ' æ˜¾ç¤ºä¿æŒå¯„å­˜å™¨
-    sDisplay = sDisplay & "ä¿æŒå¯„å­˜å™¨ [0-9]: "
+    ' ÏÔÊ¾±£³Ö¼Ä´æÆ÷
+    sDisplay = sDisplay & "±£³Ö¼Ä´æÆ÷ [0-9]: "
     For i = 0 To 9
         sDisplay = sDisplay & m_Slave.GetHoldingRegister(i)
         If i < 9 Then sDisplay = sDisplay & ", "
     Next i
     sDisplay = sDisplay & vbCrLf
 
-    ' æ˜¾ç¤ºè¾“å…¥å¯„å­˜å™¨
-    sDisplay = sDisplay & "è¾“å…¥å¯„å­˜å™¨ [0-9]: "
+    ' ÏÔÊ¾ÊäÈë¼Ä´æÆ÷
+    sDisplay = sDisplay & "ÊäÈë¼Ä´æÆ÷ [0-9]: "
     For i = 0 To 9
         sDisplay = sDisplay & m_Slave.GetInputRegister(i)
         If i < 9 Then sDisplay = sDisplay & ", "

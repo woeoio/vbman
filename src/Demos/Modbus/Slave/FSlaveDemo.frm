@@ -424,12 +424,12 @@ Private Sub UpdateProtocolUI()
         ' TCP 模式
         fraTCP.Visible = True
         fraRTU.Visible = False
-        m_Slave.ProtocolType = MB_PROTOCOL_TCP
+        m_Slave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
     Else
         ' RTU 模式
         fraTCP.Visible = False
         fraRTU.Visible = True
-        m_Slave.ProtocolType = MB_PROTOCOL_RTU
+        m_Slave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
     End If
 End Sub
 
@@ -606,13 +606,13 @@ Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode A
     Dim sFCName As String
     
     Select Case FunctionCode
-        Case MB_FC_READ_COILS
+        Case MB_SLAVE_FC_READ_COILS
             sFCName = "读线圈"
-        Case MB_FC_READ_DISCRETE_INPUTS
+        Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
             sFCName = "读离散输入"
-        Case MB_FC_READ_HOLDING_REGISTERS
+        Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
             sFCName = "读保持寄存器"
-        Case MB_FC_READ_INPUT_REGISTERS
+        Case MB_SLAVE_FC_READ_INPUT_REGISTERS
             sFCName = "读输入寄存器"
         Case Else
             sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"
@@ -625,13 +625,13 @@ Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode 
     Dim sFCName As String
     
     Select Case FunctionCode
-        Case MB_FC_WRITE_SINGLE_COIL
+        Case MB_SLAVE_FC_WRITE_SINGLE_COIL
             sFCName = "写单个线圈"
-        Case MB_FC_WRITE_SINGLE_REGISTER
+        Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
             sFCName = "写单个寄存器"
-        Case MB_FC_WRITE_MULTIPLE_COILS
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
             sFCName = "写多个线圈"
-        Case MB_FC_WRITE_MULTIPLE_REGISTERS
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
             sFCName = "写多个寄存器"
         Case Else
             sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"

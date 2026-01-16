@@ -34,7 +34,7 @@ Attribute VB_Exposed = True
 '   slave.Start 502, "192.168.1.100"
 '
 '   ' RTU Mode
-'   slave.ProtocolType = MB_PROTOCOL_RTU
+'   slave.ProtocolType = MB_SLAVE_PROTOCOL_RTU
 '   slave.Start "COM1"
 '
 ' Author: Auto
@@ -50,35 +50,35 @@ Option Explicit
 ' Modbus Function Codes
 Public Enum ModbusSlaveFunctionCode
 ' Read Functions
-    MB_FC_READ_COILS = &H1                                                      ' Read Coils (01)
-    MB_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
-    MB_FC_READ_HOLDING_REGISTERS = &H3                                          ' Read Holding Registers (03)
-    MB_FC_READ_INPUT_REGISTERS = &H4                                            ' Read Input Registers (04)
+    MB_SLAVE_FC_READ_COILS = &H1                                                      ' Read Coils (01)
+    MB_SLAVE_FC_READ_DISCRETE_INPUTS = &H2                                            ' Read Discrete Inputs (02)
+    MB_SLAVE_FC_READ_HOLDING_REGISTERS = &H3                                          ' Read Holding Registers (03)
+    MB_SLAVE_FC_READ_INPUT_REGISTERS = &H4                                            ' Read Input Registers (04)
     
     ' Write Functions
-    MB_FC_WRITE_SINGLE_COIL = &H5                                               ' Write Single Coil (05)
-    MB_FC_WRITE_SINGLE_REGISTER = &H6                                           ' Write Single Register (06)
-    MB_FC_WRITE_MULTIPLE_COILS = &HF                                            ' Write Multiple Coils (15)
-    MB_FC_WRITE_MULTIPLE_REGISTERS = &H10                                       ' Write Multiple Registers (16)
+    MB_SLAVE_FC_WRITE_SINGLE_COIL = &H5                                               ' Write Single Coil (05)
+    MB_SLAVE_FC_WRITE_SINGLE_REGISTER = &H6                                           ' Write Single Register (06)
+    MB_SLAVE_FC_WRITE_MULTIPLE_COILS = &HF                                            ' Write Multiple Coils (15)
+    MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS = &H10                                       ' Write Multiple Registers (16)
     
     ' Mask Write Register (22)
-    MB_FC_MASK_WRITE_REGISTER = &H16
+    MB_SLAVE_FC_MASK_WRITE_REGISTER = &H16
     
     ' Read/Write Multiple Registers (23)
-    MB_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17
+    MB_SLAVE_FC_READ_WRITE_MULTIPLE_REGISTERS = &H17
 End Enum
 
 ' Modbus Exception Codes
 Public Enum ModbusSlaveExceptionCode
-    MB_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
-    MB_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
-    MB_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
-    MB_EX_SLAVE_DEVICE_FAILURE = &H4                                            ' Slave Device Failure
-    MB_EX_ACKNOWLEDGE = &H5                                                     ' Acknowledge
-    MB_EX_SLAVE_DEVICE_BUSY = &H6                                               ' Slave Device Busy
-    MB_EX_MEMORY_PARITY_ERROR = &H8                                             ' Memory Parity Error
-    MB_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                        ' Gateway Path Unavailable
-    MB_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                    ' Gateway Target Device Failed to Respond
+    MB_SLAVE_EX_ILLEGAL_FUNCTION = &H1                                                ' Illegal Function
+    MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS = &H2                                            ' Illegal Data Address
+    MB_SLAVE_EX_ILLEGAL_DATA_VALUE = &H3                                              ' Illegal Data Value
+    MB_SLAVE_EX_SLAVE_DEVICE_FAILURE = &H4                                            ' Slave Device Failure
+    MB_SLAVE_EX_ACKNOWLEDGE = &H5                                                     ' Acknowledge
+    MB_SLAVE_EX_SLAVE_DEVICE_BUSY = &H6                                               ' Slave Device Busy
+    MB_SLAVE_EX_MEMORY_PARITY_ERROR = &H8                                             ' Memory Parity Error
+    MB_SLAVE_EX_GATEWAY_PATH_UNAVAILABLE = &HA                                        ' Gateway Path Unavailable
+    MB_SLAVE_EX_GATEWAY_TARGET_DEVICE_FAILED = &HB                                    ' Gateway Target Device Failed to Respond
 End Enum
 
 ' Modbus Connection State
@@ -94,8 +94,8 @@ End Enum
 '=========================================================================
 
 Public Enum ModbusSlaveProtocolType
-    MB_PROTOCOL_RTU = 1                                                         ' RTU over Serial
-    MB_PROTOCOL_TCP = 2                                                         ' TCP/IP
+    MB_SLAVE_PROTOCOL_RTU = 1                                                         ' RTU over Serial
+    MB_SLAVE_PROTOCOL_TCP = 2                                                         ' TCP/IP
 End Enum
 
 '=========================================================================
@@ -397,7 +397,7 @@ End Property
 ' TCP Mode Properties
 Public Property Get Port() As Long
     On Error Resume Next
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         Port = m_Defaults.TCP_PORT
     End If
 End Property
@@ -443,10 +443,10 @@ Public Sub Start(Optional ByVal PortOrSerial As String = "", Optional ByVal Bind
     
     m_State = MB_SLAVE_STATE_STARTING
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         If LenB(PortOrSerial) > 0 Then m_SerialPort = PortOrSerial
         StartRTU
-    ElseIf m_ProtocolType = MB_PROTOCOL_TCP Then
+    ElseIf m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         Dim lPort As Long
         If LenB(PortOrSerial) > 0 Then
             lPort = CLng(PortOrSerial)
@@ -472,9 +472,9 @@ Public Sub StopMe()
         Exit Sub
     End If
 
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         StopRTU
-    ElseIf m_ProtocolType = MB_PROTOCOL_TCP Then
+    ElseIf m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         StopTCP
     End If
 
@@ -881,7 +881,7 @@ Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         bSlaveID = Request(lMBAPSize)
         bFC = Request(lMBAPSize + 1)
@@ -902,24 +902,24 @@ Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
     
     ' Process by function code
     Select Case bFC
-        Case MB_FC_READ_COILS
+        Case MB_SLAVE_FC_READ_COILS
             baResponse = ProcessReadCoils(Request)
-        Case MB_FC_READ_DISCRETE_INPUTS
+        Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
             baResponse = ProcessReadDiscreteInputs(Request)
-        Case MB_FC_READ_HOLDING_REGISTERS
+        Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
             baResponse = ProcessReadHoldingRegisters(Request)
-        Case MB_FC_READ_INPUT_REGISTERS
+        Case MB_SLAVE_FC_READ_INPUT_REGISTERS
             baResponse = ProcessReadInputRegisters(Request)
-        Case MB_FC_WRITE_SINGLE_COIL
+        Case MB_SLAVE_FC_WRITE_SINGLE_COIL
             baResponse = ProcessWriteSingleCoil(Request)
-        Case MB_FC_WRITE_SINGLE_REGISTER
+        Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
             baResponse = ProcessWriteSingleRegister(Request)
-        Case MB_FC_WRITE_MULTIPLE_COILS
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
             baResponse = ProcessWriteMultipleCoils(Request)
-        Case MB_FC_WRITE_MULTIPLE_REGISTERS
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
             baResponse = ProcessWriteMultipleRegisters(Request)
         Case Else
-            baResponse = BuildExceptionResponse(Request, MB_EX_ILLEGAL_FUNCTION)
+            baResponse = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_FUNCTION)
     End Select
     
     ProcessRequest = baResponse
@@ -941,7 +941,7 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -954,14 +954,14 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
     
     ' Check address range
     If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadCoils = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
     ' Build response
     lByteCount = (lQuantity + 7) \ 8
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
         ' Copy MBAP header
         CopyMemory baResponse(0), Request(0), lMBAPSize
@@ -969,12 +969,12 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
         baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
         baResponse(5) = (lByteCount + 2) And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)  ' Slave ID
-        baResponse(lMBAPSize + 1) = MB_FC_READ_COILS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_COILS
         baResponse(lMBAPSize + 2) = lByteCount
     Else
         ReDim baResponse(1 + lByteCount + 1) As Byte  ' +1 for CRC
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_READ_COILS
+        baResponse(1) = MB_SLAVE_FC_READ_COILS
         baResponse(2) = lByteCount
     End If
     
@@ -984,7 +984,7 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
             bByte = bByte Or (2 ^ (i Mod 8))
         End If
         If (i Mod 8 = 7) Or (i = lQuantity - 1) Then
-            If m_ProtocolType = MB_PROTOCOL_TCP Then
+            If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
                 baResponse(lMBAPSize + 3 + i \ 8) = bByte
             Else
                 baResponse(3 + i \ 8) = bByte
@@ -994,7 +994,7 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
     Next i
     
     ' Add CRC for RTU
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1004,7 +1004,7 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
     ProcessReadCoils = baResponse
     Exit Function
 ErrorHandler:
-    ProcessReadCoils = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessReadCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
@@ -1019,7 +1019,7 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1031,24 +1031,24 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
     If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
     lByteCount = (lQuantity + 7) \ 8
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
         baResponse(5) = (lByteCount + 2) And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_READ_DISCRETE_INPUTS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_DISCRETE_INPUTS
         baResponse(lMBAPSize + 2) = lByteCount
     Else
         ReDim baResponse(1 + lByteCount + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_READ_DISCRETE_INPUTS
+        baResponse(1) = MB_SLAVE_FC_READ_DISCRETE_INPUTS
         baResponse(2) = lByteCount
     End If
     
@@ -1057,7 +1057,7 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
             bByte = bByte Or (2 ^ (i Mod 8))
         End If
         If (i Mod 8 = 7) Or (i = lQuantity - 1) Then
-            If m_ProtocolType = MB_PROTOCOL_TCP Then
+            If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
                 baResponse(lMBAPSize + 3 + i \ 8) = bByte
             Else
                 baResponse(3 + i \ 8) = bByte
@@ -1066,7 +1066,7 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
         End If
     Next i
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1076,7 +1076,7 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
     ProcessReadDiscreteInputs = baResponse
     Exit Function
 ErrorHandler:
-    ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
@@ -1090,7 +1090,7 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1102,24 +1102,24 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
     If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
     lByteCount = lQuantity * 2
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
         baResponse(5) = (lByteCount + 2) And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_READ_HOLDING_REGISTERS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_HOLDING_REGISTERS
         baResponse(lMBAPSize + 2) = lByteCount
     Else
         ReDim baResponse(1 + lByteCount + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_READ_HOLDING_REGISTERS
+        baResponse(1) = MB_SLAVE_FC_READ_HOLDING_REGISTERS
         baResponse(2) = lByteCount
     End If
     
@@ -1131,7 +1131,7 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
             iValue = 0
         End If
         
-        If m_ProtocolType = MB_PROTOCOL_TCP Then
+        If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
             baResponse(lMBAPSize + 3 + i * 2) = (iValue \ 256) And &HFF
             baResponse(lMBAPSize + 3 + i * 2 + 1) = iValue And &HFF
         Else
@@ -1140,7 +1140,7 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
         End If
     Next i
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1150,7 +1150,7 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
     ProcessReadHoldingRegisters = baResponse
     Exit Function
 ErrorHandler:
-    ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
@@ -1164,7 +1164,7 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1176,24 +1176,24 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
     If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
     lByteCount = lQuantity * 2
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 2 + lByteCount) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = ((lByteCount + 2) \ 256) And &HFF
         baResponse(5) = (lByteCount + 2) And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_READ_INPUT_REGISTERS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_READ_INPUT_REGISTERS
         baResponse(lMBAPSize + 2) = lByteCount
     Else
         ReDim baResponse(1 + lByteCount + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_READ_INPUT_REGISTERS
+        baResponse(1) = MB_SLAVE_FC_READ_INPUT_REGISTERS
         baResponse(2) = lByteCount
     End If
     
@@ -1205,7 +1205,7 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
             iValue = 0
         End If
         
-        If m_ProtocolType = MB_PROTOCOL_TCP Then
+        If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
             baResponse(lMBAPSize + 3 + i * 2) = (iValue \ 256) And &HFF
             baResponse(lMBAPSize + 3 + i * 2 + 1) = iValue And &HFF
         Else
@@ -1214,7 +1214,7 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
         End If
     Next i
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1224,7 +1224,7 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
     ProcessReadInputRegisters = baResponse
     Exit Function
 ErrorHandler:
-    ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
@@ -1237,7 +1237,7 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1250,7 +1250,7 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
     bOnOff = (bValue = &HFF And Request(lPDUOffset + 3) = 0)
     
     If lAddress >= m_Defaults.MAX_COILS Then
-        ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
@@ -1258,13 +1258,13 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
     m_Coils(lAddress) = bOnOff
     
     ' Echo request back
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 5) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = (6 \ 256) And &HFF
         baResponse(5) = 6 And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_WRITE_SINGLE_COIL
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_SINGLE_COIL
         baResponse(lMBAPSize + 2) = Request(lPDUOffset)
         baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
         baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
@@ -1272,14 +1272,14 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
     Else
         ReDim baResponse(1 + 4 + 1) As Byte  ' +1 for CRC
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_WRITE_SINGLE_COIL
+        baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_COIL
         baResponse(2) = Request(lPDUOffset)
         baResponse(3) = Request(lPDUOffset + 1)
         baResponse(4) = Request(lPDUOffset + 2)
         baResponse(5) = Request(lPDUOffset + 3)
     End If
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1289,7 +1289,7 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
     ProcessWriteSingleCoil = baResponse
     Exit Function
 ErrorHandler:
-    ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
@@ -1301,7 +1301,7 @@ Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1313,20 +1313,20 @@ Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
     iValue = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
     If lAddress >= m_Defaults.MAX_REGISTERS Then
-        ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
     EnsureHoldingRegistersAllocated lAddress
     m_HoldingRegisters(lAddress) = iValue
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 5) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = (6 \ 256) And &HFF
         baResponse(5) = 6 And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_WRITE_SINGLE_REGISTER
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_SINGLE_REGISTER
         baResponse(lMBAPSize + 2) = Request(lPDUOffset)
         baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
         baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
@@ -1334,14 +1334,14 @@ Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
     Else
         ReDim baResponse(1 + 4 + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_WRITE_SINGLE_REGISTER
+        baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_REGISTER
         baResponse(2) = Request(lPDUOffset)
         baResponse(3) = Request(lPDUOffset + 1)
         baResponse(4) = Request(lPDUOffset + 2)
         baResponse(5) = Request(lPDUOffset + 3)
     End If
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1351,7 +1351,7 @@ Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
     ProcessWriteSingleRegister = baResponse
     Exit Function
 ErrorHandler:
-    ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
@@ -1367,7 +1367,7 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1380,7 +1380,7 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     lByteCount = Request(lPDUOffset + 5)
     
     If lAddress + lQuantity > m_Defaults.MAX_COILS Then
-        ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
@@ -1392,13 +1392,13 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
         m_Coils(lAddress + i) = ((bByte And (2 ^ lBitIndex)) <> 0)
     Next i
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 5) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = (6 \ 256) And &HFF
         baResponse(5) = 6 And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_WRITE_MULTIPLE_COILS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_MULTIPLE_COILS
         baResponse(lMBAPSize + 2) = Request(lPDUOffset)
         baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
         baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
@@ -1406,14 +1406,14 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     Else
         ReDim baResponse(1 + 4 + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_WRITE_MULTIPLE_COILS
+        baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_COILS
         baResponse(2) = Request(lPDUOffset)
         baResponse(3) = Request(lPDUOffset + 1)
         baResponse(4) = Request(lPDUOffset + 2)
         baResponse(5) = Request(lPDUOffset + 3)
     End If
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1423,7 +1423,7 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     ProcessWriteMultipleCoils = baResponse
     Exit Function
 ErrorHandler:
-    ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte()
@@ -1437,7 +1437,7 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         lPDUOffset = lMBAPSize + 2
     Else
@@ -1450,7 +1450,7 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     lByteCount = Request(lPDUOffset + 5)
     
     If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
     
@@ -1460,13 +1460,13 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
         m_HoldingRegisters(lAddress + i) = Request(lPDUOffset + 6 + i * 2) * 256 + Request(lPDUOffset + 6 + i * 2 + 1)
     Next i
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         ReDim baResponse(lMBAPSize + 5) As Byte
         CopyMemory baResponse(0), Request(0), lMBAPSize
         baResponse(4) = (6 \ 256) And &HFF
         baResponse(5) = 6 And &HFF
         baResponse(lMBAPSize) = Request(lMBAPSize)
-        baResponse(lMBAPSize + 1) = MB_FC_WRITE_MULTIPLE_REGISTERS
+        baResponse(lMBAPSize + 1) = MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
         baResponse(lMBAPSize + 2) = Request(lPDUOffset)
         baResponse(lMBAPSize + 3) = Request(lPDUOffset + 1)
         baResponse(lMBAPSize + 4) = Request(lPDUOffset + 2)
@@ -1474,14 +1474,14 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     Else
         ReDim baResponse(1 + 4 + 1) As Byte
         baResponse(0) = m_SlaveID
-        baResponse(1) = MB_FC_WRITE_MULTIPLE_REGISTERS
+        baResponse(1) = MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
         baResponse(2) = Request(lPDUOffset)
         baResponse(3) = Request(lPDUOffset + 1)
         baResponse(4) = Request(lPDUOffset + 2)
         baResponse(5) = Request(lPDUOffset + 3)
     End If
     
-    If m_ProtocolType = MB_PROTOCOL_RTU Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
         Dim wCRC As Long
         wCRC = ModbusCRC16(baResponse, 0, UBound(baResponse) - 1)
         baResponse(UBound(baResponse) - 1) = wCRC And &HFF
@@ -1491,7 +1491,7 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     ProcessWriteMultipleRegisters = baResponse
     Exit Function
 ErrorHandler:
-    ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_EX_SLAVE_DEVICE_FAILURE)
+    ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 '=========================================================================
@@ -1505,7 +1505,7 @@ Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal Exception
     
     On Error GoTo ErrorHandler
     
-    If m_ProtocolType = MB_PROTOCOL_TCP Then
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
         ReDim baResponse(lMBAPSize + 2) As Byte
         
@@ -1708,7 +1708,7 @@ End Sub
 '=========================================================================
 
 Private Sub Class_Initialize()
-    m_ProtocolType = MB_PROTOCOL_TCP
+    m_ProtocolType = MB_SLAVE_PROTOCOL_TCP
     m_State = MB_SLAVE_STATE_STOPPED
     m_SlaveID = 1
     m_ClientCounter = 0

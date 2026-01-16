@@ -256,7 +256,7 @@ Public Class cModbusServer
         If bSlaveID <> m_SlaveID Then Exit Sub  ' 不是发给我的
         
         Select Case bFunctionCode
-            Case MB_FC_READ_HOLDING_REGISTERS
+            Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
                 ' 读取保持寄存器
                 lAddress = Data(8) * 256 + Data(9)
                 lQuantity = Data(10) * 256 + Data(11)
@@ -266,7 +266,7 @@ Public Class cModbusServer
                 baResponse = BuildReadResponse(lAddress, lQuantity)
                 Client.SendData baResponse
                 
-            Case MB_FC_WRITE_SINGLE_REGISTER
+            Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
                 ' 写入单个寄存器
                 lAddress = Data(8) * 256 + Data(9)
                 Dim iValue As Integer

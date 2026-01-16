@@ -1377,17 +1377,19 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    lByteCount = Request(lPDUOffset + 5)
-    
+    ' FC15请求格式: SlaveID(0) + FC(1) + AddrHi(2) + AddrLo(3) + QtyHi(4) + QtyLo(5) + ByteCount(6) + Data(7...)
+    ' 相对于PDUOffset: Addr(0,1) + Qty(2,3) + ByteCount(4) + Data(5...)
+    lByteCount = Request(lPDUOffset + 4)
+
     If lAddress + lQuantity > m_Defaults.MAX_COILS Then
         ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
-    
+
     EnsureCoilsAllocated lAddress + lQuantity - 1
-    
+
     For i = 0 To lQuantity - 1
-        bByte = Request(lPDUOffset + 6 + i \ 8)
+        bByte = Request(lPDUOffset + 5 + i \ 8)
         lBitIndex = i Mod 8
         m_Coils(lAddress + i) = ((bByte And (2 ^ lBitIndex)) <> 0)
     Next i
@@ -1447,17 +1449,19 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
-    lByteCount = Request(lPDUOffset + 5)
-    
+    ' FC16请求格式: SlaveID(0) + FC(1) + AddrHi(2) + AddrLo(3) + QtyHi(4) + QtyLo(5) + ByteCount(6) + Data(7...)
+    ' 相对于PDUOffset: Addr(0,1) + Qty(2,3) + ByteCount(4) + Data(5...)
+    lByteCount = Request(lPDUOffset + 4)
+
     If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
         ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
-    
+
     EnsureHoldingRegistersAllocated lAddress + lQuantity - 1
-    
+
     For i = 0 To lQuantity - 1
-        m_HoldingRegisters(lAddress + i) = Request(lPDUOffset + 6 + i * 2) * 256 + Request(lPDUOffset + 6 + i * 2 + 1)
+        m_HoldingRegisters(lAddress + i) = Request(lPDUOffset + 5 + i * 2) * 256 + Request(lPDUOffset + 5 + i * 2 + 1)
     Next i
     
     If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
@@ -1517,15 +1521,16 @@ Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal Exception
         baResponse(lMBAPSize + 1) = bFC Or &H80
         baResponse(lMBAPSize + 2) = ExceptionCode
     Else
-        ReDim baResponse(2 + 1) As Byte  ' +1 for CRC
+        ' RTU异常响应 = SlaveID(1) + FC|0x80(1) + ExCode(1) + CRC(2) = 5字节
+        ReDim baResponse(4) As Byte  ' 索引0-4
         baResponse(0) = m_SlaveID
         bFC = Request(1)
         baResponse(1) = bFC Or &H80
         baResponse(2) = ExceptionCode
-        
+
         ' Add CRC
         Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, 2)
+        wCRC = ModbusCRC16(baResponse, 0, 3)  ' 计算前3个字节
         baResponse(3) = wCRC And &HFF
         baResponse(4) = (wCRC \ 256) And &HFF
     End If
@@ -1542,8 +1547,30 @@ End Function
 
 Private Function CalculateFrameLength(ByVal FC As Byte) As Long
     ' Calculate expected frame length for RTU mode
-    ' This is a simplified version
-    CalculateFrameLength = 8  ' Minimum
+    Select Case FC
+        Case MB_SLAVE_FC_READ_COILS, MB_SLAVE_FC_READ_DISCRETE_INPUTS, _
+             MB_SLAVE_FC_READ_HOLDING_REGISTERS, MB_SLAVE_FC_READ_INPUT_REGISTERS
+            ' 读请求: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + CRC(2) = 8
+            CalculateFrameLength = 8
+
+        Case MB_SLAVE_FC_WRITE_SINGLE_COIL, MB_SLAVE_FC_WRITE_SINGLE_REGISTER
+            ' 写单个: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
+            CalculateFrameLength = 8
+
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS, MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
+            ' 写多个: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + ByteCount(1) + Data(N) + CRC(2)
+            ' 需要先检查是否有足够数据读取 ByteCount
+            If m_RTUBuffer.Size >= 7 Then
+                Dim lByteCount As Long
+                lByteCount = m_RTUBuffer.PeekByte(6)
+                CalculateFrameLength = 7 + lByteCount + 2
+            Else
+                CalculateFrameLength = 0  ' 等待更多数据
+            End If
+
+        Case Else
+            CalculateFrameLength = 8
+    End Select
 End Function
 
 Private Sub EnsureCoilsAllocated(ByVal MaxAddress As Long)
@@ -1609,20 +1636,23 @@ End Sub
 
 Private Sub m_ListenSocket_ConnectionRequest(Client As cWinsock, ByRef DisConnect As Boolean)
     On Error GoTo ErrorHandler
-    
+
     ' Generate client ID
     m_ClientCounter = m_ClientCounter + 1
     Dim sClientID As String
     sClientID = "Client#" & m_ClientCounter
-    
+
+    ' 设置 Client.Tag 用于后续事件中识别客户端
+    Client.Tag = sClientID
+
     ' Add to collection
     m_Clients.Add Client, sClientID
-    
+
     ' Accept connection
     DisConnect = False
-    
+
     RaiseEvent OnClientConnect(sClientID, Client.RemoteHostIP)
-    
+
     Exit Sub
 ErrorHandler:
     DisConnect = True
@@ -1633,33 +1663,27 @@ Private Sub m_ListenSocket_DataArrival(Client As cWinsock, ByVal bytesTotal As L
     Dim baData() As Byte
     Dim sClientID As String
     Dim baResponse() As Byte
-    
+
     On Error GoTo ErrorHandler
-    
-    ' Find client ID
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
+
+    ' 使用 Client.Tag 获取 ClientID
+    sClientID = Client.Tag
+
     If LenB(sClientID) = 0 Then Exit Sub
-    
+
     ' Receive data
     Client.GetData baData, vbByte + vbArray
-    
+
     RaiseEvent OnDataReceived(sClientID, baData)
-    
+
     ' Process request
     baResponse = ProcessRequest(baData)
-    
+
     ' Send response
     If UBound(baResponse) >= 0 Then
         Client.SendData baResponse
     End If
-    
+
     Exit Sub
 ErrorHandler:
     RaiseError "DataArrival: " & ERR.Description
@@ -1667,17 +1691,12 @@ End Sub
 
 Private Sub m_ListenSocket_CloseEvent(Client As cWinsock)
     Dim sClientID As String
-    
+
     On Error Resume Next
-    
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
+
+    ' 使用 Client.Tag 获取 ClientID
+    sClientID = Client.Tag
+
     If LenB(sClientID) > 0 Then
         RemoveClient sClientID, "Connection closed"
     End If
@@ -1685,17 +1704,12 @@ End Sub
 
 Private Sub m_ListenSocket_Error(Client As cWinsock, ByVal Number As Long, Description As String, ByVal Scode As Long)
     Dim sClientID As String
-    
+
     On Error Resume Next
-    
-    Dim oClient As Variant
-    For Each oClient In m_Clients
-        If oClient Is Client Then
-            sClientID = oClient
-            Exit For
-        End If
-    Next
-    
+
+    ' 使用 Client.Tag 获取 ClientID
+    sClientID = Client.Tag
+
     If LenB(sClientID) > 0 Then
         RemoveClient sClientID, "Socket error: " & Description
     Else
@@ -1723,8 +1737,8 @@ Private Sub Class_Initialize()
     m_Defaults.RTU_DEFAULT_STOPBITS = 1
     m_Defaults.RTU_DEFAULT_TIMEOUT = 1000
     m_Defaults.MAX_PDU_SIZE = 253
-    m_Defaults.MAX_REGISTERS = 125
-    m_Defaults.MAX_COILS = 2000
+    m_Defaults.MAX_REGISTERS = 65536
+    m_Defaults.MAX_COILS = 65536
     m_Defaults.TCP_MBAP_SIZE = 7
     
     ' RTU defaults
@@ -1741,7 +1755,7 @@ End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
-    '    Stop
+    StopMe
     Set m_RTUBuffer = Nothing
     Set m_ListenSocket = Nothing
     Set m_Clients = Nothing

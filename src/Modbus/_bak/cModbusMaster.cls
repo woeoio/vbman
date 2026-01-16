@@ -601,12 +601,15 @@ Public Function WriteSingleCoil(ByVal Address As Long, ByVal Value As Boolean) A
     baResponse = SendRequest(baRequest)
     
     If UBound(baResponse) >= 0 Then
-        If baResponse(0) = baRequest(0) And _
-           baResponse(1) = baRequest(1) And _
-           baResponse(2) = baRequest(2) And _
-           baResponse(3) = baRequest(3) And _
-           baResponse(4) = baRequest(4) Then
-            WriteSingleCoil = True
+        If UBound(baResponse) >= 5 Then
+            If baResponse(0) = baRequest(0) And _
+               baResponse(1) = baRequest(1) And _
+               baResponse(2) = baRequest(2) And _
+               baResponse(3) = baRequest(3) And _
+               baResponse(4) = baRequest(4) And _
+               baResponse(5) = baRequest(5) Then
+                WriteSingleCoil = True
+            End If
         End If
     End If
     
@@ -657,14 +660,17 @@ Public Function WriteSingleRegister(ByVal Address As Long, ByVal Value As Intege
     
     baRequest = BuildWriteSingleRegisterRequest(Address, Value)
     baResponse = SendRequest(baRequest)
-    
+
     If UBound(baResponse) >= 0 Then
-        If baResponse(0) = baRequest(0) And _
-           baResponse(1) = baRequest(1) And _
-           baResponse(2) = baRequest(2) And _
-           baResponse(3) = baRequest(3) And _
-           baResponse(4) = baRequest(4) Then
-            WriteSingleRegister = True
+        If UBound(baResponse) >= 5 Then
+            If baResponse(0) = baRequest(0) And _
+               baResponse(1) = baRequest(1) And _
+               baResponse(2) = baRequest(2) And _
+               baResponse(3) = baRequest(3) And _
+               baResponse(4) = baRequest(4) And _
+               baResponse(5) = baRequest(5) Then
+                WriteSingleRegister = True
+            End If
         End If
     End If
     
@@ -964,23 +970,26 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
         baFrame(lPDULen) = wCRC And &HFF
         baFrame(lPDULen + 1) = (wCRC \ 256) And &HFF
     Else
-        ' TCP: MBAP Header + PDU
+        ' TCP: MBAP Header (7 bytes) + PDU (不含SlaveID)
         m_TransactionID = m_TransactionID + 1
         If m_TransactionID > 65535 Then m_TransactionID = 1
-        
-        ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 1) As Byte
-        
+
+        ' 修复: 帧大小 = MBAP(7) + PDU长度 - 1 (因为UnitID在MBAP中)
+        ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 2) As Byte
+
         ' MBAP Header
         baFrame(0) = (m_TransactionID \ 256) And &HFF
         baFrame(1) = m_TransactionID And &HFF
         baFrame(2) = 0  ' Protocol ID
         baFrame(3) = 0
-        baFrame(4) = (lPDULen \ 256) And &HFF  ' Length
-        baFrame(5) = lPDULen And &HFF
-        baFrame(6) = m_SlaveID  ' Unit ID
-        
-        ' PDU (skip slave ID)
-        CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
+        baFrame(4) = ((lPDULen) \ 256) And &HFF  ' Length
+        baFrame(5) = (lPDULen) And &HFF
+        baFrame(6) = PDU(0)  ' Unit ID
+
+        ' PDU (跳过SlaveID，只复制FC和数据)
+        If lPDULen > 1 Then
+            CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
+        End If
     End If
     
     BuildFrame = baFrame
@@ -1031,7 +1040,12 @@ Private Function SendRequestRTU(ByRef Request() As Byte) As Byte()
     Dim lElapsed As Long
     
     On Error GoTo ErrorHandler
-    
+
+    ' 确保 RTUBuffer 已初始化
+    If m_RTUBuffer Is Nothing Then
+        Set m_RTUBuffer = New cByteBuffer
+    End If
+
     ' Clear receive buffer
     m_RTUBuffer.Clear
     
@@ -1068,7 +1082,7 @@ Private Function SendRequestRTU(ByRef Request() As Byte) As Byte()
         End If
         
         ' Check timeout
-        lElapsed = GetTickCount - lStartTime
+        lElapsed = GetElapsedTime(lStartTime)
         If lElapsed > m_ResponseTimeout Then
             RaiseError "Response timeout"
             Exit Function
@@ -1107,9 +1121,11 @@ Private Function ParseRTUFrame() As Byte()
                 lByteCount = m_RTUBuffer.PeekByte(2)
                 lPDULen = 3 + lByteCount + 2
             Case MB_MASTER_FC_WRITE_SINGLE_COIL, MB_MASTER_FC_WRITE_SINGLE_REGISTER
-                lPDULen = 6
+                ' 写单个响应: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
+                lPDULen = 8
             Case MB_MASTER_FC_WRITE_MULTIPLE_COILS, MB_MASTER_FC_WRITE_MULTIPLE_REGISTERS
-                lPDULen = 6
+                ' 写多个响应: SlaveID(1) + FC(1) + Addr(2) + Quantity(2) + CRC(2) = 8
+                lPDULen = 8
             Case Else
                 lPDULen = 4
         End Select
@@ -1159,8 +1175,8 @@ Private Function SendRequestTCP(ByRef Request() As Byte) As Byte()
                 
                 If lTransactionID = m_TransactionID Then
                     lMBAPLen = CLng(baRecvBuffer(4)) * 256 + CLng(baRecvBuffer(5))
-                    
-                    ReDim baResponse(lMBAPLen) As Byte
+
+                    ReDim baResponse(lMBAPLen - 1) As Byte
                     baResponse(0) = baRecvBuffer(6)
                     CopyMemory baResponse(1), baRecvBuffer(m_Defaults.TCP_MBAP_SIZE), lMBAPLen - 1
                     
@@ -1170,7 +1186,7 @@ Private Function SendRequestTCP(ByRef Request() As Byte) As Byte()
             End If
         End If
         
-        lElapsed = GetTickCount - lStartTime
+        lElapsed = GetElapsedTime(lStartTime)
         If lElapsed > m_ResponseTimeout Then
             RaiseError "Response timeout"
             Exit Function
@@ -1187,6 +1203,16 @@ End Function
 '=========================================================================
 ' Private Methods - Helpers
 '=========================================================================
+
+Private Function GetElapsedTime(ByVal lStartTime As Long) As Long
+    Dim lNow As Long
+    lNow = GetTickCount
+    If lNow >= lStartTime Then
+        GetElapsedTime = lNow - lStartTime
+    Else
+        GetElapsedTime = (2147483647 - lStartTime) + lNow + 1
+    End If
+End Function
 
 Private Sub ValidateQuantity(ByVal Quantity As Long, ByVal MaxQuantity As Long)
     If Quantity < 1 Or Quantity > MaxQuantity Then

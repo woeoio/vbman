@@ -11,6 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+
 Option Explicit
 '作者：邓伟，QQ：215879458，可自由传播，但请勿删本签名
 
@@ -319,9 +320,9 @@ Public Function Chat(Optional UserMessage As String, Optional Callback As Object
     Exit Function
     
 ERR_HANDLER:
-    m_LastError = Err.Description
-    RaiseEvent OnError(Err.Description, Err.Number)
-    ERR.Raise Err.Number, Err.Source, Err.Description
+    m_LastError = ERR.Description
+    RaiseEvent OnError(ERR.Description, ERR.Number)
+    ERR.Raise ERR.Number, ERR.Source, ERR.Description
 End Function
 
 '发送聊天请求（返回 JSON 对象）
@@ -349,7 +350,7 @@ Public Sub Reset()
     m_Stream = False
     m_Stop = Empty
     
-    Call ClearMessages()
+    Call ClearMessages
     
     If Not m_CustomHeaders Is Nothing Then
         Set m_CustomHeaders = Nothing
@@ -536,7 +537,7 @@ Private Sub ParseStreamChunk(Data As String)
             On Error Resume Next
             Call ChunkJson.Decode(JsonData)
             
-            If Err.Number = 0 Then
+            If ERR.Number = 0 Then
                 '提取 delta 内容
                 If ChunkJson.RootIsArray Then
                     '检查 choices 数组
@@ -678,3 +679,4 @@ Private Sub SSEClient_OnClose()
     m_IsStreaming = False
     Call TriggerStreamChunk("", True)
 End Sub
+

@@ -224,7 +224,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' Modbus 从站对象
-Private WithEvents m_Slave As VBMANLIB.cModbusSlave
+Private WithEvents m_Slave As cModbusSlave
 Attribute m_Slave.VB_VarHelpID = -1
 
 '=========================================================================
@@ -233,7 +233,7 @@ Attribute m_Slave.VB_VarHelpID = -1
 
 Private Sub Form_Load()
     ' 创建 Modbus 从站对象
-    Set m_Slave = New VBMANLIB.cModbusSlave
+    Set m_Slave = New cModbusSlave
 
     ' 设置为 TCP 模式
     m_Slave.ProtocolType = MB_SLAVE_PROTOCOL_TCP
@@ -263,20 +263,20 @@ End Sub
 
 Private Sub cmdStart_Click()
     On Error GoTo ErrorHandler
-
+    
     Dim lPort As Long
-
+    
     ' 设置从站ID
     m_Slave.SlaveID = CByte(Val(txtSlaveID.Text))
-
+    
     ' 获取端口
     lPort = CLng(Val(txtPort.Text))
-
+    
     LogMessage "正在启动 TCP 服务器, 端口: " & lPort
-
+    
     ' 启动服务器
     m_Slave.Start CStr(lPort)
-
+    
     Exit Sub
 ErrorHandler:
     LogMessage "启动失败: " & Err.Description
@@ -365,6 +365,25 @@ ErrorHandler:
     LogMessage "设置输入寄存器失败: " & Err.Description
 End Sub
 
+Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
+    Dim sFCName As String
+    
+    Select Case FunctionCode
+    Case MB_SLAVE_FC_READ_COILS
+        sFCName = "读线圈"
+    Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
+        sFCName = "读离散输入"
+    Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
+        sFCName = "读保持寄存器"
+    Case MB_SLAVE_FC_READ_INPUT_REGISTERS
+        sFCName = "读输入寄存器"
+    Case Else
+        sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"
+    End Select
+    
+    LogMessage "读请求 [" & ClientID & "]: " & sFCName & ", 地址=" & Address & ", 数量=" & Quantity
+End Sub
+
 '=========================================================================
 ' 事件处理
 '=========================================================================
@@ -398,55 +417,25 @@ Private Sub m_Slave_OnError(ByVal Description As String)
     LogMessage "错误: " & Description
 End Sub
 
-Private Sub m_Slave_OnDataReceived(ByVal ClientID As String, Data() As Byte)
-    ' 可选: 显示原始数据
-    ' Dim sHex As String
-    ' Dim i As Long
-    ' sHex = "RX [" & ClientID & "]: "
-    ' For i = 0 To UBound(Data)
-    '     sHex = sHex & Right$("0" & Hex$(Data(i)), 2) & " "
-    ' Next i
-    ' LogMessage sHex
-End Sub
+'Private Sub m_Slave_OnDataReceived(ByVal ClientID As String, Data() As Byte)
+'    ' 可选: 显示原始数据
+'    ' Dim sHex As String
+'    ' Dim i As Long
+'    ' sHex = "RX [" & ClientID & "]: "
+'    ' For i = 0 To UBound(Data)
+'    '     sHex = sHex & Right$("0" & Hex$(Data(i)), 2) & " "
+'    ' Next i
+'    ' LogMessage sHex
+'End Sub
 
-Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
-    Dim sFCName As String
+'Private Sub m_Slave_OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
+'
+'End Sub
 
-    Select Case FunctionCode
-        Case MB_SLAVE_FC_READ_COILS
-            sFCName = "读线圈"
-        Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
-            sFCName = "读离散输入"
-        Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
-            sFCName = "读保持寄存器"
-        Case MB_SLAVE_FC_READ_INPUT_REGISTERS
-            sFCName = "读输入寄存器"
-        Case Else
-            sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"
-    End Select
+'Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
+'
+'End Sub
 
-    LogMessage "读请求 [" & ClientID & "]: " & sFCName & ", 地址=" & Address & ", 数量=" & Quantity
-End Sub
-
-Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
-    Dim sFCName As String
-
-    Select Case FunctionCode
-        Case MB_SLAVE_FC_WRITE_SINGLE_COIL
-            sFCName = "写单线圈"
-        Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-            sFCName = "写单寄存器"
-        Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
-            sFCName = "写多线圈"
-        Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-            sFCName = "写多寄存器"
-        Case Else
-            sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"
-    End Select
-
-    LogMessage "写请求 [" & ClientID & "]: " & sFCName & ", 地址=" & Address
-    RefreshDataDisplay
-End Sub
 
 '=========================================================================
 ' 辅助函数
@@ -539,4 +528,24 @@ Private Sub LogMessage(ByVal Message As String)
     sTime = Format$(Now, "hh:mm:ss")
     txtLog.Text = txtLog.Text & "[" & sTime & "] " & Message & vbCrLf
     txtLog.SelStart = Len(txtLog.Text)
+End Sub
+
+Private Sub m_Slave_OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, Data As Variant)
+    Dim sFCName As String
+
+    Select Case FunctionCode
+        Case MB_SLAVE_FC_WRITE_SINGLE_COIL
+            sFCName = "写单线圈"
+        Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
+            sFCName = "写单寄存器"
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
+            sFCName = "写多线圈"
+        Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
+            sFCName = "写多寄存器"
+        Case Else
+            sFCName = "未知(FC=" & Hex$(FunctionCode) & ")"
+    End Select
+
+    LogMessage "写请求 [" & ClientID & "]: " & sFCName & ", 地址=" & Address
+    RefreshDataDisplay
 End Sub

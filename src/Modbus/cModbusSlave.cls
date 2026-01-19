@@ -113,6 +113,12 @@ Event OnDataSent(Data() As Byte)
 Event OnCoilsChanged(ByVal StartAddress As Long, ByVal Quantity As Long, Values() As Boolean)
 Event OnRegistersChanged(ByVal StartAddress As Long, ByVal Quantity As Long, Values() As Integer)
 
+' TCP Server mode events
+Event OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String)
+Event OnClientDisconnect(ByVal ClientID As String, ByVal Reason As String)
+Event OnReadRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByVal Quantity As Long)
+Event OnWriteRequest(ByVal ClientID As String, ByVal FunctionCode As ModbusSlaveFunctionCode, ByVal Address As Long, ByRef Data As Variant)
+
 '=========================================================================
 ' Member Variables
 '=========================================================================
@@ -154,6 +160,10 @@ Private m_CoilsSize As Long
 Private m_DiscreteInputsSize As Long
 Private m_HoldingRegistersSize As Long
 Private m_InputRegistersSize As Long
+
+' TCP request context (for MBAP header)
+Private m_CurrentClientID As String
+Private m_CurrentMBAPHeader() As Byte
 
 '=========================================================================
 ' Properties
@@ -623,39 +633,89 @@ End Sub
 
 Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
     Dim baResponse() As Byte
+    Dim baPDU() As Byte
     Dim FC As Byte
+    Dim lPDUOffset As Long
+    Dim lMBAPSize As Long
 
     On Error GoTo ErrorHandler
 
-    ' Validate minimum request length
-    If UBound(Request) < 2 Then
-        RaiseError "Invalid request length"
-        Exit Function
+    ' Handle TCP vs RTU protocol differences
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
+        ' TCP: Request includes MBAP header (7 bytes) + PDU
+        lMBAPSize = m_Defaults.TCP_MBAP_SIZE
+        
+        ' Validate minimum request length (MBAP + UnitID + FC)
+        If UBound(Request) < lMBAPSize + 1 Then
+            RaiseError "Invalid TCP request length"
+            Exit Function
+        End If
+        
+        ' Store MBAP header for response
+        ReDim m_CurrentMBAPHeader(lMBAPSize - 1) As Byte
+        Modbus_CopyMemory m_CurrentMBAPHeader(0), Request(0), lMBAPSize
+        
+        ' Check Unit ID (Slave ID) - it's in MBAP header at index 6
+        Dim bUnitID As Byte
+        bUnitID = Request(6)
+        If bUnitID <> m_SlaveID And bUnitID <> 0 Then
+            ' Not addressed to us, return empty response
+            Exit Function
+        End If
+        
+        ' Extract PDU (skip MBAP header, PDU starts at index 7)
+        ' PDU format: Function Code + Data (no Unit ID in PDU for TCP)
+        Dim lPDULen As Long
+        lPDULen = UBound(Request) - lMBAPSize + 1
+        ReDim baPDU(lPDULen - 1) As Byte
+        Modbus_CopyMemory baPDU(0), Request(lMBAPSize), lPDULen
+        
+        ' Get function code from PDU (first byte after MBAP)
+        If UBound(baPDU) < 0 Then
+            RaiseError "Invalid PDU length"
+            Exit Function
+        End If
+        FC = baPDU(0)
+        lPDUOffset = 0
+    Else
+        ' RTU: Request format is SlaveID + Function Code + Data + CRC
+        If UBound(Request) < 2 Then
+            RaiseError "Invalid RTU request length"
+            Exit Function
+        End If
+        
+        ' Check Slave ID
+        If Request(0) <> m_SlaveID And Request(0) <> 0 Then
+            ' Not addressed to us
+            Exit Function
+        End If
+        
+        ' PDU starts at index 1 (skip Slave ID)
+        baPDU = Request
+        FC = Request(1)
+        lPDUOffset = 1
     End If
-
-    ' Get function code
-    FC = Request(1)
 
     ' Process request based on function code
     Select Case FC
         Case MB_SLAVE_FC_READ_COILS
-            baResponse = ProcessReadCoils(Request)
+            baResponse = ProcessReadCoils(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_READ_DISCRETE_INPUTS
-            baResponse = ProcessReadDiscreteInputs(Request)
+            baResponse = ProcessReadDiscreteInputs(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_READ_HOLDING_REGISTERS
-            baResponse = ProcessReadHoldingRegisters(Request)
+            baResponse = ProcessReadHoldingRegisters(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_READ_INPUT_REGISTERS
-            baResponse = ProcessReadInputRegisters(Request)
+            baResponse = ProcessReadInputRegisters(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_WRITE_SINGLE_COIL
-            baResponse = ProcessWriteSingleCoil(Request)
+            baResponse = ProcessWriteSingleCoil(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-            baResponse = ProcessWriteSingleRegister(Request)
+            baResponse = ProcessWriteSingleRegister(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS
-            baResponse = ProcessWriteMultipleCoils(Request)
+            baResponse = ProcessWriteMultipleCoils(baPDU, lPDUOffset)
         Case MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-            baResponse = ProcessWriteMultipleRegisters(Request)
+            baResponse = ProcessWriteMultipleRegisters(baPDU, lPDUOffset)
         Case Else
-            baResponse = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_FUNCTION)
+            baResponse = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_FUNCTION)
     End Select
 
     ProcessRequest = baResponse
@@ -665,144 +725,267 @@ ErrorHandler:
     RaiseError "ProcessRequest failed: " & ERR.Description
 End Function
 
-Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
+Private Function ProcessReadCoils(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim baCoils() As Boolean
+    Dim FC As Byte
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    On Error GoTo ErrorHandler
+
+    ' Validate PDU length
+    If UBound(PDU) < PDUOffset + 5 Then
+        ProcessReadCoils = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+
+    ' Raise read request event
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnReadRequest(m_CurrentClientID, FC, lStartAddress, lQuantity)
+    End If
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessReadCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_CoilsSize Then
-        ProcessReadCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     baCoils = GetCoils(lStartAddress, lQuantity)
     ProcessReadCoils = BuildReadCoilsResponse(lQuantity, baCoils)
+    Exit Function
+
+ErrorHandler:
+    ProcessReadCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
+Private Function ProcessReadDiscreteInputs(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim baInputs() As Boolean
+    Dim FC As Byte
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 5 Then
+        ProcessReadDiscreteInputs = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnReadRequest(m_CurrentClientID, FC, lStartAddress, lQuantity)
+    End If
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
-        ProcessReadDiscreteInputs = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessReadDiscreteInputs = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_DiscreteInputsSize Then
-        ProcessReadDiscreteInputs = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadDiscreteInputs = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     baInputs = GetDiscreteInputs(lStartAddress, lQuantity)
     ProcessReadDiscreteInputs = BuildReadDiscreteInputsResponse(lQuantity, baInputs)
+    Exit Function
+
+ErrorHandler:
+    ProcessReadDiscreteInputs = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
+Private Function ProcessReadHoldingRegisters(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim baRegisters() As Integer
+    Dim FC As Byte
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 5 Then
+        ProcessReadHoldingRegisters = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnReadRequest(m_CurrentClientID, FC, lStartAddress, lQuantity)
+    End If
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadHoldingRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessReadHoldingRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_HoldingRegistersSize Then
-        ProcessReadHoldingRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadHoldingRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     baRegisters = GetHoldingRegisters(lStartAddress, lQuantity)
     ProcessReadHoldingRegisters = BuildReadHoldingRegistersResponse(lQuantity, baRegisters)
+    Exit Function
+
+ErrorHandler:
+    ProcessReadHoldingRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
+Private Function ProcessReadInputRegisters(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim baRegisters() As Integer
+    Dim FC As Byte
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 5 Then
+        ProcessReadInputRegisters = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnReadRequest(m_CurrentClientID, FC, lStartAddress, lQuantity)
+    End If
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessReadInputRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessReadInputRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_InputRegistersSize Then
-        ProcessReadInputRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessReadInputRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     baRegisters = GetInputRegisters(lStartAddress, lQuantity)
     ProcessReadInputRegisters = BuildReadInputRegistersResponse(lQuantity, baRegisters)
+    Exit Function
+
+ErrorHandler:
+    ProcessReadInputRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
+Private Function ProcessWriteSingleCoil(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lAddress As Long
     Dim bValue As Boolean
+    Dim FC As Byte
+    Dim vData As Variant
 
-    lAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    bValue = (Request(4) = &HFF)
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 4 Then
+        ProcessWriteSingleCoil = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    bValue = (PDU(PDUOffset + 3) = &HFF)
 
     If lAddress >= m_CoilsSize Then
-        ProcessWriteSingleCoil = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteSingleCoil = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     SetCoil lAddress, bValue
-    ProcessWriteSingleCoil = Request ' Echo request as response
+    vData = bValue
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnWriteRequest(m_CurrentClientID, FC, lAddress, vData)
+    End If
+
+    ProcessWriteSingleCoil = BuildWriteSingleCoilResponse(lAddress, bValue)
+    Exit Function
+
+ErrorHandler:
+    ProcessWriteSingleCoil = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
+Private Function ProcessWriteSingleRegister(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lAddress As Long
     Dim iValue As Integer
+    Dim FC As Byte
+    Dim vData As Variant
 
-    lAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    iValue = CInt(Request(4)) * 256 + CInt(Request(5))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 4 Then
+        ProcessWriteSingleRegister = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    iValue = CInt(PDU(PDUOffset + 3)) * 256 + CInt(PDU(PDUOffset + 4))
 
     If lAddress >= m_HoldingRegistersSize Then
-        ProcessWriteSingleRegister = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteSingleRegister = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
         Exit Function
     End If
 
     SetHoldingRegister lAddress, iValue
-    ProcessWriteSingleRegister = Request ' Echo request as response
+    vData = iValue
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnWriteRequest(m_CurrentClientID, FC, lAddress, vData)
+    End If
+
+    ProcessWriteSingleRegister = BuildWriteSingleRegisterResponse(lAddress, iValue)
+    Exit Function
+
+ErrorHandler:
+    ProcessWriteSingleRegister = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
+Private Function ProcessWriteMultipleCoils(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim lByteCount As Long
     Dim baCoils() As Boolean
     Dim i As Long
+    Dim FC As Byte
+    Dim vData As Variant
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
-    lByteCount = CLng(Request(6))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 6 Then
+        ProcessWriteMultipleCoils = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+    lByteCount = CLng(PDU(PDUOffset + 5))
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_COILS Then
-        ProcessWriteMultipleCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessWriteMultipleCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_CoilsSize Then
-        ProcessWriteMultipleCoils = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteMultipleCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
+    End If
+
+    If UBound(PDU) < PDUOffset + 6 + lByteCount - 1 Then
+        ProcessWriteMultipleCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
@@ -811,46 +994,157 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
         Dim lByteIndex As Long, lBitIndex As Long
         lByteIndex = i \ 8
         lBitIndex = i Mod 8
-        baCoils(i) = ((Request(7 + lByteIndex) And (2 ^ lBitIndex)) <> 0)
+        baCoils(i) = ((PDU(PDUOffset + 6 + lByteIndex) And (2 ^ lBitIndex)) <> 0)
     Next i
 
     SetCoils lStartAddress, baCoils
+    vData = baCoils
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnWriteRequest(m_CurrentClientID, FC, lStartAddress, vData)
+    End If
+
     ProcessWriteMultipleCoils = BuildWriteMultipleCoilsResponse(lStartAddress, lQuantity)
+    Exit Function
+
+ErrorHandler:
+    ProcessWriteMultipleCoils = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
-Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte()
+Private Function ProcessWriteMultipleRegisters(ByRef PDU() As Byte, ByVal PDUOffset As Long) As Byte()
     Dim lStartAddress As Long
     Dim lQuantity As Long
     Dim lByteCount As Long
     Dim baRegisters() As Integer
     Dim i As Long
+    Dim FC As Byte
+    Dim vData As Variant
 
-    lStartAddress = CLng(Request(2)) * 256 + CLng(Request(3))
-    lQuantity = CLng(Request(4)) * 256 + CLng(Request(5))
-    lByteCount = CLng(Request(6))
+    On Error GoTo ErrorHandler
+
+    If UBound(PDU) < PDUOffset + 6 Then
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(PDU(PDUOffset), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+
+    FC = PDU(PDUOffset)
+    lStartAddress = CLng(PDU(PDUOffset + 1)) * 256 + CLng(PDU(PDUOffset + 2))
+    lQuantity = CLng(PDU(PDUOffset + 3)) * 256 + CLng(PDU(PDUOffset + 4))
+    lByteCount = CLng(PDU(PDUOffset + 5))
 
     If lQuantity < 1 Or lQuantity > m_Defaults.MAX_REGISTERS Then
-        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     If lStartAddress + lQuantity > m_HoldingRegistersSize Then
-        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request(1), MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
+        Exit Function
+    End If
+
+    If UBound(PDU) < PDUOffset + 6 + lByteCount - 1 Then
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
         Exit Function
     End If
 
     ReDim baRegisters(lQuantity - 1) As Integer
     For i = 0 To lQuantity - 1
-        baRegisters(i) = CInt(Request(7 + i * 2)) * 256 + CInt(Request(8 + i * 2))
+        baRegisters(i) = CInt(PDU(PDUOffset + 6 + i * 2)) * 256 + CInt(PDU(PDUOffset + 7 + i * 2))
     Next i
 
     SetHoldingRegisters lStartAddress, baRegisters
+    vData = baRegisters
+    If LenB(m_CurrentClientID) > 0 Then
+        RaiseEvent OnWriteRequest(m_CurrentClientID, FC, lStartAddress, vData)
+    End If
+
     ProcessWriteMultipleRegisters = BuildWriteMultipleRegistersResponse(lStartAddress, lQuantity)
+    Exit Function
+
+ErrorHandler:
+    ProcessWriteMultipleRegisters = BuildExceptionResponse(FC, MB_SLAVE_EX_SLAVE_DEVICE_FAILURE)
 End Function
 
 '=========================================================================
 ' Private Methods - Response Building
 '=========================================================================
+
+' Helper function to wrap PDU response with MBAP header for TCP
+Private Function WrapTCPResponse(ByRef PDU() As Byte) As Byte()
+    Dim baResponse() As Byte
+    Dim lPDULen As Long
+    Dim i As Long
+
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
+        ' TCP: Add MBAP header
+        ' PDU already contains Unit ID as first byte (from response building functions)
+        lPDULen = UBound(PDU) + 1
+        ReDim baResponse(m_Defaults.TCP_MBAP_SIZE + lPDULen - 1) As Byte
+        
+        ' Copy MBAP header (from current request, preserving Transaction ID)
+        If UBound(m_CurrentMBAPHeader) >= 0 Then
+            For i = 0 To m_Defaults.TCP_MBAP_SIZE - 1
+                baResponse(i) = m_CurrentMBAPHeader(i)
+            Next i
+        Else
+            ' Fallback: create default MBAP header
+            baResponse(0) = 0
+            baResponse(1) = 0
+            baResponse(2) = 0
+            baResponse(3) = 0
+            baResponse(6) = m_SlaveID
+        End If
+        
+        ' Update length field (Unit ID + PDU length)
+        baResponse(4) = ((lPDULen) \ 256) And &HFF
+        baResponse(5) = (lPDULen) And &HFF
+        
+        ' Copy PDU (which includes Unit ID as first byte)
+        For i = 0 To lPDULen - 1
+            baResponse(m_Defaults.TCP_MBAP_SIZE + i) = PDU(i)
+        Next i
+    Else
+        ' RTU: Return PDU as-is (with CRC)
+        baResponse = PDU
+    End If
+    
+    WrapTCPResponse = baResponse
+End Function
+
+Private Function BuildWriteSingleCoilResponse(ByVal Address As Long, ByVal Value As Boolean) As Byte()
+    Dim baResponse() As Byte
+    
+    ReDim baResponse(5) As Byte
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_COIL
+    baResponse(2) = (Address \ 256) And &HFF
+    baResponse(3) = Address And &HFF
+    baResponse(4) = IIf(Value, &HFF, &H0)
+    baResponse(5) = 0
+    
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildWriteSingleCoilResponse = WrapTCPResponse(baResponse)
+End Function
+
+Private Function BuildWriteSingleRegisterResponse(ByVal Address As Long, ByVal Value As Integer) As Byte()
+    Dim baResponse() As Byte
+    
+    ReDim baResponse(5) As Byte
+    baResponse(0) = m_SlaveID
+    baResponse(1) = MB_SLAVE_FC_WRITE_SINGLE_REGISTER
+    baResponse(2) = (Address \ 256) And &HFF
+    baResponse(3) = Address And &HFF
+    baResponse(4) = (Value \ 256) And &HFF
+    baResponse(5) = Value And &HFF
+    
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildWriteSingleRegisterResponse = WrapTCPResponse(baResponse)
+End Function
 
 Private Function BuildReadCoilsResponse(ByVal Quantity As Long, ByRef Values() As Boolean) As Byte()
     Dim baResponse() As Byte
@@ -874,9 +1168,12 @@ Private Function BuildReadCoilsResponse(ByVal Quantity As Long, ByRef Values() A
         End If
     Next i
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildReadCoilsResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildReadCoilsResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildReadDiscreteInputsResponse(ByVal Quantity As Long, ByRef Values() As Boolean) As Byte()
@@ -901,9 +1198,12 @@ Private Function BuildReadDiscreteInputsResponse(ByVal Quantity As Long, ByRef V
         End If
     Next i
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildReadDiscreteInputsResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildReadDiscreteInputsResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildReadHoldingRegistersResponse(ByVal Quantity As Long, ByRef Values() As Integer) As Byte()
@@ -921,9 +1221,12 @@ Private Function BuildReadHoldingRegistersResponse(ByVal Quantity As Long, ByRef
         baResponse(4 + i * 2) = Values(i) And &HFF
     Next i
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildReadHoldingRegistersResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildReadHoldingRegistersResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildReadInputRegistersResponse(ByVal Quantity As Long, ByRef Values() As Integer) As Byte()
@@ -941,9 +1244,12 @@ Private Function BuildReadInputRegistersResponse(ByVal Quantity As Long, ByRef V
         baResponse(4 + i * 2) = Values(i) And &HFF
     Next i
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildReadInputRegistersResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildReadInputRegistersResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildWriteMultipleCoilsResponse(ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
@@ -956,9 +1262,12 @@ Private Function BuildWriteMultipleCoilsResponse(ByVal StartAddress As Long, ByV
     baResponse(4) = (Quantity \ 256) And &HFF
     baResponse(5) = Quantity And &HFF
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildWriteMultipleCoilsResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildWriteMultipleCoilsResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildWriteMultipleRegistersResponse(ByVal StartAddress As Long, ByVal Quantity As Long) As Byte()
@@ -971,9 +1280,12 @@ Private Function BuildWriteMultipleRegistersResponse(ByVal StartAddress As Long,
     baResponse(4) = (Quantity \ 256) And &HFF
     baResponse(5) = Quantity And &HFF
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildWriteMultipleRegistersResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildWriteMultipleRegistersResponse = WrapTCPResponse(baResponse)
 End Function
 
 Private Function BuildExceptionResponse(ByVal FunctionCode As Byte, ByVal ExceptionCode As ModbusSlaveExceptionCode) As Byte()
@@ -983,9 +1295,12 @@ Private Function BuildExceptionResponse(ByVal FunctionCode As Byte, ByVal Except
     baResponse(1) = FunctionCode Or &H80
     baResponse(2) = ExceptionCode
 
-    ' Add CRC
-    Modbus_AppendCRC baResponse
-    BuildExceptionResponse = baResponse
+    ' Add CRC for RTU only
+    If m_ProtocolType = MB_SLAVE_PROTOCOL_RTU Then
+        Modbus_AppendCRC baResponse
+    End If
+    
+    BuildExceptionResponse = WrapTCPResponse(baResponse)
 End Function
 
 '=========================================================================
@@ -1027,6 +1342,43 @@ End Sub
 
 Private Sub m_TransportTCP_OnError(ByVal Description As String)
     RaiseError Description
+End Sub
+
+Private Sub m_TransportTCP_OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String)
+    RaiseEvent OnClientConnect(ClientID, RemoteAddress)
+End Sub
+
+Private Sub m_TransportTCP_OnClientDisconnect(ByVal ClientID As String)
+    RaiseEvent OnClientDisconnect(ClientID, "Connection closed")
+End Sub
+
+Private Sub m_TransportTCP_OnClientDataReceived(ByVal ClientID As String, Data() As Byte)
+    Dim baResponse() As Byte
+    
+    On Error GoTo ErrorHandler
+    
+    ' Store current client ID for event raising
+    m_CurrentClientID = ClientID
+    
+    ' Raise data received event
+    RaiseEvent OnDataReceived(Data)
+    
+    ' Process request
+    baResponse = ProcessRequest(Data)
+    
+    ' Send response if available
+    If UBound(baResponse) >= 0 Then
+        m_TransportTCP.SendToClient ClientID, baResponse
+        RaiseEvent OnDataSent(baResponse)
+    End If
+    
+    ' Clear client ID
+    m_CurrentClientID = ""
+    Exit Sub
+    
+ErrorHandler:
+    m_CurrentClientID = ""
+    RaiseError "OnClientDataReceived: " & ERR.Description
 End Sub
 
 '=========================================================================

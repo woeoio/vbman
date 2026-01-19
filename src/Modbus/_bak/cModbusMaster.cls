@@ -10,7 +10,7 @@ Attribute VB_Name = "cModbusMaster"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = True
+Attribute VB_Exposed = False
 '=========================================================================
 '
 ' cModbusMaster - Modbus Master/Client Implementation for VB6
@@ -85,22 +85,7 @@ Public Enum ModbusMasterProtocolType
 End Enum
 
 
-'=========================================================================
-' Default Constants Structure
-'=========================================================================
 
-Public Type ModbusMasterDefaults
-    TCP_PORT As Long                                                            ' Default TCP port (502)
-    RTU_DEFAULT_BAUDRATE As Long                                                ' Default baudrate (9600)
-    RTU_DEFAULT_DATABITS As Long                                                ' Default data bits (8)
-    RTU_DEFAULT_PARITY As String                                                ' Default parity (N)
-    RTU_DEFAULT_STOPBITS As Long                                                ' Default stop bits (1)
-    RTU_DEFAULT_TIMEOUT As Long                                                 ' Default timeout (1000ms)
-    MAX_PDU_SIZE As Long                                                        ' Max PDU size (253)
-    MAX_REGISTERS As Long                                                       ' Max registers per request (125)
-    MAX_COILS As Long                                                           ' Max coils per request (2000)
-    TCP_MBAP_SIZE As Long                                                       ' MBAP header size (7)
-End Type
 
 '=========================================================================
 ' Events
@@ -294,7 +279,7 @@ Public Property Let ResponseTimeout(ByVal Value As Long)
 End Property
 
 ' Defaults constants (read-only)
-Public Property Get Defaults() As ModbusMasterDefaults
+Friend Property Get Defaults() As ModbusMasterDefaults
     Defaults = m_Defaults
 End Property
 
@@ -415,7 +400,7 @@ Public Sub Connect(Optional ByVal SerialPort As String = "", _
     Exit Sub
 ErrorHandler:
     m_State = MB_MASTER_STATE_ERROR
-    RaiseError "Connect failed: " & ERR.Description
+    RaiseError "Connect failed: " & Err.Description
 End Sub
 
 ' Disconnect from slave
@@ -475,7 +460,7 @@ Public Function ReadCoils(ByVal StartAddress As Long, ByVal Quantity As Long) As
     
     Exit Function
 ErrorHandler:
-    RaiseError "ReadCoils failed: " & ERR.Description
+    RaiseError "ReadCoils failed: " & Err.Description
 End Function
 
 ' Read Discrete Inputs (Function Code 02)
@@ -514,7 +499,7 @@ Public Function ReadDiscreteInputs(ByVal StartAddress As Long, ByVal Quantity As
     
     Exit Function
 ErrorHandler:
-    RaiseError "ReadDiscreteInputs failed: " & ERR.Description
+    RaiseError "ReadDiscreteInputs failed: " & Err.Description
 End Function
 
 '=========================================================================
@@ -523,10 +508,10 @@ End Function
 
 ' Read Holding Registers (Function Code 03)
 ' Returns: Array of Integer values (16-bit)
-Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Integer()
+Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Long()
     Dim baRequest() As Byte
     Dim baResponse() As Byte
-    Dim baResult() As Integer
+    Dim baResult() As Long
     Dim i As Long
     
     On Error GoTo ErrorHandler
@@ -540,10 +525,10 @@ Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity 
         Dim lByteCount As Long
         lByteCount = baResponse(2)
         
-        ReDim baResult(Quantity - 1) As Integer
+        ReDim baResult(Quantity - 1) As Long
         
         For i = 0 To Quantity - 1
-            baResult(i) = CInt(baResponse(3 + i * 2)) * 256 + CInt(baResponse(3 + i * 2 + 1))
+            baResult(i) = CLng(baResponse(3 + i * 2)) * 256 + CLng(baResponse(3 + i * 2 + 1))
         Next i
         
         ReadHoldingRegisters = baResult
@@ -551,14 +536,14 @@ Public Function ReadHoldingRegisters(ByVal StartAddress As Long, ByVal Quantity 
     
     Exit Function
 ErrorHandler:
-    RaiseError "ReadHoldingRegisters failed: " & ERR.Description
+    RaiseError "ReadHoldingRegisters failed: " & Err.Description
 End Function
 
 ' Read Input Registers (Function Code 04)
-Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Integer()
+Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As Long) As Long()
     Dim baRequest() As Byte
     Dim baResponse() As Byte
-    Dim baResult() As Integer
+    Dim baResult() As Long
     Dim i As Long
     
     On Error GoTo ErrorHandler
@@ -572,10 +557,10 @@ Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As
         Dim lByteCount As Long
         lByteCount = baResponse(2)
         
-        ReDim baResult(Quantity - 1) As Integer
+        ReDim baResult(Quantity - 1) As Long
         
         For i = 0 To Quantity - 1
-            baResult(i) = CInt(baResponse(3 + i * 2)) * 256 + CInt(baResponse(3 + i * 2 + 1))
+            baResult(i) = CLng(baResponse(3 + i * 2)) * 256 + CLng(baResponse(3 + i * 2 + 1))
         Next i
         
         ReadInputRegisters = baResult
@@ -583,7 +568,7 @@ Public Function ReadInputRegisters(ByVal StartAddress As Long, ByVal Quantity As
     
     Exit Function
 ErrorHandler:
-    RaiseError "ReadInputRegisters failed: " & ERR.Description
+    RaiseError "ReadInputRegisters failed: " & Err.Description
 End Function
 
 '=========================================================================
@@ -615,7 +600,7 @@ Public Function WriteSingleCoil(ByVal Address As Long, ByVal Value As Boolean) A
     
     Exit Function
 ErrorHandler:
-    RaiseError "WriteSingleCoil failed: " & ERR.Description
+    RaiseError "WriteSingleCoil failed: " & Err.Description
 End Function
 
 ' Write Multiple Coils (Function Code 15)
@@ -644,7 +629,7 @@ Public Function WriteMultipleCoils(ByVal StartAddress As Long, ByRef Values() As
     
     Exit Function
 ErrorHandler:
-    RaiseError "WriteMultipleCoils failed: " & ERR.Description
+    RaiseError "WriteMultipleCoils failed: " & Err.Description
 End Function
 
 '=========================================================================
@@ -676,7 +661,7 @@ Public Function WriteSingleRegister(ByVal Address As Long, ByVal Value As Intege
     
     Exit Function
 ErrorHandler:
-    RaiseError "WriteSingleRegister failed: " & ERR.Description
+    RaiseError "WriteSingleRegister failed: " & Err.Description
 End Function
 
 ' Write Multiple Registers (Function Code 16)
@@ -705,7 +690,7 @@ Public Function WriteMultipleRegisters(ByVal StartAddress As Long, ByRef Values(
     
     Exit Function
 ErrorHandler:
-    RaiseError "WriteMultipleRegisters failed: " & ERR.Description
+    RaiseError "WriteMultipleRegisters failed: " & Err.Description
 End Function
 
 '=========================================================================
@@ -790,7 +775,7 @@ ErrorHandler:
         CloseHandle m_hSerialPort
         m_hSerialPort = INVALID_HANDLE_VALUE
     End If
-    RaiseError "ConnectRTU failed: " & ERR.Description
+    RaiseError "ConnectRTU failed: " & Err.Description
 End Sub
 
 Private Sub DisconnectRTU()
@@ -829,7 +814,7 @@ Private Sub ConnectTCP()
     Exit Sub
 ErrorHandler:
     m_State = MB_MASTER_STATE_ERROR
-    RaiseError "ConnectTCP failed: " & ERR.Description
+    RaiseError "ConnectTCP failed: " & Err.Description
 End Sub
 
 Private Sub DisconnectTCP()
@@ -974,7 +959,7 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
         m_TransactionID = m_TransactionID + 1
         If m_TransactionID > 65535 Then m_TransactionID = 1
 
-        ' 修复: 帧大小 = MBAP(7) + PDU长度 - 1 (因为UnitID在MBAP中)
+        ' 修复: 帧大�? = MBAP(7) + PDU长度 - 1 (因为UnitID在MBAP�?)
         ReDim baFrame(m_Defaults.TCP_MBAP_SIZE + lPDULen - 2) As Byte
 
         ' MBAP Header
@@ -986,7 +971,7 @@ Private Function BuildFrame(ByRef PDU() As Byte) As Byte()
         baFrame(5) = (lPDULen) And &HFF
         baFrame(6) = PDU(0)  ' Unit ID
 
-        ' PDU (跳过SlaveID，只复制FC和数据)
+        ' PDU (跳过SlaveID，只复制FC和数�?)
         If lPDULen > 1 Then
             CopyMemory baFrame(m_Defaults.TCP_MBAP_SIZE), PDU(1), lPDULen - 1
         End If
@@ -1028,7 +1013,7 @@ Private Function SendRequest(ByRef Request() As Byte) As Byte()
     SendRequest = baResponse
     Exit Function
 ErrorHandler:
-    RaiseError "SendRequest failed: " & ERR.Description
+    RaiseError "SendRequest failed: " & Err.Description
 End Function
 
 Private Function SendRequestRTU(ByRef Request() As Byte) As Byte()
@@ -1093,7 +1078,7 @@ Private Function SendRequestRTU(ByRef Request() As Byte) As Byte()
     
     Exit Function
 ErrorHandler:
-    RaiseError "SendRequestRTU failed: " & ERR.Description
+    RaiseError "SendRequestRTU failed: " & Err.Description
 End Function
 
 Private Function ParseRTUFrame() As Byte()
@@ -1121,10 +1106,10 @@ Private Function ParseRTUFrame() As Byte()
                 lByteCount = m_RTUBuffer.PeekByte(2)
                 lPDULen = 3 + lByteCount + 2
             Case MB_MASTER_FC_WRITE_SINGLE_COIL, MB_MASTER_FC_WRITE_SINGLE_REGISTER
-                ' 写单个响应: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
+                ' 写单个响�?: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
                 lPDULen = 8
             Case MB_MASTER_FC_WRITE_MULTIPLE_COILS, MB_MASTER_FC_WRITE_MULTIPLE_REGISTERS
-                ' 写多个响应: SlaveID(1) + FC(1) + Addr(2) + Quantity(2) + CRC(2) = 8
+                ' 写多个响�?: SlaveID(1) + FC(1) + Addr(2) + Quantity(2) + CRC(2) = 8
                 lPDULen = 8
             Case Else
                 lPDULen = 4
@@ -1197,7 +1182,7 @@ Private Function SendRequestTCP(ByRef Request() As Byte) As Byte()
     
     Exit Function
 ErrorHandler:
-    RaiseError "SendRequestTCP failed: " & ERR.Description
+    RaiseError "SendRequestTCP failed: " & Err.Description
 End Function
 
 '=========================================================================
@@ -1216,7 +1201,7 @@ End Function
 
 Private Sub ValidateQuantity(ByVal Quantity As Long, ByVal MaxQuantity As Long)
     If Quantity < 1 Or Quantity > MaxQuantity Then
-        ERR.Raise vbObjectError + 1, "cModbusMaster", "Invalid quantity: " & Quantity
+        Err.Raise vbObjectError + 1, "cModbusMaster", "Invalid quantity: " & Quantity
     End If
 End Sub
 

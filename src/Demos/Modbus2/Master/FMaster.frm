@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form FMaster
+Begin VB.Form FMaster 
    Caption         =   "Modbus 主站示例 (Master)"
    ClientHeight    =   7200
    ClientLeft      =   120
@@ -8,15 +8,15 @@ Begin VB.Form FMaster
    LinkTopic       =   "Form1"
    ScaleHeight     =   7200
    ScaleWidth      =   9600
-   StartUpPosition =   2  '屏幕中央
-   Begin VB.Frame fraConnection
+   StartUpPosition =   2  '屏幕中心
+   Begin VB.Frame fraConnection 
       Caption         =   "连接设置"
       Height          =   1695
       Left            =   120
       TabIndex        =   0
       Top             =   120
       Width           =   4575
-      Begin VB.TextBox txtSlaveID
+      Begin VB.TextBox txtSlaveID 
          Height          =   285
          Left            =   3480
          TabIndex        =   7
@@ -24,7 +24,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   855
       End
-      Begin VB.TextBox txtPort
+      Begin VB.TextBox txtPort 
          Height          =   285
          Left            =   3480
          TabIndex        =   5
@@ -32,7 +32,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   855
       End
-      Begin VB.TextBox txtHost
+      Begin VB.TextBox txtHost 
          Height          =   285
          Left            =   960
          TabIndex        =   3
@@ -40,7 +40,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   1455
       End
-      Begin VB.CommandButton cmdDisconnect
+      Begin VB.CommandButton cmdDisconnect 
          Caption         =   "断开"
          Enabled         =   0   'False
          Height          =   375
@@ -49,7 +49,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   1935
       End
-      Begin VB.CommandButton cmdConnect
+      Begin VB.CommandButton cmdConnect 
          Caption         =   "连接"
          Height          =   375
          Left            =   120
@@ -57,7 +57,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   1935
       End
-      Begin VB.Label lblSlaveID
+      Begin VB.Label lblSlaveID 
          Caption         =   "从站ID:"
          Height          =   255
          Left            =   2640
@@ -65,7 +65,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   735
       End
-      Begin VB.Label lblPort
+      Begin VB.Label lblPort 
          Caption         =   "端口:"
          Height          =   255
          Left            =   2640
@@ -73,7 +73,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   615
       End
-      Begin VB.Label lblHost
+      Begin VB.Label lblHost 
          Caption         =   "主机:"
          Height          =   255
          Left            =   120
@@ -81,7 +81,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   615
       End
-      Begin VB.Label lblStatus
+      Begin VB.Label lblStatus 
          Caption         =   "状态: 未连接"
          ForeColor       =   &H000000FF&
          Height          =   255
@@ -91,14 +91,14 @@ Begin VB.Form FMaster
          Width           =   2295
       End
    End
-   Begin VB.Frame fraRead
+   Begin VB.Frame fraRead 
       Caption         =   "读取操作"
       Height          =   1695
       Left            =   4800
       TabIndex        =   10
       Top             =   120
       Width           =   4695
-      Begin VB.TextBox txtReadQuantity
+      Begin VB.TextBox txtReadQuantity 
          Height          =   285
          Left            =   2760
          TabIndex        =   14
@@ -106,7 +106,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   615
       End
-      Begin VB.TextBox txtReadAddress
+      Begin VB.TextBox txtReadAddress 
          Height          =   285
          Left            =   960
          TabIndex        =   12
@@ -114,7 +114,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   855
       End
-      Begin VB.CommandButton cmdReadInputRegs
+      Begin VB.CommandButton cmdReadInputRegs 
          Caption         =   "读输入寄存器"
          Height          =   375
          Left            =   2400
@@ -122,7 +122,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   2175
       End
-      Begin VB.CommandButton cmdReadHoldingRegs
+      Begin VB.CommandButton cmdReadHoldingRegs 
          Caption         =   "读保持寄存器"
          Height          =   375
          Left            =   120
@@ -130,7 +130,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   2175
       End
-      Begin VB.CommandButton cmdReadDiscreteInputs
+      Begin VB.CommandButton cmdReadDiscreteInputs 
          Caption         =   "读离散输入"
          Height          =   375
          Left            =   2400
@@ -138,7 +138,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   2175
       End
-      Begin VB.CommandButton cmdReadCoils
+      Begin VB.CommandButton cmdReadCoils 
          Caption         =   "读线圈"
          Height          =   375
          Left            =   120
@@ -146,7 +146,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   2175
       End
-      Begin VB.Label lblReadQuantity
+      Begin VB.Label lblReadQuantity 
          Caption         =   "数量:"
          Height          =   255
          Left            =   2160
@@ -154,7 +154,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   615
       End
-      Begin VB.Label lblReadAddress
+      Begin VB.Label lblReadAddress 
          Caption         =   "地址:"
          Height          =   255
          Left            =   120
@@ -163,14 +163,14 @@ Begin VB.Form FMaster
          Width           =   615
       End
    End
-   Begin VB.Frame fraWrite
+   Begin VB.Frame fraWrite 
       Caption         =   "写入操作"
       Height          =   1695
       Left            =   120
       TabIndex        =   19
       Top             =   1920
       Width           =   4575
-      Begin VB.TextBox txtWriteValue
+      Begin VB.TextBox txtWriteValue 
          Height          =   285
          Left            =   2760
          TabIndex        =   23
@@ -178,7 +178,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   855
       End
-      Begin VB.TextBox txtWriteAddress
+      Begin VB.TextBox txtWriteAddress 
          Height          =   285
          Left            =   960
          TabIndex        =   21
@@ -186,7 +186,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   855
       End
-      Begin VB.CommandButton cmdWriteMultipleRegs
+      Begin VB.CommandButton cmdWriteMultipleRegs 
          Caption         =   "写多寄存器"
          Height          =   375
          Left            =   2400
@@ -194,7 +194,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   2055
       End
-      Begin VB.CommandButton cmdWriteSingleReg
+      Begin VB.CommandButton cmdWriteSingleReg 
          Caption         =   "写单寄存器"
          Height          =   375
          Left            =   120
@@ -202,7 +202,7 @@ Begin VB.Form FMaster
          Top             =   1200
          Width           =   2055
       End
-      Begin VB.CommandButton cmdWriteMultipleCoils
+      Begin VB.CommandButton cmdWriteMultipleCoils 
          Caption         =   "写多线圈"
          Height          =   375
          Left            =   2400
@@ -210,7 +210,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   2055
       End
-      Begin VB.CommandButton cmdWriteSingleCoil
+      Begin VB.CommandButton cmdWriteSingleCoil 
          Caption         =   "写单线圈"
          Height          =   375
          Left            =   120
@@ -218,7 +218,7 @@ Begin VB.Form FMaster
          Top             =   720
          Width           =   2055
       End
-      Begin VB.Label lblWriteValue
+      Begin VB.Label lblWriteValue 
          Caption         =   "值:"
          Height          =   255
          Left            =   2400
@@ -226,7 +226,7 @@ Begin VB.Form FMaster
          Top             =   360
          Width           =   375
       End
-      Begin VB.Label lblWriteAddress
+      Begin VB.Label lblWriteAddress 
          Caption         =   "地址:"
          Height          =   255
          Left            =   120
@@ -235,14 +235,14 @@ Begin VB.Form FMaster
          Width           =   615
       End
    End
-   Begin VB.Frame fraResult
+   Begin VB.Frame fraResult 
       Caption         =   "读取结果"
       Height          =   1695
       Left            =   4800
       TabIndex        =   28
       Top             =   1920
       Width           =   4695
-      Begin VB.TextBox txtResult
+      Begin VB.TextBox txtResult 
          Height          =   1335
          Left            =   120
          MultiLine       =   -1  'True
@@ -252,14 +252,14 @@ Begin VB.Form FMaster
          Width           =   4455
       End
    End
-   Begin VB.Frame fraLog
+   Begin VB.Frame fraLog 
       Caption         =   "通信日志"
       Height          =   3375
       Left            =   120
       TabIndex        =   30
       Top             =   3720
       Width           =   9375
-      Begin VB.CommandButton cmdClearLog
+      Begin VB.CommandButton cmdClearLog 
          Caption         =   "清空"
          Height          =   375
          Left            =   8400
@@ -267,7 +267,7 @@ Begin VB.Form FMaster
          Top             =   240
          Width           =   855
       End
-      Begin VB.TextBox txtLog
+      Begin VB.TextBox txtLog 
          Height          =   2895
          Left            =   120
          MultiLine       =   -1  'True
@@ -305,7 +305,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' Modbus 主站对象
-Private WithEvents m_Master As VBMANLIB.cModbusMaster
+Private WithEvents m_Master As cModbusMaster
 Attribute m_Master.VB_VarHelpID = -1
 
 '=========================================================================
@@ -314,7 +314,7 @@ Attribute m_Master.VB_VarHelpID = -1
 
 Private Sub Form_Load()
     ' 创建 Modbus 主站对象
-    Set m_Master = New VBMANLIB.cModbusMaster
+    Set m_Master = New cModbusMaster
 
     ' 设置为 TCP 模式
     m_Master.ProtocolType = MB_MASTER_PROTOCOL_TCP
@@ -371,32 +371,34 @@ End Sub
 
 Private Sub cmdReadCoils_Click()
     On Error GoTo ErrorHandler
-
+    
     Dim lAddress As Long
     Dim lQuantity As Long
     Dim baCoils() As Boolean
+    Dim vTemp As Variant
     Dim i As Long
     Dim sResult As String
-
+    
     lAddress = CLng(Val(txtReadAddress.Text))
     lQuantity = CLng(Val(txtReadQuantity.Text))
-
+    
     LogMessage "读线圈: 地址=" & lAddress & ", 数量=" & lQuantity
-
-    ' 读取线圈
-    baCoils = m_Master.ReadCoils(lAddress, lQuantity)
-
+    
+    ' 读取线圈 - 使用安全赋值函数避免直接数组赋值错误
+    vTemp = m_Master.ReadCoils(lAddress, lQuantity)
+    SafeBooleanArrayCopy vTemp, baCoils, lQuantity
+    
     ' 显示结果
     sResult = "线圈 [" & lAddress & "-" & (lAddress + lQuantity - 1) & "]:" & vbCrLf
     For i = 0 To UBound(baCoils)
         sResult = sResult & IIf(baCoils(i), "1", "0")
         If (i + 1) Mod 8 = 0 Then sResult = sResult & " "
     Next i
-
+    
     txtResult.Text = sResult
     LogMessage "读取成功"
     Exit Sub
-
+    
 ErrorHandler:
     LogMessage "读线圈失败: " & Err.Description
 End Sub
@@ -407,6 +409,7 @@ Private Sub cmdReadDiscreteInputs_Click()
     Dim lAddress As Long
     Dim lQuantity As Long
     Dim baInputs() As Boolean
+    Dim vTemp As Variant
     Dim i As Long
     Dim sResult As String
 
@@ -415,8 +418,9 @@ Private Sub cmdReadDiscreteInputs_Click()
 
     LogMessage "读离散输入: 地址=" & lAddress & ", 数量=" & lQuantity
 
-    ' 读取离散输入
-    baInputs = m_Master.ReadDiscreteInputs(lAddress, lQuantity)
+    ' 读取离散输入 - 使用安全赋值函数避免直接数组赋值错误
+    vTemp = m_Master.ReadDiscreteInputs(lAddress, lQuantity)
+    SafeBooleanArrayCopy vTemp, baInputs, lQuantity
 
     ' 显示结果
     sResult = "离散输入 [" & lAddress & "-" & (lAddress + lQuantity - 1) & "]:" & vbCrLf
@@ -435,21 +439,23 @@ End Sub
 
 Private Sub cmdReadHoldingRegs_Click()
     On Error GoTo ErrorHandler
-
+    
     Dim lAddress As Long
     Dim lQuantity As Long
     Dim aiRegs() As Integer
+    Dim vTemp As Variant
     Dim i As Long
     Dim sResult As String
-
+    
     lAddress = CLng(Val(txtReadAddress.Text))
     lQuantity = CLng(Val(txtReadQuantity.Text))
-
+    
     LogMessage "读保持寄存器: 地址=" & lAddress & ", 数量=" & lQuantity
-
-    ' 读取保持寄存器
-    aiRegs = m_Master.ReadHoldingRegisters(lAddress, lQuantity)
-
+    
+    ' 读取保持寄存器 - 使用安全赋值函数避免直接数组赋值错误
+    vTemp = m_Master.ReadHoldingRegisters(lAddress, lQuantity)
+    SafeIntegerArrayCopy vTemp, aiRegs, lQuantity
+    
     ' 显示结果
     sResult = "保持寄存器 [" & lAddress & "-" & (lAddress + lQuantity - 1) & "]:" & vbCrLf
     For i = 0 To UBound(aiRegs)
@@ -457,32 +463,34 @@ Private Sub cmdReadHoldingRegs_Click()
         If i < UBound(aiRegs) Then sResult = sResult & ", "
         If (i + 1) Mod 5 = 0 Then sResult = sResult & vbCrLf
     Next i
-
+    
     txtResult.Text = sResult
     LogMessage "读取成功"
     Exit Sub
-
+    
 ErrorHandler:
     LogMessage "读保持寄存器失败: " & Err.Description
 End Sub
 
 Private Sub cmdReadInputRegs_Click()
     On Error GoTo ErrorHandler
-
+    
     Dim lAddress As Long
     Dim lQuantity As Long
     Dim aiRegs() As Integer
+    Dim vTemp As Variant
     Dim i As Long
     Dim sResult As String
-
+    
     lAddress = CLng(Val(txtReadAddress.Text))
     lQuantity = CLng(Val(txtReadQuantity.Text))
-
+    
     LogMessage "读输入寄存器: 地址=" & lAddress & ", 数量=" & lQuantity
-
-    ' 读取输入寄存器
-    aiRegs = m_Master.ReadInputRegisters(lAddress, lQuantity)
-
+    
+    ' 读取输入寄存器 - 使用安全赋值函数避免直接数组赋值错误
+    vTemp = m_Master.ReadInputRegisters(lAddress, lQuantity)
+    SafeIntegerArrayCopy vTemp, aiRegs, lQuantity
+    
     ' 显示结果
     sResult = "输入寄存器 [" & lAddress & "-" & (lAddress + lQuantity - 1) & "]:" & vbCrLf
     For i = 0 To UBound(aiRegs)
@@ -490,11 +498,11 @@ Private Sub cmdReadInputRegs_Click()
         If i < UBound(aiRegs) Then sResult = sResult & ", "
         If (i + 1) Mod 5 = 0 Then sResult = sResult & vbCrLf
     Next i
-
+    
     txtResult.Text = sResult
     LogMessage "读取成功"
     Exit Sub
-
+    
 ErrorHandler:
     LogMessage "读输入寄存器失败: " & Err.Description
 End Sub
@@ -673,7 +681,122 @@ Private Sub m_Master_OnDataReceived(Data() As Byte)
 End Sub
 
 '=========================================================================
+' 数组操作辅助函数
+'=========================================================================
+
+' 安全地将函数返回的数组复制到目标数组
+' 避免直接赋值导致的类型不匹配错误
+Private Sub SafeArrayCopy(ByRef SourceArray As Variant, ByRef TargetArray() As Variant, Optional ElementCount As Long = -1)
+    On Error GoTo ErrorHandler
+    
+    Dim i As Long
+    Dim lUBoundSource As Long
+    Dim lLBoundSource As Long
+    
+    ' 检查源是否为有效数组
+    If Not IsArray(SourceArray) Then
+        Exit Sub
+    End If
+    
+    ' 获取源数组边界
+    lLBoundSource = LBound(SourceArray)
+    lUBoundSource = UBound(SourceArray)
+    
+    ' 确定要复制的元素数量
+    If ElementCount > 0 And ElementCount <= (lUBoundSource - lLBoundSource + 1) Then
+        ReDim TargetArray(ElementCount - 1) As Variant
+        For i = 0 To ElementCount - 1
+            TargetArray(i) = SourceArray(lLBoundSource + i)
+        Next i
+    Else
+        ReDim TargetArray(lUBoundSource - lLBoundSource) As Variant
+        For i = 0 To (lUBoundSource - lLBoundSource)
+            TargetArray(i) = SourceArray(lLBoundSource + i)
+        Next i
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "SafeArrayCopy 错误: " & Err.Description
+End Sub
+
+' 专门用于布尔数组的安全复制
+Private Sub SafeBooleanArrayCopy(ByRef SourceArray As Variant, ByRef TargetArray() As Boolean, Optional ElementCount As Long = -1)
+    On Error GoTo ErrorHandler
+    
+    Dim i As Long
+    Dim lUBoundSource As Long
+    Dim lLBoundSource As Long
+    
+    ' 检查源是否为有效数组
+    If Not IsArray(SourceArray) Then
+        Exit Sub
+    End If
+    
+    ' 获取源数组边界
+    lLBoundSource = LBound(SourceArray)
+    lUBoundSource = UBound(SourceArray)
+    
+    ' 确定要复制的元素数量
+    If ElementCount > 0 And ElementCount <= (lUBoundSource - lLBoundSource + 1) Then
+        ReDim TargetArray(ElementCount - 1) As Boolean
+        For i = 0 To ElementCount - 1
+            TargetArray(i) = CBool(SourceArray(lLBoundSource + i))
+        Next i
+    Else
+        ReDim TargetArray(lUBoundSource - lLBoundSource) As Boolean
+        For i = 0 To (lUBoundSource - lLBoundSource)
+            TargetArray(i) = CBool(SourceArray(lLBoundSource + i))
+        Next i
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "SafeBooleanArrayCopy 错误: " & Err.Description
+End Sub
+
+' 专门用于整型数组的安全复制
+Private Sub SafeIntegerArrayCopy(ByRef SourceArray As Variant, ByRef TargetArray() As Integer, Optional ElementCount As Long = -1)
+    On Error GoTo ErrorHandler
+    
+    Dim i As Long
+    Dim lUBoundSource As Long
+    Dim lLBoundSource As Long
+    
+    ' 检查源是否为有效数组
+    If Not IsArray(SourceArray) Then
+        Exit Sub
+    End If
+    
+    ' 获取源数组边界
+    lLBoundSource = LBound(SourceArray)
+    lUBoundSource = UBound(SourceArray)
+    
+    ' 确定要复制的元素数量
+    If ElementCount > 0 And ElementCount <= (lUBoundSource - lLBoundSource + 1) Then
+        ReDim TargetArray(ElementCount - 1) As Integer
+        For i = 0 To ElementCount - 1
+            TargetArray(i) = CInt(SourceArray(lLBoundSource + i))
+        Next i
+    Else
+        ReDim TargetArray(lUBoundSource - lLBoundSource) As Integer
+        For i = 0 To (lUBoundSource - lLBoundSource)
+            TargetArray(i) = CInt(SourceArray(lLBoundSource + i))
+        Next i
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "SafeIntegerArrayCopy 错误: " & Err.Description
+End Sub
+
+'=========================================================================
+'
 ' 辅助函数
+'
 '=========================================================================
 
 Private Sub cmdClearLog_Click()

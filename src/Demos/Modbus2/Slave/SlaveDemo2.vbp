@@ -1,7 +1,15 @@
 Type=Exe
-Form=FSlave.frm
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Reference=*\G{A638B373-E3B1-4281-8BD3-957EAD54B31C}#3f.0#0#..\..\..\..\dist\DLL\VBMAN.dll#VBMANLIB
+Form=FSlave.frm
+Class=cModbusSlave; ..\lib\cModbusSlave.cls
+Class=cWinsock; ..\lib\cWinSock.cls
+Module=Module1; ..\lib\Module1.bas
+Class=cAsyncSocket; ..\lib\cAsyncSocket.cls
+Class=cByteBuffer; ..\lib\cByteBuffer.cls
+Class=cModbusMaster; ..\lib\cModbusMaster.cls
+Class=cTimer; ..\lib\cTimer.cls
+Class=cTimers; ..\lib\cTimers.cls
+Module=ToolsTimer; ..\lib\ToolsTimer.bas
 IconForm="FSlave"
 Startup="FSlave"
 ExeName32="SlaveDemo2.exe"
@@ -14,6 +22,7 @@ MinorVer=0
 RevisionVer=0
 AutoIncrementVer=0
 ServerSupportFiles=0
+VersionCompanyName="home"
 CompilationType=0
 OptimizationType=0
 FavorPentiumPro(tm)=0
@@ -29,6 +38,7 @@ Unattended=0
 Retained=0
 ThreadPerObject=0
 MaxNumberOfThreads=1
+
 [AmicForVB]
 XPSTYLE=0
 DLLOUT=0

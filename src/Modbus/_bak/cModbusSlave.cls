@@ -297,6 +297,10 @@ Private m_RTUBuffer As cByteBuffer
 ' RTU processing thread handle (simulated)
 Private m_RTUProcessing As Boolean
 
+' RTU Timer for non-blocking polling
+Private WithEvents m_RTUTimer As cTimer
+Attribute m_RTUTimer.VB_VarHelpID = -1
+
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -696,6 +700,12 @@ Private Sub StopRTU()
     
     m_RTUProcessing = False
     
+    ' Stop RTU timer
+    If Not m_RTUTimer Is Nothing Then
+        m_RTUTimer.Enabled = False
+        Set m_RTUTimer = Nothing
+    End If
+    
     If m_hSerialPort <> INVALID_HANDLE_VALUE Then
         CloseHandle m_hSerialPort
         m_hSerialPort = INVALID_HANDLE_VALUE
@@ -707,31 +717,49 @@ Private Sub StopRTU()
 End Sub
 
 Private Sub StartRTUProcessing()
+    On Error GoTo ErrorHandler
+    
+    '  π”√ cTimer ÃÊ¥˙◊Ë»˚—≠ª∑£¨±‹√‚◊Ë»˚÷˜œﬂ≥Ã
+    Set m_RTUTimer = New cTimer
+    m_RTUTimer.Interval = 10  ' 10ms¬÷—Ø
+    m_RTUTimer.Enabled = True
+    
+    Exit Sub
+ErrorHandler:
+    RaiseError "StartRTUProcessing failed: " & ERR.Description
+End Sub
+
+' Timer  ¬º˛¥¶¿Ì≥Ã–Ú - ∑«◊Ë»˚∑Ω Ω∂¡»°∫Õ¥¶¿Ì RTU  ˝æ›
+Private Sub m_RTUTimer_Timer()
     Dim baBuffer(255) As Byte
     Dim lBytesRead As Long
     Dim baFrame() As Byte
-    
+    Dim baTemp() As Byte
+
     On Error GoTo ErrorHandler
-    
-    Do While m_RTUProcessing And m_State = MB_SLAVE_STATE_RUNNING
-        ' Read available data
-        ReadFile m_hSerialPort, baBuffer(0), 256, lBytesRead, 0
-        
-        If lBytesRead > 0 Then
-            Dim baTemp() As Byte
-            ReDim baTemp(lBytesRead - 1) As Byte
-            CopyMemory baTemp(0), baBuffer(0), lBytesRead
-            m_RTUBuffer.Append baTemp
-            
-            ' Try to parse frames
-            Do
-                baFrame = ParseAndProcessRTUFrame()
-                If UBound(baFrame) < 0 Then Exit Do
-            Loop
+
+    ' ºÏ≤È «∑Ò”¶∏√ºÃ–¯¥¶¿Ì
+    If Not m_RTUProcessing Or m_State <> MB_SLAVE_STATE_RUNNING Then
+        If Not m_RTUTimer Is Nothing Then
+            m_RTUTimer.Enabled = False
         End If
-        
-        Sleep 10  ' Small delay to avoid CPU spinning
-    Loop
+        Exit Sub
+    End If
+
+    ' ∂¡»°¥Æø⁄ ˝æ›
+    ReadFile m_hSerialPort, baBuffer(0), 256, lBytesRead, 0
+
+    If lBytesRead > 0 Then
+        ReDim baTemp(lBytesRead - 1) As Byte
+        CopyMemory baTemp(0), baBuffer(0), lBytesRead
+        m_RTUBuffer.Append baTemp
+
+        ' ≥¢ ‘Ω‚ŒˆÕÍ’˚µƒ÷°
+        Do
+            baFrame = ParseAndProcessRTUFrame()
+            If UBound(baFrame) < 0 Then Exit Do
+        Loop
+    End If
     
     Exit Sub
 ErrorHandler:
@@ -881,16 +909,32 @@ Private Function ProcessRequest(ByRef Request() As Byte) As Byte()
     
     On Error GoTo ErrorHandler
     
+    ' Validate minimum request length
+    If UBound(Request) < 1 Then
+        RaiseError "Invalid request length"
+        Exit Function
+    End If
+    
     If m_ProtocolType = MB_SLAVE_PROTOCOL_TCP Then
         lMBAPSize = m_Defaults.TCP_MBAP_SIZE
-        bSlaveID = Request(lMBAPSize)
-        bFC = Request(lMBAPSize + 1)
         
-        ' Extract PDU (skip MBAP header)
-        Dim baPDU() As Byte
-        ReDim baPDU(UBound(Request) - lMBAPSize) As Byte
-        CopyMemory baPDU(0), Request(lMBAPSize), UBound(baPDU) + 1
+        ' Validate TCP request length (MBAP + UnitID + FC)
+        If UBound(Request) < lMBAPSize + 1 Then
+            RaiseError "Invalid TCP request length"
+            Exit Function
+        End If
+        
+        ' Get Unit ID (Slave ID) from MBAP header
+        bSlaveID = Request(lMBAPSize)
+        
+        ' Get function code from PDU (after MBAP header)
+        If UBound(Request) < lMBAPSize + 1 Then
+            RaiseError "Invalid TCP request: missing function code"
+            Exit Function
+        End If
+        bFC = Request(lMBAPSize + 1)
     Else
+        ' RTU: Request format is SlaveID + Function Code + Data + CRC
         bSlaveID = Request(0)
         bFC = Request(1)
     End If
@@ -947,6 +991,12 @@ Private Function ProcessReadCoils(ByRef Request() As Byte) As Byte()
     Else
         lMBAPSize = 0
         lPDUOffset = 2
+    End If
+    
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessReadCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
     End If
     
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
@@ -1027,6 +1077,12 @@ Private Function ProcessReadDiscreteInputs(ByRef Request() As Byte) As Byte()
         lPDUOffset = 2
     End If
     
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessReadDiscreteInputs = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+    
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
@@ -1096,6 +1152,12 @@ Private Function ProcessReadHoldingRegisters(ByRef Request() As Byte) As Byte()
     Else
         lMBAPSize = 0
         lPDUOffset = 2
+    End If
+    
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessReadHoldingRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
     End If
     
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
@@ -1172,6 +1234,12 @@ Private Function ProcessReadInputRegisters(ByRef Request() As Byte) As Byte()
         lPDUOffset = 2
     End If
     
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessReadInputRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+    
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
     lQuantity = Request(lPDUOffset + 2) * 256 + Request(lPDUOffset + 3)
     
@@ -1245,6 +1313,12 @@ Private Function ProcessWriteSingleCoil(ByRef Request() As Byte) As Byte()
         lPDUOffset = 2
     End If
     
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessWriteSingleCoil = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
+    
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
     bValue = Request(lPDUOffset + 2)
     bOnOff = (bValue = &HFF And Request(lPDUOffset + 3) = 0)
@@ -1307,6 +1381,12 @@ Private Function ProcessWriteSingleRegister(ByRef Request() As Byte) As Byte()
     Else
         lMBAPSize = 0
         lPDUOffset = 2
+    End If
+    
+    ' Validate request length
+    If UBound(Request) < lPDUOffset + 3 Then
+        ProcessWriteSingleRegister = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
     End If
     
     lAddress = Request(lPDUOffset) * 256 + Request(lPDUOffset + 1)
@@ -1380,6 +1460,12 @@ Private Function ProcessWriteMultipleCoils(ByRef Request() As Byte) As Byte()
     ' FC15ËØ∑Ê±ÇÊ†ºÂºè: SlaveID(0) + FC(1) + AddrHi(2) + AddrLo(3) + QtyHi(4) + QtyLo(5) + ByteCount(6) + Data(7...)
     ' Áõ∏ÂØπ‰∫éPDUOffset: Addr(0,1) + Qty(2,3) + ByteCount(4) + Data(5...)
     lByteCount = Request(lPDUOffset + 4)
+    
+    ' Validate data length
+    If UBound(Request) < lPDUOffset + 4 + lByteCount Then
+        ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
 
     If lAddress + lQuantity > m_Defaults.MAX_COILS Then
         ProcessWriteMultipleCoils = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
@@ -1452,6 +1538,12 @@ Private Function ProcessWriteMultipleRegisters(ByRef Request() As Byte) As Byte(
     ' FC16ËØ∑Ê±ÇÊ†ºÂºè: SlaveID(0) + FC(1) + AddrHi(2) + AddrLo(3) + QtyHi(4) + QtyLo(5) + ByteCount(6) + Data(7...)
     ' Áõ∏ÂØπ‰∫éPDUOffset: Addr(0,1) + Qty(2,3) + ByteCount(4) + Data(5...)
     lByteCount = Request(lPDUOffset + 4)
+    
+    ' Validate data length
+    If UBound(Request) < lPDUOffset + 4 + lByteCount Then
+        ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_VALUE)
+        Exit Function
+    End If
 
     If lAddress + lQuantity > m_Defaults.MAX_REGISTERS Then
         ProcessWriteMultipleRegisters = BuildExceptionResponse(Request, MB_SLAVE_EX_ILLEGAL_DATA_ADDRESS)
@@ -1530,7 +1622,7 @@ Private Function BuildExceptionResponse(ByRef Request() As Byte, ByVal Exception
 
         ' Add CRC
         Dim wCRC As Long
-        wCRC = ModbusCRC16(baResponse, 0, 3)  ' ËÆ°ÁÆóÂâç3‰∏™Â≠óËäÇ
+        wCRC = ModbusCRC16(baResponse, 0, 3)  ' ËÆ°ÁÆóÂâ?3‰∏™Â≠óËä?
         baResponse(3) = wCRC And &HFF
         baResponse(4) = (wCRC \ 256) And &HFF
     End If
@@ -1550,15 +1642,15 @@ Private Function CalculateFrameLength(ByVal FC As Byte) As Long
     Select Case FC
         Case MB_SLAVE_FC_READ_COILS, MB_SLAVE_FC_READ_DISCRETE_INPUTS, _
              MB_SLAVE_FC_READ_HOLDING_REGISTERS, MB_SLAVE_FC_READ_INPUT_REGISTERS
-            ' ËØªËØ∑Ê±Ç: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + CRC(2) = 8
+            ' ËØªËØ∑Ê±?: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + CRC(2) = 8
             CalculateFrameLength = 8
 
         Case MB_SLAVE_FC_WRITE_SINGLE_COIL, MB_SLAVE_FC_WRITE_SINGLE_REGISTER
-            ' ÂÜôÂçï‰∏™: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
+            ' ÂÜôÂçï‰∏?: SlaveID(1) + FC(1) + Addr(2) + Value(2) + CRC(2) = 8
             CalculateFrameLength = 8
 
         Case MB_SLAVE_FC_WRITE_MULTIPLE_COILS, MB_SLAVE_FC_WRITE_MULTIPLE_REGISTERS
-            ' ÂÜôÂ§ö‰∏™: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + ByteCount(1) + Data(N) + CRC(2)
+            ' ÂÜôÂ§ö‰∏?: SlaveID(1) + FC(1) + Addr(2) + Qty(2) + ByteCount(1) + Data(N) + CRC(2)
             ' ÈúÄË¶ÅÂÖàÊ£ÄÊü•ÊòØÂê¶ÊúâË∂≥Â§üÊï∞ÊçÆËØªÂèñ ByteCount
             If m_RTUBuffer.Size >= 7 Then
                 Dim lByteCount As Long
@@ -1756,6 +1848,10 @@ End Sub
 Private Sub Class_Terminate()
     On Error Resume Next
     StopMe
+    If Not m_RTUTimer Is Nothing Then
+        m_RTUTimer.Enabled = False
+        Set m_RTUTimer = Nothing
+    End If
     Set m_RTUBuffer = Nothing
     Set m_ListenSocket = Nothing
     Set m_Clients = Nothing

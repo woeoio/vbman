@@ -288,4 +288,66 @@ Private Sub Class_Terminate()
     Set Inst = Nothing
 End Sub
 
+'WinHttpRequest 事件处理程序
+Private Sub Inst_OnResponseFinished()
+    '解析返回头
+    Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
+    '自动处理 Set-Cookie 响应头
+    If ResponseHeaders.Exists("Set-Cookie") Then
+        Call ParseSetCookie(ResponseHeaders("Set-Cookie"))
+    End If
+    '触发自定义事件
+    RaiseEvent OnResponseFinished
+End Sub
+
+Private Sub Inst_OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String)
+    LastError = ErrorDescription & " (错误代码: " & ErrorNumber & ")"
+    '记录错误到调试信息
+    If DebugStart = True Then
+        With DebugInfo.NewItem("AsyncError")
+            .Item("Number") = ErrorNumber
+            .Item("Description") = ErrorDescription
+        End With
+    End If
+End Sub
+
+'解析 Set-Cookie 响应头
+Private Sub ParseSetCookie(ByVal SetCookieValue As String)
+    If Trim(SetCookieValue) = "" Then Exit Sub
+    
+    Dim CookieParts() As String
+    Dim CookieItem As String
+    Dim CookieParts2() As String
+    Dim CookieName As String
+    Dim CookieValue As String
+    
+    '处理可能存在多个 Set-Cookie 的情况（使用逗号分隔或换行符）
+    Dim MultiCookies() As String
+    MultiCookies = Split(SetCookieValue, ",")
+    
+    Dim i As Long
+    For i = LBound(MultiCookies) To UBound(MultiCookies)
+        CookieItem = Trim(MultiCookies(i))
+        If CookieItem <> "" Then
+            '找到第一个等号分隔 name=value
+            Dim EqPos As Long
+            EqPos = InStr(CookieItem, "=")
+            If EqPos > 0 Then
+                CookieName = Trim(Left(CookieItem, EqPos - 1))
+                '只取到分号或行尾
+                Dim SemicolonPos As Long
+                SemicolonPos = InStr(EqPos + 1, CookieItem, ";")
+                If SemicolonPos > 0 Then
+                    CookieValue = Mid(CookieItem, EqPos + 1, SemicolonPos - EqPos - 1)
+                Else
+                    CookieValue = Mid(CookieItem, EqPos + 1)
+                End If
+                Cookies(CookieName) = CookieValue
+            End If
+        End If
+    Next i
+End Sub
+
+
+
 

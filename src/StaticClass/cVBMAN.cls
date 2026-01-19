@@ -31,6 +31,9 @@ Public StartUp As New cStartUp
 'µÚÈý·½
 Public Baidu As New cBaidu
 
+'AI
+Public AI As New cAI
+
 'tools
 Public ToolsStream As New cToolsStream
 Public ToolsWindow As New cToolsWindow

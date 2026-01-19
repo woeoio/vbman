@@ -1,3 +1,9 @@
+### 2025-01-19
+
+- ? 实现了 SSE (Server-Sent Events) 客户端 cSSEClient.cls
+- ? 支持自动重连、断点续传、事件类型解析
+- ? 添加 SSE 客户端使用文档
+
 ### 2026-01-18
 
 - 给cWinsock添加一个函数，用于绑定业务 userID，方便针对用户发送，模仿 webman

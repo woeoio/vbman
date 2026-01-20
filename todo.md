@@ -1,8 +1,26 @@
-### 2025-01-19
+### 2026-01-20
 
-- ? 实现了 SSE (Server-Sent Events) 客户端 cSSEClient.cls
-- ? 支持自动重连、断点续传、事件类型解析
-- ? 添加 SSE 客户端使用文档
+今天看到一个牛逼的函数，来自维托的：
+
+```vb
+Public Property Get ObjectFromPtr(ByVal lPtr As Long) As Object
+Dim oTemp As Object
+   ' Turn the pointer into an illegal, uncounted interface
+   CopyMemory oTemp, lPtr, 4
+   ' Do NOT hit the End button here! You will crash!
+   ' Assign to legal reference
+   Set ObjectFromPtr = oTemp
+   ' Still do NOT hit the End button here! You will still crash!
+   ' Destroy the illegal reference
+   CopyMemory oTemp, 0&, 4
+   ' OK, hit the End button if you must--you'll probably still crash,
+   ' but it will be because of the subclass, not the uncounted reference
+End Property
+```
+
+### 2026-01-19
+
+- 给所有字典对象改为大小写不敏感
 
 ### 2026-01-18
 

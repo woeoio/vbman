@@ -1,3 +1,4 @@
 {
-    "files.encoding": "gbk"
+    "files.encoding": "gbk",
+    "prettier.endOfLine": "crlf"
 }

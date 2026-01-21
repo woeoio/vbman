@@ -172,7 +172,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
     
     If IsAsync = False Then
         '设置等待超时, '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
-        If RequestTimeOut < 5 Then RequestTimeOut = 5
+        If RequestTimeOut < 30 Then RequestTimeOut = 30
         If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
         '处理网络不可用
         '        If Inst.Status = WinHttpRequestStatus_Sending Then ERR.Raise 901, , "网络不可用"
@@ -280,7 +280,7 @@ Private Sub Class_Initialize()
     RequestHeaders.CompareMode = TextCompare
     Cookies.CompareMode = TextCompare
     ResponseHeaders.CompareMode = TextCompare
-    RequestTimeOut = 5
+    RequestTimeOut = 30
     RequestChartSet = "utf-8"
 End Sub
 

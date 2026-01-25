@@ -1,6 +1,23 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+
+Sub AesCBC()
+    With New cAes
+        MsgBox .CBC.Encode("fdsfds")
+    End With
+End Sub
+Sub ini()
+    With New cIni
+        .LoadFrom "D:\pro\ToDesk\config.ini"
+        With .Section("App")
+            .Item("abc") = 123
+        End With
+        .SaveTo "D:\pro\ToDesk\config2.ini"
+    End With
+End Sub
+
+
 Sub StartUp()
     With New cStartUp
         .Toggle "vbm", App, "-a", "-888"
@@ -105,13 +122,7 @@ Sub jsonbig()
     
 End Sub
 '
-Sub AesCBC()
-    '    With New cAes
-    '
-    '        MsgBox .CBC.Encode("2")
-    '
-    '    End With
-End Sub
+
 
 Sub Db()
     With New cDataBase

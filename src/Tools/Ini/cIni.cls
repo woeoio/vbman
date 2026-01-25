@@ -17,9 +17,14 @@ Option Explicit
     
 'todo: 支持无节点的键值对读写
 
-Dim Fso  As New Scripting.FileSystemObject
-Dim FileStream As Scripting.TextStream
+
+Dim FileStream As New cToolsStream
 Public LastError As String
+
+Dim Aes As New cAes
+
+Dim pvPwd As String
+Dim pvPath As String
 
 Dim RootDic As New Scripting.Dictionary
 
@@ -32,6 +37,10 @@ Public Property Get Section(ByVal Key As String) As Scripting.Dictionary
     If RootDic.Exists(Key) = False Then
         RootDic.Add Key, New Scripting.Dictionary
     End If
+    '这里今天遇到一个奇怪的问题，遇到这个函数居然报错，刚才才发现就是因为字典的特性引起的：只要读取过一个键值，如果字典不存在该项目，也会创建一个空项目，这就导致好多地方会出现诡异的事情
+    If IsObject(RootDic(Key)) = False Then                                      '所以这里得先判断是否对象，不是就new 一下，同样的问题出现在 save 函数
+        Set RootDic(Key) = New Scripting.Dictionary
+    End If
     Set Section = RootDic(Key)
 End Property
 
@@ -41,43 +50,55 @@ Private Sub FixFileExtName(Path As String)
     Path = Path & ".ini"
 End Sub
 
-Public Function SaveTo(Optional ByVal Path As String) As Boolean
+Public Function Password(ByVal Pwd As String) As cIni
+    Set Password = Me
+    pvPwd = Pwd
+End Function
+
+Public Function SaveTo(Optional ByVal Path As String, Optional CharSet As String = "UTF-8") As Boolean
     '把字段对象转为 ini 节点数据文本并写入 path 路径的文本文件
     On Error GoTo EH
     Dim Text As String, Value As String
-    Dim Section As Variant, Key As Variant
+    Dim Section As Variant, Key As Variant, Node As Object
     Dim Dic As Scripting.Dictionary: Set Dic = RootDic
     If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
-    FixFileExtName Path
+    If Path = "" Then Path = pvPath
+    If Path = "" Then LastError = "文件路径不能为空": Exit Function
+    '    FixFileExtName Path
     ToolsFso.AutoMakeDir Path, True
-    Set FileStream = Fso.OpenTextFile(Path, ForWriting, True)
     For Each Section In Dic.Keys
+        '这里要先判断是否对象，，问题同样出现在 Section函数
+        If IsObject(Dic(Section)) = False Then GoTo CT
         Text = Text & "[" & Section & "]" & vbCrLf
         For Each Key In Dic(Section).Keys
             Value = Dic(Section)(Key)
             Text = Text & Key & "=" & Value & vbCrLf
         Next
         Text = Text & vbCrLf
+CT:
     Next
-    FileStream.Write Text
-    FileStream.Close
+    '    If pvPwd <> "" Then Text = Aes.CBC.Encode(Text, pvPwd)
+    FileStream.SaveFileAsText Path, Text, CharSet
+    FileStream.Inst.Close
     LastError = ""
     SaveTo = True
     Exit Function
 EH:
     LastError = "【iniTools.SaveTo错误】" & ERR.Number & "#" & ERR.Description
+    ERR.Raise ERR.Number, ERR.Source, LastError
 End Function
 
-Public Function LoadFrom(ByVal Path As String) As cIni
+Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF-8") As cIni
     Set LoadFrom = Me
     On Error GoTo EH
     Dim Section As String
-    Dim TextLine As String
+    Dim TextLine As String, i As Long
     Dim Dic As Scripting.Dictionary: Set Dic = RootDic
     Call Dic.RemoveAll
-    FixFileExtName Path
-    Set FileStream = Fso.OpenTextFile(Path, ForReading)
-    Do Until FileStream.AtEndOfStream
+    '    FixFileExtName Path
+    FileStream.UseLine = True
+    Call FileStream.LoadFileAsText(Path, CharSet)
+    For i = 1 To FileStream.LineData.Count
         TextLine = Trim(FileStream.ReadLine())
         ' 忽略注释和空行
         If TextLine <> "" And Left(TextLine, 1) <> ";" Then
@@ -111,9 +132,10 @@ Public Function LoadFrom(ByVal Path As String) As cIni
                 End If
             End If
         End If
-    Loop
-    FileStream.Close
+    Next
+    FileStream.Inst.Close
     LastError = ""
+    pvPath = Path
     Exit Function
 EH:
     LastError = "【iniTools.LoadFrom错误】" & ERR.Number & "#" & ERR.Description & ": " & Path

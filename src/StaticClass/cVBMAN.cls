@@ -32,16 +32,20 @@ Public StartUp As New cStartUp
 Public Baidu As New cBaidu
 
 'AI
-Public AI As New cAI
+''Public AI As New cAI
 
 'tools
-Public ToolsStream As New cToolsStream
 Public ToolsWindow As New cToolsWindow
 Public ToolsStr As New cToolsStr
 Public ToolsMath As New cToolsMath
 Public ToolsHttp As New cToolsHttp
 Public ToolsBase64 As New cToolsBase64
 Public ToolsUtf8 As New cToolsUtf8
+Public ToolsStream As New cToolsStream
+Public ToolsArray As New cToolsArray
+Public ToolsDic As New cToolsDic
+Public ToolsFso As New cToolsFso
+Public ToolsList As New cToolsList
 
 '实验证明，dll编译后的app对象就是dll所属的
 Public Function Version(Optional HostApp As Object) As String

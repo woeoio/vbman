@@ -90,25 +90,25 @@ End Function
 
 Public Function Render(Frm As Object) As Boolean
     Dim o As Form: Set o = Frm
-    Dim Ctl As Variant, key As String, ln As String
+    Dim Ctl As Variant, Key As String, lN As String
     On Error Resume Next
-    ln = Item(o.Name & ".Caption")
-    If ln <> "" Then o.Caption = ln
+    lN = Item(o.Name & ".Caption")
+    If lN <> "" Then o.Caption = lN
     For Each Ctl In o
-        key = o.Name & "." & Ctl.Name
-        If IsControlArray(Ctl.Index) = True Then
-            key = key & "." & Ctl.Index
+        Key = o.Name & "." & Ctl.Name
+        If Tools.ToolsArray.IsControlArray(Ctl.Index) = True Then
+            Key = Key & "." & Ctl.Index
         End If
-        key = key & ".Caption"
-        ln = Item(key)
-        If ln <> "" Then Ctl.Caption = ln
+        Key = Key & ".Caption"
+        lN = Item(Key)
+        If lN <> "" Then Ctl.Caption = lN
         'Debug.Print """" & Key & """: """ & Ctl.Caption & """, "
     Next
 End Function
 
-Public Function Item(key As String) As String
+Public Function Item(Key As String) As String
 Attribute Item.VB_UserMemId = 0
-    Item = LangData.Item(key)
+    Item = LangData.Item(Key)
 End Function
 Private Function LoadData(ByVal Idx As Long) As Boolean
     With LangInfo("LangList")(Idx + 1)
@@ -119,8 +119,8 @@ Private Function LoadData(ByVal Idx As Long) As Boolean
         If IsIDE = True Then
             LangData.LoadFrom App.Path & "\lang\data\" & pvCurLang.ID & ".json", "GBK"
         Else
-            Dim d() As Byte: d = LoadResData(pvCurLang.ID, "LANGUAGE")
-            Dim S As String: S = StrConv(d, vbUnicode)
+            Dim D() As Byte: D = LoadResData(pvCurLang.ID, "LANGUAGE")
+            Dim S As String: S = StrConv(D, vbUnicode)
             LangData.Decode S
         End If
     End With
@@ -151,8 +151,8 @@ Private Function LoadInfo() As Boolean
     If IsIDE = True Then
         LangInfo.LoadFrom App.Path & "\lang\info.json", "GBK"
     Else
-        Dim d() As Byte: d = LoadResData("-", "LANGUAGE")
-        Dim S As String: S = StrConv(d, vbUnicode)
+        Dim D() As Byte: D = LoadResData("-", "LANGUAGE")
+        Dim S As String: S = StrConv(D, vbUnicode)
         LangInfo.Decode S
     End If
     LoadInfo = True

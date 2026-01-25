@@ -55,6 +55,7 @@ Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet 
         .CharSet = CharSet
         .LoadFromFile FileName
         LoadFileAsText = .ReadText()
+        .position = 0
         '        .Close
     End With
     ' 如果 UseLine 为 true，则将内容按行分割并存储到 LineDict
@@ -65,17 +66,17 @@ Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet 
 End Function
 Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String, Optional ByVal CharSet As String = "UTF-8") As Boolean
     Dim Dat As String, isInst As Boolean
-    If UseLine = True Then
-        Dat = Txt.JoinLinesFromCollection(LineData)
-    Else
-        If Len(Data) = 0 Then
-            isInst = True
+    If IsMissing(Data) Then
+        If UseLine = True Then
+            Dat = Txt.JoinLinesFromCollection(LineData)
         Else
-            Dat = Data
+            isInst = True
         End If
+    Else
+        Dat = Data
     End If
     With Inst
-        .Open
+        If .State = adStateClosed Then .Open
         .CharSet = CharSet
         If isInst = False Then .WriteText Dat
         .SaveToFile FileName, adSaveCreateOverWrite

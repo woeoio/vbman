@@ -98,6 +98,7 @@ Class=cToolsArray; Tools\Array\cToolsArray.cls
 Class=cToolsDic; Tools\Dic\cToolsDic.cls
 Class=cToolsFso; Tools\Fso\cToolsFso.cls
 ResFile32="RES\VBMANLIB.RES"
+Class=cRedisClient; Redis\cRedisClient.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

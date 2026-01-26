@@ -1,13 +1,20 @@
 Attribute VB_Name = "Demo"
 Option Explicit
 
+Sub Redis()
+    Dim oRedis As New cRedisClient
+    oRedis.Connect "127.0.0.1", 6379
+    oRedis.Set_ "mykey", "myvalue"
+    Debug.Print oRedis.Get_("mykey")
+    
+End Sub
 
 Sub AesCBC()
     With New cAes
         MsgBox .CBC.Encode("fdsfds")
     End With
 End Sub
-Sub ini()
+Sub Ini()
     With New cIni
         .LoadFrom "D:\pro\ToDesk\config.ini"
         With .Section("App")

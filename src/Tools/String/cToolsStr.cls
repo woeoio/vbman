@@ -72,10 +72,10 @@ Public Function SplitLinesToCollection(ByVal Text As String) As cCollection
     Do Until Pos = Size
         NextPos = InStr(Pos, Text, vbCrLf)
         If NextPos = 0 Then
-            SplitLinesToCollection.AddOrUpdate Mid(Text, Pos)
+            SplitLinesToCollection.Add Mid(Text, Pos)
             Exit Do
         End If
-        SplitLinesToCollection.AddOrUpdate Mid(Text, Pos, NextPos - Pos)
+        SplitLinesToCollection.Add Mid(Text, Pos, NextPos - Pos)
         Pos = NextPos + 2
     Loop
 End Function
@@ -562,7 +562,7 @@ Public Function GetRandStr(Optional ByVal Lens As Long = 32, Optional Zuhe As St
     Rem 有时间可以开1000个线程并行计算，看看跑多长时间会出现重复，
     Rem 以 8 位 1aA 参数测试，32位字符重复率视为零
     '制作：2016-01-21   邓伟
-    Dim Chars As String, i As Long, Max As Long, c As String, Pos As Long
+    Dim Chars As String, i As Long, Max As Long, C As String, Pos As Long
     Dim Char As String
     Dim C1 As String: C1 = "0123456789"
     Dim xA As String: xA = "abcdefghijklmnopqrstuvwxyz"
@@ -580,8 +580,8 @@ Public Function GetRandStr(Optional ByVal Lens As Long = 32, Optional Zuhe As St
     Max = Len(Chars)
     For i = 1 To Lens
         Pos = ToolsMath.GetRandRange(1, Max)
-        c = Mid$(Chars, Pos, 1)
-        Char = Char & c
+        C = Mid$(Chars, Pos, 1)
+        Char = Char & C
         '        Debug.Print i, C, Max, Pos
     Next
     GetRandStr = Char
@@ -589,25 +589,25 @@ End Function
 
 Public Function GetRandByte()
     Dim ByteArray() As Byte
-    Dim byteSize As Long
+    Dim ByteSize As Long
     Dim i As Long
     
     ' 指定字节数组的大小
-    byteSize = 10                                                               ' 例如，生成100个字节的数组
+    ByteSize = 10                                                               ' 例如，生成100个字节的数组
     
     ' 初始化随机数生成器
     Randomize
     
     ' 分配字节数组的大小
-    ReDim ByteArray(byteSize - 1)
+    ReDim ByteArray(ByteSize - 1)
     
     ' 生成随机字节
-    For i = 0 To byteSize - 1
+    For i = 0 To ByteSize - 1
         ByteArray(i) = Int(Rnd * 256)                                           ' 生成0到255之间的随机字节
     Next i
     
     ' 打印字节数组（以十六进制形式显示）
-    For i = 0 To byteSize - 1
+    For i = 0 To ByteSize - 1
         Debug.Print Hex(ByteArray(i));
     Next i
 End Function

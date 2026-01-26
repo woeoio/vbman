@@ -14,12 +14,12 @@ Attribute VB_Exposed = True
 Option Explicit
 
 
-Public Function RsToCollection(Obj As Variant) As Collection
+Public Function RsToCollection(Obj As Variant) As cCollection
     '把记录集转为字典数组
     Dim Rs As New ADODB.Recordset
     Dim fd As ADODB.Field
     Dim i As Long, ii As Long
-    Dim RsArr As New VBA.Collection
+    Dim RsArr As New cCollection
     Dim RsRow As Scripting.Dictionary
     Set Rs = Obj.Clone
     '克隆的对象记录集指针居然是初始位置

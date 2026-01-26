@@ -43,7 +43,7 @@ Public Function WriteLine(Text As String, Optional ByVal Line As Long) As Boolea
     '向 LineNumber 写入一行内容，如果提供了 Line 则写入指定行
     If UseLine = False Then ERR.Raise 1, , "未启用按行读写"
     If Line > 0 Then LineNumber = Line
-    LineData.AddOrUpdate Text, LineNumber
+    LineData.Add Text, LineNumber
     LineNumber = LineNumber + 1
     WriteLine = True
 End Function

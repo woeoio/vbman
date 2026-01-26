@@ -16,8 +16,12 @@ Option Explicit
 
 Private m_col As New Collection
 
+Public Property Get RawCollection() As Collection
+    Set RawCollection = m_col
+End Property
+
 ' 添加或更新元素
-Public Sub AddOrUpdate(ByVal Item As Variant, Optional ByVal Key As String = "")
+Public Sub Add(ByVal Item As Variant, Optional ByVal Key As String = "")
     On Error Resume Next
     
     ' 如果提供了键，尝试先删除（如果存在）

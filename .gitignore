@@ -6,3 +6,4 @@ VBMAN.PSC
 
 src/Demos/Modbus2/lib/
 src/Demos/Modbus2/*.lnk
+docs/

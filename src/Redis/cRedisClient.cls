@@ -152,41 +152,32 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
     Optional ByVal Port As Long = 6379, _
     Optional ByVal Password As String = "") As Boolean
     On Error GoTo ErrorHandler
-    
+
     ' 设置参数
     m_sHost = Server
     m_lPort = Port
     m_sPassword = Password
-    
+
     ' 关闭现有连接
     If Not m_oSocket Is Nothing Then
         m_oSocket.Close_
         Set m_oSocket = Nothing
     End If
-    
+
     ' 创建新连接
     Set m_oSocket = New cWinsock
     m_oSocket.Protocol = wskTCPProtocol
-    m_oSocket.RemoteHost = m_sHost
-    m_oSocket.RemotePort = m_lPort
-    m_oSocket.Connect
-    
-    ' 等待连接
-    Dim lStartTime As Double
-    lStartTime = Timer
-    Do While Not m_oSocket.State = wckConnected And (Timer - lStartTime) < m_dTimeout
-        DoEvents
-    Loop
-    
-    If m_oSocket.State <> wckConnected Then
+
+    ' 使用同步连接
+    If Not m_oSocket.SyncConnect(m_sHost, m_lPort, m_dTimeout * 1000) Then
         LastError = "连接超时"
         RaiseEvent OnError(LastError)
         Connect = False
         Exit Function
     End If
-    
+
     m_bConnected = True
-    
+
     ' 如果有密码,执行认证
     If LenB(m_sPassword) > 0 Then
         If Not Auth(m_sPassword) Then
@@ -196,15 +187,15 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
             Exit Function
         End If
     End If
-    
+
     ' 如果指定了数据库索引,切换数据库
     If m_lDbIndex > 0 Then
         Call SelectDb(m_lDbIndex)
     End If
-    
+
     Connect = True
     Exit Function
-    
+
 ErrorHandler:
     LastError = ERR.Description
     RaiseEvent OnError(LastError)
@@ -1109,20 +1100,22 @@ Private Function SendCommand(ByVal Command As Variant) As Variant
     If Not m_bConnected Then
         ERR.Raise vbObjectError, MODULE_NAME, "Not connected to Redis server"
     End If
-    
+
     Dim sCmd As String
     sCmd = BuildRedisCommand(Command)
-    
+
     Dim baCmd() As Byte
     baCmd = ToolsUtf8.Encode(sCmd)
-    
-    ' 发送命令
-    m_oSocket.SendData baCmd
-    
+
+    ' 使用同步发送
+    If Not m_oSocket.SyncSendArray(baCmd, m_dTimeout * 1000) Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Send command timeout"
+    End If
+
     ' 接收响应
     Dim sResponse As String
     sResponse = ReceiveResponse()
-    
+
     ' 解析响应
     SendCommand = ParseResp(sResponse)
 End Function
@@ -1154,28 +1147,213 @@ End Function
 
 ' 接收响应
 Private Function ReceiveResponse() As String
-    Dim lStartTime As Double
+    Dim baBuffer() As Byte
+    Dim lReceived As Long
+
+    ' 读取响应的第一个字节,判断类型
+    ReDim baBuffer(0 To 0) As Byte
+    If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Receive response timeout"
+    End If
+
+    Dim sType As String
+    sType = Chr(baBuffer(0))
+
     Dim sBuffer As String
-    Dim baData() As Byte
-    
-    lStartTime = Timer
-    sBuffer = ""
-    
-    Do While (Timer - lStartTime) < m_dTimeout
-        If m_oSocket.BytesReceived > 0 Then
-            ReDim baData(m_oSocket.BytesReceived - 1)
-            m_oSocket.GetData baData
-            sBuffer = sBuffer & ToolsUtf8.Decode(baData)
-            
-            ' 检查是否收到完整响应
-            If IsCompleteResp(sBuffer) Then
-                Exit Do
+    sBuffer = sType
+
+    Select Case sType
+        Case "+", "-", ":"
+            ' 简单字符串、错误、整数 - 读取直到 \r\n
+            Do
+                ReDim baBuffer(0 To 0) As Byte
+                If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                    Exit Do
+                End If
+                sBuffer = sBuffer & Chr(baBuffer(0))
+
+                If Right(sBuffer, 2) = vbCrLf Then
+                    Exit Do
+                End If
+            Loop
+
+        Case "$"
+            ' 批量字符串
+            Dim baLen() As Byte
+            Dim i As Long
+            Dim sLen As String
+
+            ' 读取长度部分(直到 \r\n)
+            sLen = ""
+            Do
+                ReDim baBuffer(0 To 0) As Byte
+                If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                    Exit Do
+                End If
+
+                If baBuffer(0) = 13 Then  ' CR
+                    ReDim baBuffer(0 To 0) As Byte
+                    If m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                        If baBuffer(0) = 10 Then  ' LF
+                            Exit Do
+                        End If
+                    End If
+                Else
+                    sLen = sLen & Chr(baBuffer(0))
+                End If
+            Loop
+
+            sBuffer = sBuffer & sLen & vbCrLf
+
+            Dim lLength As Long
+            lLength = Val(sLen)
+
+            If lLength = -1 Then
+                ' null 值
+            Else
+                ' 读取数据内容
+                If lLength > 0 Then
+                    ReDim baBuffer(0 To lLength - 1) As Byte
+                    If m_oSocket.SyncReceiveArray(baBuffer, lLength, m_dTimeout * 1000) Then
+                        sBuffer = sBuffer & ToolsUtf8.Decode(baBuffer)
+                    End If
+                End If
+
+                ' 读取 \r\n
+                ReDim baBuffer(0 To 1) As Byte
+                If m_oSocket.SyncReceiveArray(baBuffer, 2, m_dTimeout * 1000) Then
+                    sBuffer = sBuffer & vbCrLf
+                End If
             End If
-        End If
-        DoEvents
-    Loop
-    
+
+        Case "*"
+            ' 数组
+            Dim baCount() As Byte
+            Dim sCount As String
+
+            ' 读取数组元素个数
+            sCount = ""
+            Do
+                ReDim baBuffer(0 To 0) As Byte
+                If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                    Exit Do
+                End If
+
+                If baBuffer(0) = 13 Then  ' CR
+                    ReDim baBuffer(0 To 0) As Byte
+                    If m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                        If baBuffer(0) = 10 Then  ' LF
+                            Exit Do
+                        End If
+                    End If
+                Else
+                    sCount = sCount & Chr(baBuffer(0))
+                End If
+            Loop
+
+            sBuffer = sBuffer & sCount & vbCrLf
+
+            Dim lCount As Long
+            lCount = Val(sCount)
+
+            If lCount = -1 Then
+                ' null 数组
+            ElseIf lCount = 0 Then
+                ' 空数组
+            Else
+                ' 读取每个数组元素
+                Dim j As Long
+                For j = 0 To lCount - 1
+                    Dim sElement As String
+                    sElement = ReceiveElement()
+                    sBuffer = sBuffer & sElement
+                Next
+            End If
+
+        Case Else
+            ' 未知类型,直接读取剩余数据
+    End Select
+
     ReceiveResponse = sBuffer
+End Function
+
+' 接收数组元素(递归调用)
+Private Function ReceiveElement() As String
+    Dim baBuffer() As Byte
+    Dim sBuffer As String
+
+    ' 读取第一个字节
+    ReDim baBuffer(0 To 0) As Byte
+    If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Receive element timeout"
+    End If
+
+    Dim sType As String
+    sType = Chr(baBuffer(0))
+    sBuffer = sType
+
+    Select Case sType
+        Case "+", "-", ":"
+            ' 简单字符串、错误、整数
+            Do
+                ReDim baBuffer(0 To 0) As Byte
+                If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                    Exit Do
+                End If
+                sBuffer = sBuffer & Chr(baBuffer(0))
+
+                If Right(sBuffer, 2) = vbCrLf Then
+                    Exit Do
+                End If
+            Loop
+
+        Case "$"
+            ' 批量字符串
+            Dim sLen As String
+            sLen = ""
+            Do
+                ReDim baBuffer(0 To 0) As Byte
+                If Not m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                    Exit Do
+                End If
+
+                If baBuffer(0) = 13 Then  ' CR
+                    ReDim baBuffer(0 To 0) As Byte
+                    If m_oSocket.SyncReceiveArray(baBuffer, 1, m_dTimeout * 1000) Then
+                        If baBuffer(0) = 10 Then  ' LF
+                            Exit Do
+                        End If
+                    End If
+                Else
+                    sLen = sLen & Chr(baBuffer(0))
+                End If
+            Loop
+
+            sBuffer = sBuffer & sLen & vbCrLf
+
+            Dim lLength As Long
+            lLength = Val(sLen)
+
+            If lLength = -1 Then
+                ' null 值
+            Else
+                ' 读取数据内容
+                If lLength > 0 Then
+                    ReDim baBuffer(0 To lLength - 1) As Byte
+                    If m_oSocket.SyncReceiveArray(baBuffer, lLength, m_dTimeout * 1000) Then
+                        sBuffer = sBuffer & ToolsUtf8.Decode(baBuffer)
+                    End If
+                End If
+
+                ' 读取 \r\n
+                ReDim baBuffer(0 To 1) As Byte
+                If m_oSocket.SyncReceiveArray(baBuffer, 2, m_dTimeout * 1000) Then
+                    sBuffer = sBuffer & vbCrLf
+                End If
+            End If
+    End Select
+
+    ReceiveElement = sBuffer
 End Function
 
 ' 检查 RESP 响应是否完整

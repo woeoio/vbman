@@ -2,11 +2,11 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 Sub Redis()
-    Dim oRedis As New cRedisClient
-    oRedis.Connect "127.0.0.1", 6379
-    oRedis.Set_ "mykey", "myvalue"
-    Debug.Print oRedis.Get_("mykey")
-    
+    With New cRedisClient
+        .Connect "127.0.0.1", 6379
+        .Set_ "hello", "vbman redis client"
+        Debug.Print .Get_("hello")
+    End With
 End Sub
 
 Sub AesCBC()

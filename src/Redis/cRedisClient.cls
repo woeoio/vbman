@@ -41,11 +41,11 @@ Private Const MODULE_NAME As String = "cRedisClient"
 
 ' Redis 回复类型
 Private Enum RedisResponseType
-    RESP_SIMPLE_STRING = 1  '+'
-    RESP_ERROR = 2           '-'
-    RESP_INTEGER = 3         ':'
-    RESP_BULK_STRING = 4     '$'
-    RESP_ARRAY = 5           '*'
+    RESP_SIMPLE_STRING = 1                                                      '+'
+    RESP_ERROR = 2                                                              '-'
+    RESP_INTEGER = 3                                                            ':'
+    RESP_BULK_STRING = 4                                                        '$'
+    RESP_ARRAY = 5                                                              '*'
 End Enum
 
 '=========================================================================
@@ -72,6 +72,10 @@ Public Event OnDisconnected()
 
 ' 错误事件
 Public Event OnError(ByVal ErrorMsg As String)
+
+
+' 最后一次错误
+Public LastError As String
 
 '=========================================================================
 ' 属性
@@ -128,8 +132,7 @@ Public Property Get Socket() As cWinsock
     Set Socket = m_oSocket
 End Property
 
-' 最后一次错误
-Public LastError As String
+
 
 '=========================================================================
 ' 公共方法

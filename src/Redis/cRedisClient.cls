@@ -36,6 +36,15 @@ Option Explicit
 Private Const MODULE_NAME As String = "cRedisClient"
 
 '=========================================================================
+' 辅助函数
+'=========================================================================
+
+' 检查变量是否为字符串类型
+Private Function IsString(ByVal vValue As Variant) As Boolean
+    IsString = (VarType(vValue) = vbString)
+End Function
+
+'=========================================================================
 ' 枚举定义
 '=========================================================================
 
@@ -221,17 +230,14 @@ Public Function Auth(ByVal Password As String) As Boolean
     
     Dim sResp As Variant
     sResp = SendCommand(Array("AUTH", Password))
-    
-    If IsArray(sResp) Then
-        If UBound(sResp) >= 0 And sResp(0) = "OK" Then
+
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
             Auth = True
             Exit Function
         End If
-    ElseIf IsString(sResp) And sResp = "OK" Then
-        Auth = True
-        Exit Function
     End If
-    
+
     Auth = False
     Exit Function
     
@@ -247,19 +253,15 @@ Public Function SelectDb(ByVal Index As Long) As Boolean
     
     Dim sResp As Variant
     sResp = SendCommand(Array("SELECT", CStr(Index)))
-    
-    If IsArray(sResp) Then
-        If UBound(sResp) >= 0 And sResp(0) = "OK" Then
+
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
             m_lDbIndex = Index
             SelectDb = True
             Exit Function
         End If
-    ElseIf IsString(sResp) And sResp = "OK" Then
-        m_lDbIndex = Index
-        SelectDb = True
-        Exit Function
     End If
-    
+
     SelectDb = False
     Exit Function
     
@@ -291,14 +293,11 @@ Public Function Set_(ByVal Key As String, ByVal Value As String, _
     Dim sResp As Variant
     sResp = SendCommand(vCmd)
 
-    If IsArray(sResp) Then
-        If UBound(sResp) >= 0 And sResp(0) = "OK" Then
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
             Set_ = True
             Exit Function
         End If
-    ElseIf IsString(sResp) And sResp = "OK" Then
-        Set_ = True
-        Exit Function
     End If
 
     Set_ = False
@@ -317,7 +316,7 @@ Public Function Get_(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("GET", Key))
 
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         Get_ = sResp
     ElseIf IsArray(sResp) Then
         If UBound(sResp) >= 0 Then
@@ -498,17 +497,14 @@ Public Function MSet(ParamArray KeyValues() As Variant) As Boolean
     
     Dim sResp As Variant
     sResp = SendCommand(vCmd)
-    
-    If IsArray(sResp) Then
-        If UBound(sResp) >= 0 And sResp(0) = "OK" Then
+
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
             MSet = True
             Exit Function
         End If
-    ElseIf IsString(sResp) And sResp = "OK" Then
-        MSet = True
-        Exit Function
     End If
-    
+
     MSet = False
     Exit Function
     
@@ -548,7 +544,7 @@ Public Function HGet(ByVal Key As String, ByVal Field As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("HGET", Key, Field))
     
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         HGet = sResp
     End If
     
@@ -694,7 +690,7 @@ Public Function LPop(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("LPOP", Key))
     
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         LPop = sResp
     End If
     
@@ -713,7 +709,7 @@ Public Function RPop(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("RPOP", Key))
     
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         RPop = sResp
     End If
     
@@ -956,16 +952,15 @@ Public Function Multi() As Boolean
     
     Dim sResp As Variant
     sResp = SendCommand("MULTI")
-    
-    If IsString(sResp) And sResp = "OK" Then
-        m_bInTransaction = True
-        Multi = True
-        Exit Function
+
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
+            m_bInTransaction = True
+            Multi = True
+            Exit Function
+        End If
     End If
-    
-    Multi = False
-    Exit Function
-    
+
 ErrorHandler:
     LastError = ERR.Description
     RaiseEvent OnError(LastError)
@@ -1017,9 +1012,11 @@ Public Function Discard() As Boolean
     
     m_bInTransaction = False
     
-    If IsString(sResp) And sResp = "OK" Then
-        Discard = True
-        Exit Function
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
+            Discard = True
+            Exit Function
+        End If
     End If
     
     Discard = False
@@ -1043,7 +1040,7 @@ Public Function Ping() As String
     Dim sResp As Variant
     sResp = SendCommand("PING")
     
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         Ping = sResp
     Else
         Ping = "PONG"
@@ -1068,7 +1065,7 @@ Public Function Info(Optional ByVal Section As String = "") As String
         sResp = SendCommand("INFO")
     End If
     
-    If IsString(sResp) Then
+    If VarType(sResp) = vbString Then
         Info = sResp
     End If
     
@@ -1087,9 +1084,11 @@ Public Function FlushDb() As Boolean
     Dim sResp As Variant
     sResp = SendCommand("FLUSHDB")
     
-    If IsString(sResp) And sResp = "OK" Then
-        FlushDb = True
-        Exit Function
+    If VarType(sResp) = vbString Then
+        If sResp = "OK" Then
+            FlushDb = True
+            Exit Function
+        End If
     End If
     
     FlushDb = False

@@ -741,11 +741,11 @@ ErrorHandler:
 End Function
 
 ' LRANGE √¸¡Ó
-Public Function LRange(ByVal Key As String, ByVal Start As Long, ByVal Stop As Long) As Variant
+Public Function LRange(ByVal Key As String, ByVal StartIdx As Long, ByVal StopIdx As Long) As Variant
     On Error GoTo ErrorHandler
     
     Dim vRet As Variant
-    vRet = SendCommand(Array("LRANGE", Key, CStr(Start), CStr(Stop)))
+    vRet = SendCommand(Array("LRANGE", Key, CStr(StartIdx), CStr(StopIdx)))
     
     If IsArray(vRet) Then
         LRange = vRet
@@ -882,14 +882,14 @@ ErrorHandler:
 End Function
 
 ' ZRANGE √¸¡Ó
-Public Function ZRange(ByVal Key As String, ByVal Start As Long, ByVal Stop As Long, Optional ByVal WithScores As Boolean = False) As Variant
+Public Function ZRange(ByVal Key As String, ByVal StartIdx As Long, ByVal StopIdx As Long, Optional ByVal WithScores As Boolean = False) As Variant
     On Error GoTo ErrorHandler
     
     Dim vRet As Variant
     If WithScores Then
-        vRet = SendCommand(Array("ZRANGE", Key, CStr(Start), CStr(Stop), "WITHSCORES"))
+        vRet = SendCommand(Array("ZRANGE", Key, CStr(StartIdx), CStr(StopIdx), "WITHSCORES"))
     Else
-        vRet = SendCommand(Array("ZRANGE", Key, CStr(Start), CStr(Stop)))
+        vRet = SendCommand(Array("ZRANGE", Key, CStr(StartIdx), CStr(StopIdx)))
     End If
     
     If IsArray(vRet) Then

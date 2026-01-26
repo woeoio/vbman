@@ -154,7 +154,7 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
     
     ' 创建新连接
     Set m_oSocket = New cWinsock
-    m_oSocket.Protocol = sckTCPProtocol
+    m_oSocket.Protocol = wskTCPProtocol
     m_oSocket.RemoteHost = m_sHost
     m_oSocket.RemotePort = m_lPort
     m_oSocket.Connect
@@ -162,11 +162,11 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
     ' 等待连接
     Dim lStartTime As Double
     lStartTime = Timer
-    Do While Not m_oSocket.State = sckConnected And (Timer - lStartTime) < m_dTimeout
+    Do While Not m_oSocket.State = wckConnected And (Timer - lStartTime) < m_dTimeout
         DoEvents
     Loop
     
-    If m_oSocket.State <> sckConnected Then
+    If m_oSocket.State <> wckConnected Then
         LastError = "连接超时"
         RaiseEvent OnError(LastError)
         Connect = False

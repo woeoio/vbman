@@ -334,7 +334,7 @@ Private Function HandleHandshake(ByVal Client As cWebSocketServerClient, ByVal R
     sResponse = sResponse & vbCrLf
 
     ' Send response
-    Client.Socket.SendData sResponse, ScpUtf8
+    Client.Socket.SendData sResponse, wcpUtf8
 
     HandleHandshake = True
     Exit Function
@@ -546,7 +546,7 @@ Private Sub m_ListenSocket_DataArrival(Client As cWinsock, ByVal bytesTotal As L
 
     If oClient.State = WS_CLIENT_PENDING Then
         ' Expecting handshake
-        Client.GetData sData, vbString, , ScpUtf8
+        Client.GetData sData, vbString, , wcpUtf8
 
         If HandleHandshake(oClient, sData) Then
             oClient.State = WS_CLIENT_CONNECTED

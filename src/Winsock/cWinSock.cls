@@ -64,12 +64,12 @@ Event Error(Client As cWinsock, ByVal Number As Long, Description As String, ByV
 ' Public Enums
 
 Public Enum EnumScpCodePage
-    ScpAcp = 0
-    ScpOem = 1
-    ScpUtf8 = 65001
-    ScpUnicode = -1                                                             '--- handled internally -> no conversion, keep text wide-char
-    ScpNone = ucsScpUnicode                                                     '--- and some more aliases
-    ScpWideChar = ucsScpUnicode
+    wcpAcp = 0
+    wcpOem = 1
+    wcpUtf8 = 65001
+    wcpUnicode = -1                                                             '--- handled internally -> no conversion, keep text wide-char
+    wcpNone = ucsScpUnicode                                                     '--- and some more aliases
+    wcpWideChar = ucsScpUnicode
 End Enum
 
 '=========================================================================
@@ -80,16 +80,16 @@ Public Enum WinsockProtocol
 End Enum
 
 Public Enum WinsockState
-    sckClosed = 0
-    sckOpen = 1
-    sckListening = 2
-    sckConnectionPending = 3
-    sckResolvingHost = 4
-    sckHostResolved = 5
-    sckConnecting = 6
-    sckConnected = 7
-    sckClosing = 8
-    sckError = 9
+    wckClosed = 0
+    wckOpen = 1
+    wckListening = 2
+    wckConnectionPending = 3
+    wckResolvingHost = 4
+    wckHostResolved = 5
+    wckConnecting = 6
+    wckConnected = 7
+    wckClosing = 8
+    wckError = 9
 End Enum
 
 '=========================================================================
@@ -137,7 +137,7 @@ Public Property Get Protocol() As WinsockProtocol
 End Property
 
 Public Property Let Protocol(ByVal Value As WinsockProtocol)
-    If m_eState <> sckClosed Then
+    If m_eState <> wckClosed Then
         ERR.Raise vbObjectError, MODULE_NAME, "Cannot change protocol while socket is open"
     End If
     m_eProtocol = Value
@@ -150,7 +150,7 @@ End Property
 ' Local port to bind
 Public Property Get LocalPort() As Long
     Dim lPort As Long
-    If m_eState <> sckClosed And Not m_oSocket Is Nothing Then
+    If m_eState <> wckClosed And Not m_oSocket Is Nothing Then
         m_oSocket.GetSockName vbNullString, lPort
         LocalPort = lPort
     Else
@@ -159,7 +159,7 @@ Public Property Get LocalPort() As Long
 End Property
 
 Public Property Let LocalPort(ByVal Value As Long)
-    If m_eState <> sckClosed Then
+    If m_eState <> wckClosed Then
         ERR.Raise vbObjectError, MODULE_NAME, "Cannot change local port while socket is open"
     End If
     m_lLocalPort = Value
@@ -190,7 +190,7 @@ Public Property Get RemoteHostIP() As String
         RemoteHostIP = m_sRemoteHostIP
         Exit Property
     End If
-    If m_eState >= sckHostResolved And Not m_oSocket Is Nothing Then
+    If m_eState >= wckHostResolved And Not m_oSocket Is Nothing Then
         Dim sAddr As String
         Dim lPort As Long
         m_oSocket.GetPeerName sAddr, lPort
@@ -394,7 +394,7 @@ End Sub
 ' Send string data
 ' CodePage: Text encoding for string data (default: ACP/GBK)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
+Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     On Error GoTo EH
     
     If m_oSocket Is Nothing Then
@@ -445,7 +445,7 @@ End Sub
 ' Receive data from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
+Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     Dim baBuffer() As Byte
     Dim lIdx As Long
     Dim oSocket As cAsyncSocket
@@ -538,7 +538,7 @@ End Sub
 ' Peek data without removing from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = ScpAcp)
+Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     Dim baBuffer() As Byte
 
     On Error GoTo EH
@@ -743,7 +743,7 @@ Private Sub m_oSocket_OnAccept()
     Set oClient = New cWinsock
     oClient.AcceptFrom m_oSocket, Me
     
-    If oClient.State = sckConnected Then
+    If oClient.State = wckConnected Then
         ' Add to clients collection
         m_lClientCounter = m_lClientCounter + 1
         oClient.Tag = "#" & m_lClientCounter

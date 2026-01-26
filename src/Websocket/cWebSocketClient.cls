@@ -373,7 +373,7 @@ Private Sub SendHandshake()
 
     sHandshake = sHandshake & vbCrLf
 
-    m_Socket.SendData sHandshake, ScpUtf8
+    m_Socket.SendData sHandshake, wcpUtf8
 End Sub
 
 Private Function ValidateHandshakeResponse(ByVal Response As String) As Boolean
@@ -582,7 +582,7 @@ Private Sub m_Socket_DataArrival(Client As cWinsock, ByVal bytesTotal As Long)
 
     If m_State = WS_STATE_CONNECTING Then
         ' Expecting handshake response
-        Client.GetData sData, vbString, , ScpUtf8
+        Client.GetData sData, vbString, , wcpUtf8
 
         If ValidateHandshakeResponse(sData) Then
             m_State = WS_STATE_OPEN

@@ -36,15 +36,6 @@ Option Explicit
 Private Const MODULE_NAME As String = "cRedisClient"
 
 '=========================================================================
-' 辅助函数
-'=========================================================================
-
-' 检查变量是否为字符串类型
-Private Function IsString(ByVal vValue As Variant) As Boolean
-    IsString = (VarType(vValue) = vbString)
-End Function
-
-'=========================================================================
 ' 枚举定义
 '=========================================================================
 
@@ -85,6 +76,15 @@ Public Event OnError(ByVal ErrorMsg As String)
 
 ' 最后一次错误
 Public LastError As String
+
+'=========================================================================
+' 辅助函数
+'=========================================================================
+
+' 检查变量是否为字符串类型
+Private Function IsString(ByVal vValue As Variant) As Boolean
+    IsString = (varType(vValue) = vbString)
+End Function
 
 '=========================================================================
 ' 属性
@@ -212,10 +212,10 @@ ErrorHandler:
 End Function
 
 ' 断开连接
-Public Sub Disconnect()
+Public Sub DisConnect()
     If Not m_oSocket Is Nothing Then
         On Error Resume Next
-        m_oSocket.CloseSck
+        m_oSocket.Close_
         Set m_oSocket = Nothing
         On Error GoTo 0
     End If
@@ -231,7 +231,7 @@ Public Function Auth(ByVal Password As String) As Boolean
     Dim sResp As Variant
     sResp = SendCommand(Array("AUTH", Password))
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             Auth = True
             Exit Function
@@ -254,7 +254,7 @@ Public Function SelectDb(ByVal Index As Long) As Boolean
     Dim sResp As Variant
     sResp = SendCommand(Array("SELECT", CStr(Index)))
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             m_lDbIndex = Index
             SelectDb = True
@@ -293,7 +293,7 @@ Public Function Set_(ByVal Key As String, ByVal Value As String, _
     Dim sResp As Variant
     sResp = SendCommand(vCmd)
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             Set_ = True
             Exit Function
@@ -316,7 +316,7 @@ Public Function Get_(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("GET", Key))
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         Get_ = sResp
     ElseIf IsArray(sResp) Then
         If UBound(sResp) >= 0 Then
@@ -336,11 +336,11 @@ End Function
 Public Function Del(ParamArray Keys() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Long
-    lRet = SendCommand(Array("DEL", Keys))
+    Dim lret As Long
+    lret = SendCommand(Array("DEL", Keys))
     
-    If IsNumeric(lRet) Then
-        Del = CLng(lRet)
+    If IsNumeric(lret) Then
+        Del = CLng(lret)
     End If
     
     Exit Function
@@ -355,11 +355,11 @@ End Function
 Public Function Exists(ParamArray Keys() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("EXISTS", Keys))
+    Dim lret As Variant
+    lret = SendCommand(Array("EXISTS", Keys))
     
-    If IsNumeric(lRet) Then
-        Exists = CLng(lRet)
+    If IsNumeric(lret) Then
+        Exists = CLng(lret)
     End If
     
     Exit Function
@@ -393,10 +393,10 @@ End Function
 Public Function Expire(ByVal Key As String, ByVal Seconds As Long) As Boolean
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("EXPIRE", Key, CStr(Seconds)))
+    Dim lret As Variant
+    lret = SendCommand(Array("EXPIRE", Key, CStr(Seconds)))
     
-    If IsNumeric(lRet) And lRet = 1 Then
+    If IsNumeric(lret) And lret = 1 Then
         Expire = True
     End If
     
@@ -412,11 +412,11 @@ End Function
 Public Function TTL(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("TTL", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("TTL", Key))
     
-    If IsNumeric(lRet) Then
-        TTL = CLng(lRet)
+    If IsNumeric(lret) Then
+        TTL = CLng(lret)
     End If
     
     Exit Function
@@ -435,11 +435,11 @@ End Function
 Public Function Incr(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("INCR", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("INCR", Key))
     
-    If IsNumeric(lRet) Then
-        Incr = CLng(lRet)
+    If IsNumeric(lret) Then
+        Incr = CLng(lret)
     End If
     
     Exit Function
@@ -454,11 +454,11 @@ End Function
 Public Function Decr(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("DECR", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("DECR", Key))
     
-    If IsNumeric(lRet) Then
-        Decr = CLng(lRet)
+    If IsNumeric(lret) Then
+        Decr = CLng(lret)
     End If
     
     Exit Function
@@ -498,7 +498,7 @@ Public Function MSet(ParamArray KeyValues() As Variant) As Boolean
     Dim sResp As Variant
     sResp = SendCommand(vCmd)
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             MSet = True
             Exit Function
@@ -544,7 +544,7 @@ Public Function HGet(ByVal Key As String, ByVal Field As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("HGET", Key, Field))
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         HGet = sResp
     End If
     
@@ -557,11 +557,11 @@ ErrorHandler:
 End Function
 
 ' HMGET 命令
-Public Function HMGet(ByVal Key As String, ParamArray Fields() As Variant) As Variant
+Public Function HMGet(ByVal Key As String, ParamArray fields() As Variant) As Variant
     On Error GoTo ErrorHandler
     
     Dim vRet As Variant
-    vRet = SendCommand(Array("HMGET", Key, Fields))
+    vRet = SendCommand(Array("HMGET", Key, fields))
     
     If IsArray(vRet) Then
         HMGet = vRet
@@ -604,14 +604,14 @@ ErrorHandler:
 End Function
 
 ' HDEL 命令
-Public Function HDel(ByVal Key As String, ParamArray Fields() As Variant) As Long
+Public Function HDel(ByVal Key As String, ParamArray fields() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("HDEL", Key, Fields))
+    Dim lret As Variant
+    lret = SendCommand(Array("HDEL", Key, fields))
     
-    If IsNumeric(lRet) Then
-        HDel = CLng(lRet)
+    If IsNumeric(lret) Then
+        HDel = CLng(lret)
     End If
     
     Exit Function
@@ -626,10 +626,10 @@ End Function
 Public Function HExists(ByVal Key As String, ByVal Field As String) As Boolean
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("HEXISTS", Key, Field))
+    Dim lret As Variant
+    lret = SendCommand(Array("HEXISTS", Key, Field))
     
-    If IsNumeric(lRet) And lRet = 1 Then
+    If IsNumeric(lret) And lret = 1 Then
         HExists = True
     End If
     
@@ -649,11 +649,11 @@ End Function
 Public Function LPush(ByVal Key As String, ParamArray Values() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("LPUSH", Key, Values))
+    Dim lret As Variant
+    lret = SendCommand(Array("LPUSH", Key, Values))
     
-    If IsNumeric(lRet) Then
-        LPush = CLng(lRet)
+    If IsNumeric(lret) Then
+        LPush = CLng(lret)
     End If
     
     Exit Function
@@ -668,11 +668,11 @@ End Function
 Public Function RPush(ByVal Key As String, ParamArray Values() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("RPUSH", Key, Values))
+    Dim lret As Variant
+    lret = SendCommand(Array("RPUSH", Key, Values))
     
-    If IsNumeric(lRet) Then
-        RPush = CLng(lRet)
+    If IsNumeric(lret) Then
+        RPush = CLng(lret)
     End If
     
     Exit Function
@@ -690,7 +690,7 @@ Public Function LPop(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("LPOP", Key))
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         LPop = sResp
     End If
     
@@ -709,7 +709,7 @@ Public Function RPop(ByVal Key As String) As String
     Dim sResp As Variant
     sResp = SendCommand(Array("RPOP", Key))
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         RPop = sResp
     End If
     
@@ -725,11 +725,11 @@ End Function
 Public Function lLen(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("LLEN", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("LLEN", Key))
     
-    If IsNumeric(lRet) Then
-        lLen = CLng(lRet)
+    If IsNumeric(lret) Then
+        lLen = CLng(lret)
     End If
     
     Exit Function
@@ -767,11 +767,11 @@ End Function
 Public Function SAdd(ByVal Key As String, ParamArray Members() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("SADD", Key, Members))
+    Dim lret As Variant
+    lret = SendCommand(Array("SADD", Key, Members))
     
-    If IsNumeric(lRet) Then
-        SAdd = CLng(lRet)
+    If IsNumeric(lret) Then
+        SAdd = CLng(lret)
     End If
     
     Exit Function
@@ -805,11 +805,11 @@ End Function
 Public Function SCard(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("SCARD", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("SCARD", Key))
     
-    If IsNumeric(lRet) Then
-        SCard = CLng(lRet)
+    If IsNumeric(lret) Then
+        SCard = CLng(lret)
     End If
     
     Exit Function
@@ -824,10 +824,10 @@ End Function
 Public Function SIsMember(ByVal Key As String, ByVal Member As String) As Boolean
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("SISMEMBER", Key, Member))
+    Dim lret As Variant
+    lret = SendCommand(Array("SISMEMBER", Key, Member))
     
-    If IsNumeric(lRet) And lRet = 1 Then
+    If IsNumeric(lret) And lret = 1 Then
         SIsMember = True
     End If
     
@@ -843,11 +843,11 @@ End Function
 Public Function SRem(ByVal Key As String, ParamArray Members() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("SREM", Key, Members))
+    Dim lret As Variant
+    lret = SendCommand(Array("SREM", Key, Members))
     
-    If IsNumeric(lRet) Then
-        SRem = CLng(lRet)
+    If IsNumeric(lret) Then
+        SRem = CLng(lret)
     End If
     
     Exit Function
@@ -866,11 +866,11 @@ End Function
 Public Function ZAdd(ByVal Key As String, ByVal Score As Double, ByVal Member As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("ZADD", Key, CStr(Score), Member))
+    Dim lret As Variant
+    lret = SendCommand(Array("ZADD", Key, CStr(Score), Member))
     
-    If IsNumeric(lRet) Then
-        ZAdd = CLng(lRet)
+    If IsNumeric(lret) Then
+        ZAdd = CLng(lret)
     End If
     
     Exit Function
@@ -908,11 +908,11 @@ End Function
 Public Function ZRem(ByVal Key As String, ParamArray Members() As Variant) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("ZREM", Key, Members))
+    Dim lret As Variant
+    lret = SendCommand(Array("ZREM", Key, Members))
     
-    If IsNumeric(lRet) Then
-        ZRem = CLng(lRet)
+    If IsNumeric(lret) Then
+        ZRem = CLng(lret)
     End If
     
     Exit Function
@@ -927,11 +927,11 @@ End Function
 Public Function ZCard(ByVal Key As String) As Long
     On Error GoTo ErrorHandler
     
-    Dim lRet As Variant
-    lRet = SendCommand(Array("ZCARD", Key))
+    Dim lret As Variant
+    lret = SendCommand(Array("ZCARD", Key))
     
-    If IsNumeric(lRet) Then
-        ZCard = CLng(lRet)
+    If IsNumeric(lret) Then
+        ZCard = CLng(lret)
     End If
     
     Exit Function
@@ -953,7 +953,7 @@ Public Function Multi() As Boolean
     Dim sResp As Variant
     sResp = SendCommand("MULTI")
 
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             m_bInTransaction = True
             Multi = True
@@ -1012,7 +1012,7 @@ Public Function Discard() As Boolean
     
     m_bInTransaction = False
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             Discard = True
             Exit Function
@@ -1040,7 +1040,7 @@ Public Function Ping() As String
     Dim sResp As Variant
     sResp = SendCommand("PING")
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         Ping = sResp
     Else
         Ping = "PONG"
@@ -1065,7 +1065,7 @@ Public Function Info(Optional ByVal Section As String = "") As String
         sResp = SendCommand("INFO")
     End If
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         Info = sResp
     End If
     
@@ -1084,7 +1084,7 @@ Public Function FlushDb() As Boolean
     Dim sResp As Variant
     sResp = SendCommand("FLUSHDB")
     
-    If VarType(sResp) = vbString Then
+    If varType(sResp) = vbString Then
         If sResp = "OK" Then
             FlushDb = True
             Exit Function
@@ -1340,6 +1340,6 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Call Disconnect
+    Call DisConnect
     Set m_oPipeline = Nothing
 End Sub

@@ -92,6 +92,18 @@ Public Enum WinsockState
     wckError = 9
 End Enum
 
+Public Enum WinSocketEventMaskEnum
+    wskSfdRead = 2 ^ 0
+    wskSfdWrite = 2 ^ 1
+    wskSfdOob = 2 ^ 2
+    wskSfdAccept = 2 ^ 3
+    wskSfdConnect = 2 ^ 4
+    wskSfdClose = 2 ^ 5
+    wskSfdAll = 2 ^ 6 - 1
+    [_wskSfdResolve] = 2 ^ 15
+    [_wskSfdForceRead] = 2 ^ 14
+End Enum
+
 '=========================================================================
 ' Private Constants
 '=========================================================================
@@ -918,6 +930,218 @@ Private Sub pvRaiseError(ByVal ErrorCode As Long, Optional Description As String
 End Sub
 
 
+
+'=========================================================================
+' Sync Methods (blocking operations with timeout)
+'=========================================================================
+
+' Synchronous connection with timeout
+Public Function SyncConnect(HostAddress As String, ByVal HostPort As Long, Optional ByVal TimeOut As Long) As Boolean
+    Dim eSocketType As UcsAsyncSocketTypeEnum
+
+    On Error GoTo EH
+
+    ' Close existing connection
+    Close_
+
+    ' Update remote host/port
+    m_sRemoteHost = HostAddress
+    m_lRemotePort = HostPort
+
+    ' Validate parameters
+    If LenB(m_sRemoteHost) = 0 Then
+        ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost not specified"
+    End If
+    If m_lRemotePort = 0 Then
+        ERR.Raise vbObjectError, MODULE_NAME, "RemotePort not specified"
+    End If
+
+    ' Determine socket type
+    eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
+
+    ' Create socket
+    Set m_oSocket = New cAsyncSocket
+    If Not m_oSocket.Create(SocketType:=eSocketType) Then
+        pvRaiseError m_oSocket.LastError
+        Exit Function
+    End If
+
+    m_eState = sckResolvingHost
+
+    ' Sync connect
+    SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, TimeOut)
+
+    ' Update state on success
+    If SyncConnect Then
+        m_eState = sckConnected
+        ' Get peer info
+        Dim sAddr As String
+        Dim lPort As Long
+        m_oSocket.GetPeerName sAddr, lPort
+        m_sRemoteHostIP = sAddr
+    End If
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous receive text with timeout
+Public Function SyncReceiveText( _
+    Optional ByVal NeedLen As Long = 1, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional HostPort As Long, _
+    Optional ByVal CodePage As EnumScpCodePage = wcpUtf8) As String
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncReceiveText = m_oSocket.SyncReceiveText(NeedLen, TimeOut, HostAddress, HostPort, CodePage)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous receive byte array with timeout
+Public Function SyncReceiveArray( _
+    Buffer() As Byte, _
+    Optional ByVal NeedLen As Long, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncReceiveArray = m_oSocket.SyncReceiveArray(Buffer, NeedLen, TimeOut, HostAddress, HostPort, Flags)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous receive to buffer pointer with timeout
+Public Function SyncReceive( _
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    ByRef Received As Long, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncReceive = m_oSocket.SyncReceive(BufPtr, BufLen, Received, TimeOut, HostAddress, HostPort, Flags)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous send text with timeout
+Public Function SyncSendText( _
+    Text As String, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal CodePage As EnumScpCodePage = wcpUtf8) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncSendText = m_oSocket.SyncSendText(Text, TimeOut, HostAddress, HostPort, CodePage)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous send byte array with timeout
+Public Function SyncSendArray( _
+    Buffer() As Byte, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncSendArray = m_oSocket.SyncSendArray(Buffer, TimeOut, HostAddress, HostPort, Flags)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Synchronous send from buffer pointer with timeout
+Public Function SyncSend( _
+    ByVal BufPtr As Long, _
+    ByVal BufLen As Long, _
+    Optional ByVal TimeOut As Long, _
+    Optional HostAddress As String, _
+    Optional ByVal HostPort As Long, _
+    Optional ByVal Flags As Long = 0) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncSend = m_oSocket.SyncSend(BufPtr, BufLen, TimeOut, HostAddress, HostPort, Flags)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Wait for specific socket event with timeout
+Public Function SyncWaitForEvent( _
+    ByVal TimeOut As Long, _
+    Optional ByVal EventMask As WinSocketEventMaskEnum = wskSfdAll) As Boolean
+
+    On Error GoTo EH
+
+    If m_oSocket Is Nothing Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
+    End If
+
+    SyncWaitForEvent = m_oSocket.SyncWaitForEvent(TimeOut, EventMask)
+
+    Exit Function
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Function
+
+' Cancel pending synchronous wait operation
+Public Sub SyncCancelWait()
+    On Error Resume Next
+
+    If Not m_oSocket Is Nothing Then
+        m_oSocket.SyncCancelWait
+    End If
+End Sub
 
 '=========================================================================
 ' Class Events

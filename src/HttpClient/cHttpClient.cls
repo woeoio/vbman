@@ -49,7 +49,10 @@ Public ResponseRaw As Variant
 Public Event OnResponseFinished()
 
 Public LastError As String
-Public RequestDataBody As New Scripting.Dictionary
+Dim pvRequestData() As Byte
+Public RequestDataJson As New cJson
+Public RequestDataBody As New Scripting.Dictionary                              '废弃
+Public RequestDataForm As New Scripting.Dictionary
 Public RequestDataQuery As New Scripting.Dictionary
 Public RequestHeaders As New Scripting.Dictionary
 Public RequestContentType As String
@@ -79,8 +82,8 @@ Public Function SetRequestContentType(ReqType As EnumRequestContentType, Optiona
     SetRequestContentType = RequestContentType
 End Function
 
-Public Sub ShowPage(Url As String)
-    ShellExecute 0, "open", Url, 0, 0, 1
+Public Sub ShowPage(url As String)
+    ShellExecute 0, "open", url, 0, 0, 1
 End Sub
 
 Public Function SetCookies(ByVal Value As String) As cHttpClient
@@ -96,39 +99,39 @@ Public Function Async(Bool As Boolean) As cHttpClient
     IsAsync = Bool
 End Function
 
-Public Function SendPost(ByVal Url As String, Optional Body As String) As cHttpClient
-    Set SendPost = Fetch(ReqPost, Url, Body)
+Public Function SendPost(ByVal url As String, Optional Body As String) As cHttpClient
+    Set SendPost = Fetch(ReqPost, url, Body)
 End Function
-Public Function SendGet(ByVal Url As String, Optional Body As String) As cHttpClient
-    Set SendGet = Fetch(ReqGet, Url, Body)
+Public Function SendGet(ByVal url As String, Optional Body As String) As cHttpClient
+    Set SendGet = Fetch(ReqGet, url, Body)
 End Function
-Public Function SendPut(ByVal Url As String, Optional Body As String) As cHttpClient
-    Set SendPut = Fetch(ReqPut, Url, Body)
+Public Function SendPut(ByVal url As String, Optional Body As String) As cHttpClient
+    Set SendPut = Fetch(ReqPut, url, Body)
 End Function
-Public Function SendDelete(ByVal Url As String, Optional Body As String) As cHttpClient
-    Set SendDelete = Fetch(ReqDelete, Url, Body)
+Public Function SendDelete(ByVal url As String, Optional Body As String) As cHttpClient
+    Set SendDelete = Fetch(ReqDelete, url, Body)
 End Function
-Public Function SendOptions(ByVal Url As String, Optional Body As String) As cHttpClient
-    Set SendOptions = Fetch(ReqOptions, Url, Body)
+Public Function SendOptions(ByVal url As String, Optional Body As String) As cHttpClient
+    Set SendOptions = Fetch(ReqOptions, url, Body)
 End Function
 
 'alias
-Public Function Send(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As cHttpClient
-    Set Send = Fetch(Method, Url, Body)
+Public Function Send(Method As EnumRequestMethod, ByVal url As String, Optional Body As String) As cHttpClient
+    Set Send = Fetch(Method, url, Body)
 End Function
-Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional Body As String) As cHttpClient
+Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional Body As String) As cHttpClient
     Set Fetch = Me
     On Error GoTo ERR:
     Dim x As Variant: LastError = "": Set DebugInfo = Nothing
     '检查url
-    If Url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
+    If url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
-    If RequestDataQuery.Count > 0 Then Url = ToolsHttp.AddToQueryString(Url, ToolsHttp.MakeContent(RequestDataQuery))
+    If RequestDataQuery.Count > 0 Then url = ToolsHttp.AddToQueryString(url, ToolsHttp.MakeContent(RequestDataQuery))
     '是否添加URL资源版本号
     '    If addVer Then Url = ToolsHttp.AddToQueryString(Url, Rnd())
     '打开链路
     Dim MethodName As String: MethodName = ToolsHttp.MapMethodName(Method)
-    Inst.Open MethodName, Url, True
+    Inst.Open MethodName, url, True
     '处理Header
     With RequestHeaders
         If .Exists("Cookie") = False Then
@@ -149,9 +152,9 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal Url As String, Optional
     '处理POSTBODY
     If Body = "" Then
         If RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_JSON Then
-            Body = Json.Encode(RequestDataBody)
+            Body = RequestDataJson.Encode(, , True)
         ElseIf RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED Then
-            Body = ToolsHttp.MakeContent(RequestDataBody)
+            Body = ToolsHttp.MakeContent(RequestDataForm)
         End If
     End If
     If Body = "" Then
@@ -208,7 +211,7 @@ CLEAN:
             With .NewItem("Request")
                 .Item("IsAsync") = IsAsync
                 .Item("Method") = MethodName
-                .Item("Url") = Url
+                .Item("Url") = url
                 .Item("Body") = Body
                 Set .Item("Headers") = RequestHeaders
                 .Item("TimeOut") = RequestTimeOut
@@ -226,7 +229,10 @@ CLEAN:
     End If
     IsAsync = False
     DebugStart = False
+    
+    RequestDataJson.Clear
     RequestDataBody.RemoveAll
+    RequestDataForm.RemoveAll
     RequestDataQuery.RemoveAll
     '    RequestHeaders.RemoveAll
     '    Cookies.RemoveAll
@@ -274,8 +280,8 @@ Private Sub Class_Initialize()
     '    reqHeaders.Add Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_TYPE, Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
     '    reqHeaders.Add "req-from", "vb ajax class by 215879458@qq.com"
     '    postBody.Add "ver", 1#
-    
     RequestDataBody.CompareMode = TextCompare
+    RequestDataForm.CompareMode = TextCompare
     RequestDataQuery.CompareMode = TextCompare
     RequestHeaders.CompareMode = TextCompare
     Cookies.CompareMode = TextCompare

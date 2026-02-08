@@ -291,7 +291,7 @@ End Function
 '@param KeyString The secret key string
 '@param Encoding String encoding, default UTF8
 '@return Returns self for chaining
-Public Function Key(ByVal KeyString As String, _
+Public Function Secret(ByVal KeyString As String, _
                     Optional ByVal Encoding As HMACStringEncoding = HMAC_ENCODING_UTF8) As cCryptoHMAC
     If Encoding = HMAC_ENCODING_UTF8 Then
         m_ChainKey = StringToUTF8Bytes(KeyString)
@@ -299,16 +299,16 @@ Public Function Key(ByVal KeyString As String, _
         m_ChainKey = StrConv(KeyString, vbFromUnicode)
     End If
     m_ChainKeyHasBeenSet = True
-    Set Key = Me
+    Set Secret = Me
 End Function
 
 'Set key from byte array (chain call)
 '@param KeyBytes The secret key as byte array
 '@return Returns self for chaining
-Public Function KeyBytes(ByRef KeyBytes() As Byte) As cCryptoHMAC
+Public Function SecretBytes(ByRef KeyBytes() As Byte) As cCryptoHMAC
     m_ChainKey = KeyBytes
     m_ChainKeyHasBeenSet = True
-    Set KeyBytes = Me
+    Set SecretBytes = Me
 End Function
 
 'Input string data (chain call)
@@ -345,7 +345,7 @@ Public Function ReturnHex(Optional ByVal UpperCase As Boolean = False) As String
 
     ' Validate state
     If Not m_ChainKeyHasBeenSet Then
-        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Key or KeyBytes first."
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Secret or SecretBytes first."
     End If
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 2, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
@@ -376,7 +376,7 @@ Public Function ReturnBase64() As String
 
     ' Validate state
     If Not m_ChainKeyHasBeenSet Then
-        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Key or KeyBytes first."
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Secret or SecretBytes first."
     End If
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 2, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
@@ -404,7 +404,7 @@ End Function
 Public Function ReturnBytes() As Byte()
     ' Validate state
     If Not m_ChainKeyHasBeenSet Then
-        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Key or KeyBytes first."
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "Key not set. Please call Secret or SecretBytes first."
     End If
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 2, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."

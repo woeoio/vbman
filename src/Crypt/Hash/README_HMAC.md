@@ -25,7 +25,7 @@ HMAC 是一种使用密钥的消息认证码算法，用于验证消息的完整
 #### 基本语法
 
 ```vb
-HMAC.Key([密钥]).DataString/Bytes([数据]).ReturnHex/Base64/Bytes()
+HMAC.Secret([密钥]).DataString/Bytes([数据]).ReturnHex/Base64/Bytes()
 ```
 
 #### 快速开始
@@ -35,7 +35,7 @@ Dim HMAC As New cCryptoHMAC
 
 ' 最简单的用法（默认 HMAC-SHA256）
 Dim sHMAC As String
-sHMAC = HMAC.Key("my-secret-key").DataString("Hello World").ReturnHex()
+sHMAC = HMAC.Secret("my-secret-key").DataString("Hello World").ReturnHex()
 ' 输出: a3c5... (64位十六进制字符串)
 ```
 
@@ -45,54 +45,54 @@ sHMAC = HMAC.Key("my-secret-key").DataString("Hello World").ReturnHex()
 
 ```vb
 ' HMAC-SHA256（默认）
-sHMAC = HMAC.Key("secret").DataString("data").ReturnHex()
+sHMAC = HMAC.Secret("secret").DataString("data").ReturnHex()
 
 ' HMAC-SHA1
-sHMAC = HMAC.Mode(HMAC_ALG_SHA1).Key("secret").DataString("data").ReturnHex()
+sHMAC = HMAC.Mode(HMAC_ALG_SHA1).Secret("secret").DataString("data").ReturnHex()
 ```
 
 **2. 输入数据**
 
 ```vb
 ' 字符串输入（默认 UTF-8）
-sHMAC = HMAC.Key("secret").DataString("Hello World").ReturnHex()
+sHMAC = HMAC.Secret("secret").DataString("Hello World").ReturnHex()
 
 ' 字符串输入（ANSI 编码）
-sHMAC = HMAC.Key("secret").DataString("Hello", HMAC_ENCODING_ANSI).ReturnHex()
+sHMAC = HMAC.Secret("secret").DataString("Hello", HMAC_ENCODING_ANSI).ReturnHex()
 
 ' 字节数组输入
 Dim baData() As Byte
 baData = StrConv("Hello World", vbFromUnicode)
-sHMAC = HMAC.Key("secret").DataBytes(baData).ReturnHex()
+sHMAC = HMAC.Secret("secret").DataBytes(baData).ReturnHex()
 ```
 
 **3. 密钥设置**
 
 ```vb
 ' 字符串密钥（默认 UTF-8）
-sHMAC = HMAC.Key("my-secret-key").DataString("data").ReturnHex()
+sHMAC = HMAC.Secret("my-secret-key").DataString("data").ReturnHex()
 
 ' 字节数组密钥
 Dim baKey() As Byte
 baKey = StrConv("my-secret-key", vbFromUnicode)
-sHMAC = HMAC.KeyBytes(baKey).DataString("data").ReturnHex()
+sHMAC = HMAC.SecretBytes(baKey).DataString("data").ReturnHex()
 ```
 
 **4. 输出格式**
 
 ```vb
 ' 十六进制小写（默认）
-sHMAC = HMAC.Key("secret").DataString("data").ReturnHex()
+sHMAC = HMAC.Secret("secret").DataString("data").ReturnHex()
 
 ' 十六进制大写
-sHMAC = HMAC.Key("secret").DataString("data").ReturnHex(True)
+sHMAC = HMAC.Secret("secret").DataString("data").ReturnHex(True)
 
 ' Base64 编码
-sHMAC = HMAC.Key("secret").DataString("data").ReturnBase64()
+sHMAC = HMAC.Secret("secret").DataString("data").ReturnBase64()
 
 ' 字节数组
 Dim baHMAC() As Byte
-baHMAC = HMAC.Key("secret").DataString("data").ReturnBytes()
+baHMAC = HMAC.Secret("secret").DataString("data").ReturnBytes()
 ```
 
 ### 方式二：传统方法
@@ -132,23 +132,23 @@ Private Sub TestHMACChainCall()
     Debug.Print "====================="
 
     ' 1. 最简单的用法（默认 SHA256）
-    Debug.Print "SHA256: " & HMAC.Key("secret").DataString(sText).ReturnHex()
+    Debug.Print "SHA256: " & HMAC.Secret("secret").DataString(sText).ReturnHex()
 
     ' 2. HMAC-SHA1
-    Debug.Print "SHA1:   " & HMAC.Mode(HMAC_ALG_SHA1).Key("secret").DataString(sText).ReturnHex()
+    Debug.Print "SHA1:   " & HMAC.Mode(HMAC_ALG_SHA1).Secret("secret").DataString(sText).ReturnHex()
 
     ' 3. 不同输出格式
-    Debug.Print "Hex:    " & HMAC.Key("secret").DataString(sText).ReturnHex()
-    Debug.Print "Base64: " & HMAC.Key("secret").DataString(sText).ReturnBase64()
-    Debug.Print "Upper:  " & HMAC.Key("secret").DataString(sText).ReturnHex(True)
+    Debug.Print "Hex:    " & HMAC.Secret("secret").DataString(sText).ReturnHex()
+    Debug.Print "Base64: " & HMAC.Secret("secret").DataString(sText).ReturnBase64()
+    Debug.Print "Upper:  " & HMAC.Secret("secret").DataString(sText).ReturnHex(True)
 
     ' 4. 中文文本
-    Debug.Print "Chinese UTF8: " & HMAC.Key("密钥").DataString("你好世界", HMAC_ENCODING_UTF8).ReturnHex()
+    Debug.Print "Chinese UTF8: " & HMAC.Secret("密钥").DataString("你好世界", HMAC_ENCODING_UTF8).ReturnHex()
 
     ' 5. 重复使用
     HMAC.Mode(HMAC_ALG_SHA256)
-    Debug.Print "Data 1: " & HMAC.Key("key1").DataString("Hello").ReturnHex()
-    Debug.Print "Data 2: " & HMAC.Key("key2").DataString("World").ReturnHex()
+    Debug.Print "Data 1: " & HMAC.Secret("key1").DataString("Hello").ReturnHex()
+    Debug.Print "Data 2: " & HMAC.Secret("key2").DataString("World").ReturnHex()
 End Sub
 ```
 
@@ -161,7 +161,7 @@ Private Function SignRequest(ByVal StringToSign As String, ByVal AccessKeySecret
     ' 阿里云签名通常使用 HMAC-SHA1
     SignRequest = HMAC _
         .Mode(HMAC_ALG_SHA1) _
-        .Key(AccessKeySecret & "&") _
+        .Secret(AccessKeySecret & "&") _
         .DataString(StringToSign, HMAC_ENCODING_UTF8) _
         .ReturnBase64()
 End Function
@@ -181,7 +181,7 @@ Private Function CreateJWTSignature(ByVal HeaderPayload As String, ByVal Secret 
     ' JWT 通常使用 HMAC-SHA256
     CreateJWTSignature = HMAC _
         .Mode(HMAC_ALG_SHA256) _
-        .Key(Secret) _
+        .Secret(Secret) _
         .DataString(HeaderPayload, HMAC_ENCODING_UTF8) _
         .ReturnBase64()
 End Function
@@ -247,8 +247,8 @@ End Sub
 | 方法                           | 说明                  |
 | ------------------------------ | --------------------- |
 | `Mode(Algorithm)`              | 设置算法              |
-| `Key(KeyString, [Encoding])`   | 设置字符串密钥        |
-| `KeyBytes(KeyBytes())`         | 设置字节数组密钥      |
+| `Secret(KeyString, [Encoding])` | 设置字符串密钥        |
+| `SecretBytes(KeyBytes())`      | 设置字节数组密钥      |
 | `DataString(Text, [Encoding])` | 输入字符串数据        |
 | `DataBytes(Data())`            | 输入字节数组数据      |
 | `ReturnHex([UpperCase])`       | 返回十六进制 HMAC     |

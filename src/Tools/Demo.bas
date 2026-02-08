@@ -12,23 +12,23 @@ Public Sub TestHMACChainCall()
     Debug.Print "====================="
     
     ' 1. 最简单的用法（默认 SHA256）
-    Debug.Print "SHA256: " & HMAC.Key("secret").DataString(sText).ReturnHex()
+    Debug.Print "SHA256: " & HMAC.Secret("secret").DataString(sText).ReturnHex()
     
     ' 2. HMAC-SHA1
-    Debug.Print "SHA1:   " & HMAC.Mode(HMAC_ALG_SHA1).Key("secret").DataString(sText).ReturnHex()
+    Debug.Print "SHA1:   " & HMAC.Mode(HMAC_ALG_SHA1).Secret("secret").DataString(sText).ReturnHex()
     
     ' 3. 不同输出格式
-    Debug.Print "Hex:    " & HMAC.Key("secret").DataString(sText).ReturnHex()
-    Debug.Print "Base64: " & HMAC.Key("secret").DataString(sText).ReturnBase64()
-    Debug.Print "Upper:  " & HMAC.Key("secret").DataString(sText).ReturnHex(True)
+    Debug.Print "Hex:    " & HMAC.Secret("secret").DataString(sText).ReturnHex()
+    Debug.Print "Base64: " & HMAC.Secret("secret").DataString(sText).ReturnBase64()
+    Debug.Print "Upper:  " & HMAC.Secret("secret").DataString(sText).ReturnHex(True)
     
     ' 4. 中文文本
-    Debug.Print "Chinese UTF8: " & HMAC.Key("密钥").DataString("你好世界", HMAC_ENCODING_UTF8).ReturnHex()
+    Debug.Print "Chinese UTF8: " & HMAC.Secret("密钥").DataString("你好世界", HMAC_ENCODING_UTF8).ReturnHex()
     
     ' 5. 重复使用
     HMAC.Mode (HMAC_ALG_SHA256)
-    Debug.Print "Data 1: " & HMAC.Key("key1").DataString("Hello").ReturnHex()
-    Debug.Print "Data 2: " & HMAC.Key("key2").DataString("World").ReturnHex()
+    Debug.Print "Data 1: " & HMAC.Secret("key1").DataString("Hello").ReturnHex()
+    Debug.Print "Data 2: " & HMAC.Secret("key2").DataString("World").ReturnHex()
 End Sub
 
 '演示链式调用功能

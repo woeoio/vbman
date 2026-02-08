@@ -100,6 +100,7 @@ Class=cToolsFso; Tools\Fso\cToolsFso.cls
 Class=cRedisClient; Redis\cRedisClient.cls
 Class=cCryptoHash; Crypt\Hash\cCryptoHash.cls
 ResFile32="RES\VBMANLIB.RES"
+Class=cCryptoHMAC; Crypt\Hash\cCryptoHMAC.cls
 Startup="(None)"
 HelpFile=""
 Title="VBMAN"

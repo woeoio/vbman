@@ -90,6 +90,7 @@ Private Const CALG_SHA_512 As Long = 32782
 ' 枚举定义
 '=========================================================================
 Public Enum CryptoHashAlgorithm
+    HASH_ALG_DEFAULT = 0         ' 使用类属性默认算法
     HASH_ALG_MD5 = CALG_MD5
     HASH_ALG_SHA1 = CALG_SHA1
     HASH_ALG_SHA256 = CALG_SHA_256
@@ -159,7 +160,7 @@ End Property
 '@param Encoding 可选参数，字符串编码（ENCODING_UTF8=1, ENCODING_ANSI=0），默认 UTF8
 '@return 十六进制格式的哈希字符串
 Public Function ComputeHash(ByVal Text As String, _
-                            Optional ByVal Algorithm As Variant, _
+                            Optional ByVal Algorithm As CryptoHashAlgorithm, _
                             Optional ByVal Encoding As CryptoStringEncoding = ENCODING_UTF8) As String
     On Error GoTo ErrorHandler
     
@@ -188,7 +189,7 @@ End Function
 '@param Algorithm 可选参数，哈希算法，默认使用类属性值
 '@return 十六进制格式的哈希字符串
 Public Function ComputeHashBytesToHex(ByRef Data() As Byte, _
-                                      Optional ByVal Algorithm As Variant) As String
+                                      Optional ByVal Algorithm As CryptoHashAlgorithm) As String
     On Error GoTo ErrorHandler
     
     Dim baHash() As Byte
@@ -206,7 +207,7 @@ End Function
 '@param Algorithm 可选参数，哈希算法，默认使用类属性值
 '@return 哈希值的字节数组
 Public Function ComputeHashBytes(ByRef Data() As Byte, _
-                                 Optional ByVal Algorithm As Variant) As Byte()
+                                 Optional ByVal Algorithm As CryptoHashAlgorithm) As Byte()
     On Error GoTo ErrorHandler
     
     ComputeHashBytes = ComputeHashBytesInternal(Data, Algorithm)
@@ -222,7 +223,7 @@ End Function
 '@return 十六进制格式的哈希字符串
 '说明：直接二进制读取文件内容计算哈希，不进行字符编码处理
 Public Function ComputeFileHash(ByVal FilePath As String, _
-                                 Optional ByVal Algorithm As Variant) As String
+                                 Optional ByVal Algorithm As CryptoHashAlgorithm) As String
     On Error GoTo ErrorHandler
     
     Dim iFileNum As Integer
@@ -321,7 +322,7 @@ End Function
 '@param Algorithm 可选参数，哈希算法
 '@return 哈希值的字节数组
 Private Function ComputeHashBytesInternal(ByRef Data() As Byte, _
-                                           Optional ByVal Algorithm As Variant) As Byte()
+                                           Optional ByVal Algorithm As CryptoHashAlgorithm) As Byte()
     On Error GoTo ErrorHandler
     
     Dim hProv As Long
@@ -334,10 +335,10 @@ Private Function ComputeHashBytesInternal(ByRef Data() As Byte, _
     End If
     
     ' 确定使用的算法
-    If IsMissing(Algorithm) Then
+    If Algorithm = HASH_ALG_DEFAULT Then
         lAlgorithm = m_Algorithm
     Else
-        lAlgorithm = CLng(Algorithm)
+        lAlgorithm = Algorithm
     End If
     
     ' 获取加密服务提供程序句柄并创建哈希对象

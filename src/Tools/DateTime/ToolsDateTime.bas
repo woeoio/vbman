@@ -34,7 +34,12 @@ Public Function GetUnixTimestamp() As Currency
     GetUnixTimestamp = timestamp * 1000# + sysTime.wMilliseconds
 End Function
 
-
+' 生成UTC时间戳（ISO8601格式）
+Public Function GetUtcTimestamp() As String
+    Dim dt As Date
+    dt = DateAdd("h", -8, Now) ' 北京时间转UTC
+    GetUtcTimestamp = Format$(dt, "yyyy-mm-dd\Thh:mm:ss\Z")
+End Function
 
 Public Function IsDatePast(targetDate As Variant) As Boolean
     Dim parsedDate As Date

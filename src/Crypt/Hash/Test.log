@@ -1,0 +1,61 @@
+demo.DemoChainedCall
+=== Chained Call Demo ===
+
+1. String input + Hex output (lowercase):
+   a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+
+2. String input + Hex output (uppercase):
+   A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E
+
+3. String input + Base64 output:
+   pZGm1Av0IEBKARczz7exkNYsZb8LzaMrV7J32a2fFG4=
+
+4. String input + Bytes output:
+   Hash size: 32 bytes
+
+5. Byte array input + Hex output:
+   b10a8db164e0754105b7a99be72e3fe5
+
+6. Byte array input + Base64 output:
+   LHT9F+2v2A6ER7DUZ0HuJDt+t03SFJoKsbkkb7MDgvJ+hT2FhXGeDmfL2g2qj1FnEGRhXWRa4nrLFb+xRH9Fmw==
+
+7. Different algorithms comparison:
+   MD5:    b10a8db164e0754105b7a99be72e3fe5
+   SHA1:   0a4d55a8d778e5022fab701977c5d840bbc486d0
+   SHA256: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+
+8. Chinese text with different encodings:
+   UTF8 (SHA256): beca6335b20ff57ccc47403ef4d9e0b8fccb4442b3151c2e7d50050673d43172
+   ANSI (SHA256): a818accd3a461a16db0120a5ba98e991f42bbd0e0239c60e44238f36e8be6ccf
+
+9. Verify chain call consistency:
+   Chain 1: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+   Chain 2: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+   Direct:  A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E
+   All equal: False
+
+10. Omit Mode (default SHA256):
+   With Mode:    a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+   Without Mode: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+   Equal: True
+
+11. Simplified chain calls (no Mode):
+   Hex (default SHA256): a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+   Base64 (default SHA256): pZGm1Av0IEBKARczz7exkNYsZb8LzaMrV7J32a2fFG4=
+   Uppercase: A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E
+
+12. Reuse Hash object (auto reset):
+   First hash (Hello):  185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969
+   Second hash (World): 78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524
+   Are different: True
+
+13. Multiple output formats (same data):
+   Hex:      532eaabd9574880dbf76b9b8cc00832c20a6ec113d682299550d7a6e0f345e25
+   Base64:   Uy6qvZV0iA2/drm4zACDLCCm7BE9aCKZVQ16bg80XiU=
+   Uppercase: 532EAABD9574880DBF76B9B8CC00832C20A6EC113D682299550D7A6E0F345E25
+
+14. Manual reset (using Mode):
+   After reset (SHA256 of Test2): 32e6e1e134f9cc8f14b05925667c118d19244aebce442d6fecd2ac38cdc97649
+
+
+

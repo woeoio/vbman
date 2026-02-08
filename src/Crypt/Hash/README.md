@@ -7,6 +7,9 @@
 ## 特性
 
 - ✅ **支持多种哈希算法**：MD5、SHA1、SHA256、SHA384、SHA512
+- ✅ **链式调用支持**：流畅的 API 设计，一行代码完成哈希计算
+- ✅ **自动重置机制**：每次计算后自动重置状态，方便重复使用
+- ✅ **多种输出格式**：支持十六进制（大小写）、Base64、字节数组
 - ✅ **自动 Provider 选择**：根据算法自动选择支持该算法的加密服务提供程序
 - ✅ **跨版本兼容**：支持 Windows XP 及以上版本
 - ✅ **UTF-8 编码**：使用经过验证的 `cToolsUtf8` 类确保编码一致性
@@ -27,12 +30,192 @@
 
 ## 公共方法
 
+### 传统方法
+
 - `ComputeHash(Text, [Algorithm], [Encoding])` - 计算字符串哈希（返回十六进制）
 - `ComputeHashBytes(Data, [Algorithm])` - 计算字节数组哈希（返回字节数组）
 - `ComputeHashBytesToHex(Data, [Algorithm])` - 计算字节数组哈希（返回十六进制）
 - `ComputeFileHash(FilePath, [Algorithm])` - 计算文件哈希（返回十六进制）
 - `Algorithm` - 属性，设置/获取默认哈希算法
 - `ProviderName` - 属性，设置/获取加密服务提供程序名称
+
+### 链式调用方法
+
+- `Mode([Algorithm])` - 设置哈希算法（可选，默认使用 SHA256）
+- `DataString(Text, [Encoding])` - 输入字符串数据
+- `DataBytes(Data())` - 输入字节数组数据
+- `ReturnHex([UpperCase])` - 返回十六进制格式哈希值
+- `ReturnBase64()` - 返回 Base64 格式哈希值
+- `ReturnBytes()` - 返回字节数组格式哈希值
+
+## 链式调用（推荐）
+
+链式调用提供了一种更加简洁和直观的方式来计算哈希值，支持流畅的编码风格。
+
+### 基本语法
+
+```vb
+Hash.Mode([算法]).DataString/Bytes([数据]).ReturnHex/Base64/Bytes()
+```
+
+### 快速开始
+
+```vb
+Dim Hash As New cCryptoHash
+
+' 最简单的用法（默认 SHA256）
+Dim sHash As String
+sHash = Hash.DataString("Hello World").ReturnHex()
+```
+
+### 详细用法
+
+#### 1. 设置算法（可选）
+
+```vb
+' 方式1：省略 Mode，使用默认 SHA256
+sHash = Hash.DataString("Hello").ReturnHex()
+
+' 方式2：显式指定算法
+sHash = Hash.Mode(HASH_ALG_MD5).DataString("Hello").ReturnHex()
+sHash = Hash.Mode(HASH_ALG_SHA256).DataString("Hello").ReturnHex()
+sHash = Hash.Mode(HASH_ALG_SHA512).DataString("Hello").ReturnHex()
+```
+
+#### 2. 输入数据
+
+**字符串输入：**
+```vb
+' 默认 UTF8 编码
+sHash = Hash.DataString("Hello World").ReturnHex()
+
+' 指定编码
+sHash = Hash.DataString("你好世界", ENCODING_UTF8).ReturnHex()
+sHash = Hash.DataString("Hello", ENCODING_ANSI).ReturnHex()
+```
+
+**字节数组输入：**
+```vb
+Dim baData() As Byte
+baData = StrConv("Hello World", vbFromUnicode)
+
+sHash = Hash.DataBytes(baData).ReturnHex()
+```
+
+#### 3. 输出格式
+
+**十六进制输出（小写）：**
+```vb
+sHash = Hash.DataString("Hello").ReturnHex()
+' 输出: "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
+```
+
+**十六进制输出（大写）：**
+```vb
+sHash = Hash.DataString("Hello").ReturnHex(True)
+' 输出: "185F8DB32271FE25F561A6FC938B2E264306EC304EDA518007D1764826381969"
+```
+
+**Base64 输出：**
+```vb
+sHash = Hash.DataString("Hello").ReturnBase64()
+' 输出: "GF/Nsicn4+X1aWvyTi4iZkMG7DQ7pUYAfhdkhijgZaQ="
+```
+
+**字节数组输出：**
+```vb
+Dim baHash() As Byte
+baHash = Hash.DataString("Hello").ReturnBytes()
+Debug.Print "Hash size: " & (UBound(baHash) + 1) & " bytes"
+```
+
+### 完整示例
+
+```vb
+Private Sub TestChainCall()
+    Dim Hash As New cCryptoHash
+    
+    ' 1. 简单示例
+    Debug.Print Hash.DataString("Hello").ReturnHex()
+    
+    ' 2. 指定算法和编码
+    Debug.Print Hash.Mode(HASH_ALG_SHA256).DataString("你好", ENCODING_UTF8).ReturnHex()
+    
+    ' 3. 不同输出格式
+    Debug.Print "Hex: " & Hash.DataString("Test").ReturnHex()
+    Debug.Print "Base64: " & Hash.DataString("Test").ReturnBase64()
+    Debug.Print "Upper: " & Hash.DataString("Test").ReturnHex(True)
+    
+    ' 4. 字节数组输入
+    Dim baData() As Byte
+    baData = StrConv("Hello World", vbFromUnicode)
+    Debug.Print Hash.Mode(HASH_ALG_MD5).DataBytes(baData).ReturnHex()
+End Sub
+```
+
+### 链式调用特性
+
+#### 1. 自动重置
+
+每次调用 ReturnXxx 方法后，链式调用状态会自动重置，方便重复使用 Hash 对象：
+
+```vb
+Dim Hash As New cCryptoHash
+
+' 第一次计算
+Dim sHash1 As String
+sHash1 = Hash.DataString("Hello").ReturnHex()
+
+' 第二次计算（自动重置）
+Dim sHash2 As String
+sHash2 = Hash.DataString("World").ReturnHex()
+```
+
+#### 2. 手动重置
+
+使用 Mode 方法可以显式开始新的链式调用：
+
+```vb
+' 设置数据但不返回
+Hash.Mode(HASH_ALG_MD5).DataString("Test1")
+
+' 重新开始新的链式调用
+Dim sHash As String
+sHash = Hash.Mode(HASH_ALG_SHA256).DataString("Test2").ReturnHex()
+```
+
+#### 3. 默认算法
+
+Mode 方法是可选的，如果不调用，默认使用 SHA256：
+
+```vb
+' 两者等效
+sHash = Hash.Mode(HASH_ALG_SHA256).DataString("Hello").ReturnHex()
+sHash = Hash.DataString("Hello").ReturnHex()
+```
+
+### 链式调用 vs 传统方法
+
+**链式调用（推荐）：**
+```vb
+' 一行代码完成计算
+sHash = New cCryptoHash.DataString("Hello").ReturnHex(True)
+```
+
+**传统方法：**
+```vb
+' 需要多个步骤
+Dim Hash As New cCryptoHash
+Hash.Algorithm = HASH_ALG_SHA256
+sHash = Hash.ComputeHash("Hello")
+```
+
+### 最佳实践
+
+1. **简单场景**：优先使用链式调用，代码更简洁
+2. **性能关键**：复用 Hash 对象，避免频繁创建
+3. **多次计算**：链式调用自动重置，无需手动管理状态
+4. **代码清晰**：链式调用更符合自然语言习惯
 
 ## 基本用法
 
@@ -155,6 +338,8 @@ sHash = Hash.ComputeHash("Hello World", HASH_ALG_MD5)  ' 只能使用 MD5/SHA1
 
 ## 完整示例
 
+### 传统方法示例
+
 ```vb
 Private Sub TestCryptoHash()
     Dim Hash As New cCryptoHash
@@ -191,6 +376,65 @@ Private Sub TestCryptoHash()
 End Sub
 ```
 
+### 链式调用示例
+
+```vb
+Private Sub TestChainCall()
+    Dim Hash As New cCryptoHash
+    Dim sText As String
+    sText = "VBMAN CryptoAPI Hash Test"
+
+    Debug.Print "Chain Call Demo"
+    Debug.Print "================================"
+
+    ' 1. 最简单的用法（默认 SHA256）
+    Debug.Print "Default SHA256:"
+    Debug.Print "   " & Hash.DataString(sText).ReturnHex()
+    Debug.Print ""
+
+    ' 2. 不同算法
+    Debug.Print "Different algorithms:"
+    Debug.Print "   MD5:    " & Hash.Mode(HASH_ALG_MD5).DataString(sText).ReturnHex()
+    Debug.Print "   SHA1:   " & Hash.Mode(HASH_ALG_SHA1).DataString(sText).ReturnHex()
+    Debug.Print "   SHA256: " & Hash.Mode(HASH_ALG_SHA256).DataString(sText).ReturnHex()
+    Debug.Print "   SHA512: " & Hash.Mode(HASH_ALG_SHA512).DataString(sText).ReturnHex()
+    Debug.Print ""
+
+    ' 3. 不同输出格式
+    Debug.Print "Different output formats:"
+    Debug.Print "   Hex (lower):  " & Hash.DataString(sText).ReturnHex()
+    Debug.Print "   Hex (upper):  " & Hash.DataString(sText).ReturnHex(True)
+    Debug.Print "   Base64:       " & Hash.DataString(sText).ReturnBase64()
+    Debug.Print ""
+
+    ' 4. 字节数组输入
+    Debug.Print "Byte array input:"
+    Dim baData() As Byte
+    baData = StrConv(sText, vbFromUnicode)
+    Debug.Print "   " & Hash.Mode(HASH_ALG_SHA256).DataBytes(baData).ReturnHex()
+    Debug.Print ""
+
+    ' 5. 中文文本
+    Debug.Print "Chinese text:"
+    Dim sChinese As String
+    sChinese = "你好世界"
+    Debug.Print "   UTF8:  " & Hash.DataString(sChinese, ENCODING_UTF8).ReturnHex()
+    Debug.Print "   ANSI:  " & Hash.DataString(sChinese, ENCODING_ANSI).ReturnHex()
+    Debug.Print ""
+
+    ' 6. 重复使用（自动重置）
+    Debug.Print "Reuse Hash object:"
+    Debug.Print "   First:  " & Hash.DataString("Hello").ReturnHex()
+    Debug.Print "   Second: " & Hash.DataString("World").ReturnHex()
+    Debug.Print ""
+
+    ' 7. 一行代码
+    Debug.Print "One-liners:"
+    Debug.Print "   " & New cCryptoHash.DataString("Hello").ReturnHex()
+    Debug.Print "   " & New cCryptoHash.Mode(HASH_ALG_MD5).DataString("Test").ReturnBase64()
+End Sub
+```
+
 ### 5. 文件哈希计算
 
 ```vb
@@ -215,12 +459,15 @@ sHash = Hash.ComputeFileHash("C:\path\to\file.exe", HASH_ALG_SHA512)
 ```vb
 Private Sub HashPassword(ByVal Password As String)
     ' 在实际应用中，应该使用盐值（salt）和多次迭代
+
+    ' 传统方法
     Dim sHash As String
-
-    ' 一行代码计算 SHA256
     sHash = New cCryptoHash.ComputeHash(Password, HASH_ALG_SHA256, ENCODING_UTF8)
+    Debug.Print "Password hash (traditional): " & sHash
 
-    Debug.Print "Password hash: " & sHash
+    ' 链式调用方法
+    sHash = New cCryptoHash.DataString(Password, ENCODING_UTF8).ReturnHex()
+    Debug.Print "Password hash (chain): " & sHash
 End Sub
 ```
 
@@ -257,15 +504,21 @@ End Sub
    - 自动处理不同 Windows 版本的兼容性
    - 不建议手动指定 Provider，除非有特殊需求
 
-4. **大文件处理**：对于大文件，建议分块读取和哈希计算
+4. **链式调用**：
+   - Mode 方法是可选的，默认使用 SHA256 算法
+   - 每次调用 ReturnXxx 方法后，链式调用状态会自动重置
+   - 可以重复使用 Hash 对象进行多次计算
+   - 使用 Mode 方法可以显式开始新的链式调用
 
-5. **安全性**：
+5. **大文件处理**：对于大文件，建议分块读取和哈希计算
+
+6. **安全性**：
    - SHA1 和 MD5 已被证明存在碰撞攻击，不应在安全敏感的场景中使用
    - 对于密码存储，建议使用专门的密码哈希函数（如 bcrypt, PBKDF2, Argon2）
 
-5. **错误处理**：所有方法都包含错误处理，遇到错误会抛出异常
+7. **错误处理**：所有方法都包含错误处理，遇到错误会抛出异常
 
-6. **中文支持**：
+8. **中文支持**：
    - 使用 UTF-8 编码可以正确处理中文字符
    - ANSI 编码可能会因系统代码页不同而产生不同结果
 

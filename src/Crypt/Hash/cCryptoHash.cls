@@ -12,6 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 
+
     '=========================================================================
     '
     ' cCryptoHash - Windows CryptoAPI Hash Algorithm Implementation
@@ -90,7 +91,7 @@ Private Const CALG_SHA_512 As Long = 32782
 ' 枚举定义
 '=========================================================================
 Public Enum CryptoHashAlgorithm
-    HASH_ALG_DEFAULT = 0         ' 使用类属性默认算法
+    HASH_ALG_DEFAULT = 0                                                        ' 使用类属性默认算法
     HASH_ALG_MD5 = CALG_MD5
     HASH_ALG_SHA1 = CALG_SHA1
     HASH_ALG_SHA256 = CALG_SHA_256
@@ -109,6 +110,10 @@ End Enum
 Private m_Algorithm As CryptoHashAlgorithm
 Private m_ProviderName As String
 Private m_Utf8 As cToolsUtf8
+' 链式调用相关变量
+Private m_ChainAlgorithm As CryptoHashAlgorithm
+Private m_ChainData() As Byte
+Private m_ChainDataHasBeenSet As Boolean
 
 '=========================================================================
 ' 类事件
@@ -123,6 +128,9 @@ Private Sub Class_Initialize()
     
     ' 初始化 UTF8 转换对象
     Set m_Utf8 = New cToolsUtf8
+    
+    ' 初始化链式调用默认算法为 SHA256
+    m_ChainAlgorithm = HASH_ALG_SHA256
 End Sub
 
 Private Sub Class_Terminate()
@@ -444,6 +452,139 @@ Private Function BytesToHex(ByRef Bytes() As Byte) As String
 End Function
 
 '=========================================================================
+' 链式调用方法
+'=========================================================================
+
+'设置哈希算法（链式调用入口，可选）
+'@param Algorithm 哈希算法类型，如果不调用此方法，默认使用 HASH_ALG_SHA256
+'@return 返回对象本身以支持链式调用
+'使用示例:
+'   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnHex()
+'   Hash.DataString("hello").ReturnHex() ' 省略 Mode，使用默认 SHA256
+Public Function Mode(ByVal Algorithm As CryptoHashAlgorithm) As cCryptoHash
+    m_ChainAlgorithm = Algorithm
+    m_ChainDataHasBeenSet = False
+    Set Mode = Me
+End Function
+
+'输入字符串数据（链式调用）
+'@param Text 要哈希的文本字符串
+'@param Encoding 可选参数，字符串编码（ENCODING_UTF8=1, ENCODING_ANSI=0），默认 UTF8
+'@return 返回对象本身以支持链式调用
+'使用示例:
+'   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnHex()
+'   Hash.DataString("hello").ReturnHex() ' 省略 Mode，使用默认 SHA256
+'   Hash.DataString("你好", ENCODING_UTF8).ReturnHex() ' 指定 UTF8 编码
+Public Function DataString(ByVal Text As String, _
+                          Optional ByVal Encoding As CryptoStringEncoding = ENCODING_UTF8) As cCryptoHash
+    ' 根据编码类型转换字符串
+    If Encoding = ENCODING_UTF8 Then
+        m_ChainData = StringToUTF8Bytes(Text)
+    Else
+        m_ChainData = StrConv(Text, vbFromUnicode)
+    End If
+    m_ChainDataHasBeenSet = True
+    Set DataString = Me
+End Function
+
+'输入字节数组数据（链式调用）
+'@param Data 字节数组
+'@return 返回对象本身以支持链式调用
+'使用示例:
+'   Hash.Mode(HASH_ALG_MD5).DataBytes(byteArray).ReturnHex()
+'   Hash.DataBytes(byteArray).ReturnHex() ' 省略 Mode，使用默认 SHA256
+Public Function DataBytes(ByRef Data() As Byte) As cCryptoHash
+    ' 复制字节数组
+    m_ChainData = Data
+    m_ChainDataHasBeenSet = True
+    Set DataBytes = Me
+End Function
+
+'返回十六进制格式的哈希值（链式调用）
+'@param UpperCase 可选参数，是否使用大写字母，默认为 False（小写）
+'@return 十六进制格式的哈希字符串
+'使用示例:
+'   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnHex(True) ' 返回大写
+'   Hash.DataString("hello").ReturnHex() ' 省略 Mode，使用默认 SHA256
+Public Function ReturnHex(Optional ByVal UpperCase As Boolean = False) As String
+    Dim baHash() As Byte
+    Dim sHex As String
+    Dim i As Long
+    
+    ' 检查是否已设置数据
+    If Not m_ChainDataHasBeenSet Then
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
+    End If
+    
+    ' 计算哈希值
+    baHash = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
+    
+    ' 转换为十六进制字符串
+    sHex = ""
+    For i = 0 To UBound(baHash)
+        sHex = sHex & Right$("0" & Hex$(baHash(i)), 2)
+    Next i
+    
+    ' 转换大小写
+    If UpperCase Then
+        ReturnHex = UCase$(sHex)
+    Else
+        ReturnHex = LCase$(sHex)
+    End If
+    
+    ' 重置链式调用状态，允许下次继续使用
+    m_ChainDataHasBeenSet = False
+    m_ChainAlgorithm = HASH_ALG_SHA256
+End Function
+
+'返回Base64格式的哈希值（链式调用）
+'@return Base64格式的哈希字符串
+'使用示例:
+'   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnBase64()
+'   Hash.DataString("hello").ReturnBase64() ' 省略 Mode，使用默认 SHA256
+Public Function ReturnBase64() As String
+    Dim baHash() As Byte
+    Dim oBase64 As cToolsBase64
+    
+    ' 检查是否已设置数据
+    If Not m_ChainDataHasBeenSet Then
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
+    End If
+    
+    ' 计算哈希值
+    baHash = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
+    
+    ' 使用 cToolsBase64 转换为 Base64
+    Set oBase64 = New cToolsBase64
+    ReturnBase64 = oBase64.BytesToBase64(baHash)
+    
+    Set oBase64 = Nothing
+    
+    ' 重置链式调用状态，允许下次继续使用
+    m_ChainDataHasBeenSet = False
+    m_ChainAlgorithm = HASH_ALG_SHA256
+End Function
+
+'返回字节数组格式的哈希值（链式调用）
+'@return 哈希值的字节数组
+'使用示例:
+'   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnBytes()
+'   Hash.DataString("hello").ReturnBytes() ' 省略 Mode，使用默认 SHA256
+Public Function ReturnBytes() As Byte()
+    ' 检查是否已设置数据
+    If Not m_ChainDataHasBeenSet Then
+        ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
+    End If
+    
+    ' 计算并返回哈希值
+    ReturnBytes = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
+    
+    ' 重置链式调用状态，允许下次继续使用
+    m_ChainDataHasBeenSet = False
+    m_ChainAlgorithm = HASH_ALG_SHA256
+End Function
+
+'=========================================================================
 ' 错误处理
 '=========================================================================
 
@@ -451,6 +592,8 @@ Private Sub RaiseError(ByVal Description As String)
     Debug.Print "[" & MODULE_NAME & "] Error: " & Description
     ERR.Raise vbObjectError + 1000, MODULE_NAME, Description
 End Sub
+
+
 
 
 

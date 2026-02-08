@@ -387,38 +387,46 @@ Public Sub DemoChainedCall()
     Debug.Print "   Uppercase: " & Hash.DataString(sText).ReturnHex(True)
     Debug.Print ""
     
-    ' 12. 重复使用 Hash 对象（自动重置）
-    Debug.Print "12. Reuse Hash object (auto reset):"
+    ' 12. 重复使用 Hash 对象（覆盖数据）
+    Debug.Print "12. Reuse Hash object (data overwrite):"
     Dim sFirst As String, sSecond As String
     sFirst = Hash.DataString("Hello").ReturnHex()
-    sSecond = Hash.DataString("World").ReturnHex()
+    sSecond = Hash.DataString("World").ReturnHex()  ' 自动覆盖旧数据
     Debug.Print "   First hash (Hello):  " & sFirst
     Debug.Print "   Second hash (World): " & sSecond
     Debug.Print "   Are different: " & (sFirst <> sSecond)
     Debug.Print ""
-    
-    ' 13. 连续调用多个输出格式（基于同一数据）
-    Debug.Print "13. Multiple output formats (same data):"
+
+    ' 13. 同一数据获取多种输出格式（不重复设置数据）
+    Debug.Print "13. Multiple output formats (same data, one setup):"
     Dim sHex As String, sBase64 As String, sUpper As String
-    ' 重复设置同一数据
-    sHex = Hash.DataString("Test").ReturnHex()
-    sBase64 = Hash.DataString("Test").ReturnBase64()
-    sUpper = Hash.DataString("Test").ReturnHex(True)
+    ' 只设置一次数据，可以重复使用
+    Hash.DataString("Test")
+    sHex = Hash.ReturnHex()
+    sBase64 = Hash.ReturnBase64()
+    sUpper = Hash.ReturnHex(True)
     Debug.Print "   Hex:      " & sHex
     Debug.Print "   Base64:   " & sBase64
     Debug.Print "   Uppercase: " & sUpper
     Debug.Print ""
-    
-    ' 14. 手动重置链式调用（使用 Mode）
-    Debug.Print "14. Manual reset (using Mode):"
-    Dim sBeforeReset As String, sAfterReset As String
-    ' 设置数据但不调用 ReturnXxx
-    Hash.Mode(HASH_ALG_MD5).DataString("Test1")
-    ' 重新开始新的链式调用
-    sAfterReset = Hash.Mode(HASH_ALG_SHA256).DataString("Test2").ReturnHex()
-    Debug.Print "   After reset (SHA256 of Test2): " & sAfterReset
+
+    ' 14. 切换算法（不需要重置）
+    Debug.Print "14. Switch algorithm (no reset needed):"
+    Dim sMD5 As String, sSHA256 As String
+    sMD5 = Hash.Mode(HASH_ALG_MD5).DataString("Test").ReturnHex()
+    sSHA256 = Hash.Mode(HASH_ALG_SHA256).DataString("Test").ReturnHex()  ' 自动切换算法
+    Debug.Print "   MD5:    " & sMD5
+    Debug.Print "   SHA256: " & sSHA256
     Debug.Print ""
-    
+
+    ' 15. 算法复用（设置一次，多次使用）
+    Debug.Print "15. Algorithm reuse (set once, use multiple times):"
+    Hash.Mode(HASH_ALG_SHA256)  ' 只设置一次算法
+    Debug.Print "   Data 1: " & Hash.DataString("First").ReturnHex()
+    Debug.Print "   Data 2: " & Hash.DataString("Second").ReturnHex()
+    Debug.Print "   Data 3: " & Hash.DataString("Third").ReturnHex()
+    Debug.Print ""
+
     Set Hash = Nothing
 End Sub
 

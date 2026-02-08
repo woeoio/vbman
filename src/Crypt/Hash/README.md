@@ -8,7 +8,7 @@
 
 - ✅ **支持多种哈希算法**：MD5、SHA1、SHA256、SHA384、SHA512
 - ✅ **链式调用支持**：流畅的 API 设计，一行代码完成哈希计算
-- ✅ **自动重置机制**：每次计算后自动重置状态，方便重复使用
+- ✅ **状态复用机制**：算法和数据可以复用，一次设置多次使用
 - ✅ **多种输出格式**：支持十六进制（大小写）、Base64、字节数组
 - ✅ **自动 Provider 选择**：根据算法自动选择支持该算法的加密服务提供程序
 - ✅ **跨版本兼容**：支持 Windows XP 及以上版本
@@ -155,33 +155,42 @@ End Sub
 
 ### 链式调用特性
 
-#### 1. 自动重置
+#### 1. 状态复用（推荐）
 
-每次调用 ReturnXxx 方法后，链式调用状态会自动重置，方便重复使用 Hash 对象：
+算法和数据可以复用，一次设置多次使用：
 
 ```vb
 Dim Hash As New cCryptoHash
 
-' 第一次计算
-Dim sHash1 As String
-sHash1 = Hash.DataString("Hello").ReturnHex()
-
-' 第二次计算（自动重置）
-Dim sHash2 As String
-sHash2 = Hash.DataString("World").ReturnHex()
+' 设置一次算法，多次使用
+Hash.Mode(HASH_ALG_SHA256)
+Debug.Print Hash.DataString("Hello").ReturnHex()
+Debug.Print Hash.DataString("World").ReturnHex()
+Debug.Print Hash.DataString("Test").ReturnHex()
 ```
 
-#### 2. 手动重置
+```vb
+' 设置一次数据，获取多种格式
+Hash.DataString("Hello")
+Debug.Print Hash.ReturnHex()
+Debug.Print Hash.ReturnBase64()
+Debug.Print Hash.ReturnHex(True)
+```
 
-使用 Mode 方法可以显式开始新的链式调用：
+#### 2. 自动覆盖
+
+新的设置会自动覆盖旧的：
 
 ```vb
-' 设置数据但不返回
-Hash.Mode(HASH_ALG_MD5).DataString("Test1")
+' 数据覆盖
+Hash.DataString("Hello")
+Hash.DataString("World")  // 自动覆盖 Hello
+```
 
-' 重新开始新的链式调用
-Dim sHash As String
-sHash = Hash.Mode(HASH_ALG_SHA256).DataString("Test2").ReturnHex()
+```vb
+' 算法覆盖
+Hash.Mode(HASH_ALG_MD5)
+Hash.Mode(HASH_ALG_SHA256)  // 自动覆盖 MD5
 ```
 
 #### 3. 默认算法
@@ -422,13 +431,28 @@ Private Sub TestChainCall()
     Debug.Print "   ANSI:  " & Hash.DataString(sChinese, ENCODING_ANSI).ReturnHex()
     Debug.Print ""
 
-    ' 6. 重复使用（自动重置）
+    ' 6. 重复使用（数据自动覆盖）
     Debug.Print "Reuse Hash object:"
     Debug.Print "   First:  " & Hash.DataString("Hello").ReturnHex()
     Debug.Print "   Second: " & Hash.DataString("World").ReturnHex()
     Debug.Print ""
 
-    ' 7. 一行代码
+    ' 7. 算法复用
+    Debug.Print "Algorithm reuse:"
+    Hash.Mode(HASH_ALG_SHA256)  // 设置一次
+    Debug.Print "   Data 1: " & Hash.DataString("Hello").ReturnHex()
+    Debug.Print "   Data 2: " & Hash.DataString("World").ReturnHex()
+    Debug.Print ""
+
+    ' 8. 同一数据多种格式
+    Debug.Print "Same data, multiple formats:"
+    Hash.DataString("Test")  // 设置一次
+    Debug.Print "   Hex:    " & Hash.ReturnHex()
+    Debug.Print "   Base64: " & Hash.ReturnBase64()
+    Debug.Print "   Upper:  " & Hash.ReturnHex(True)
+    Debug.Print ""
+
+    ' 9. 一行代码
     Debug.Print "One-liners:"
     Debug.Print "   " & New cCryptoHash.DataString("Hello").ReturnHex()
     Debug.Print "   " & New cCryptoHash.Mode(HASH_ALG_MD5).DataString("Test").ReturnBase64()
@@ -506,9 +530,9 @@ End Sub
 
 4. **链式调用**：
    - Mode 方法是可选的，默认使用 SHA256 算法
-   - 每次调用 ReturnXxx 方法后，链式调用状态会自动重置
-   - 可以重复使用 Hash 对象进行多次计算
-   - 使用 Mode 方法可以显式开始新的链式调用
+   - 算法和数据可以复用，一次设置多次使用
+   - 新的设置会自动覆盖旧的设置
+   - ReturnXxx 方法不会重置状态，允许重复获取不同格式
 
 5. **大文件处理**：对于大文件，建议分块读取和哈希计算
 

@@ -506,35 +506,33 @@ End Function
 '使用示例:
 '   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnHex(True) ' 返回大写
 '   Hash.DataString("hello").ReturnHex() ' 省略 Mode，使用默认 SHA256
+'注意: 此方法不重置状态，可以重复调用获取不同格式
 Public Function ReturnHex(Optional ByVal UpperCase As Boolean = False) As String
     Dim baHash() As Byte
     Dim sHex As String
     Dim i As Long
-    
+
     ' 检查是否已设置数据
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
     End If
-    
+
     ' 计算哈希值
     baHash = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
-    
+
     ' 转换为十六进制字符串
     sHex = ""
     For i = 0 To UBound(baHash)
         sHex = sHex & Right$("0" & Hex$(baHash(i)), 2)
     Next i
-    
+
     ' 转换大小写
     If UpperCase Then
         ReturnHex = UCase$(sHex)
     Else
         ReturnHex = LCase$(sHex)
     End If
-    
-    ' 重置链式调用状态，允许下次继续使用
-    m_ChainDataHasBeenSet = False
-    m_ChainAlgorithm = HASH_ALG_SHA256
+    ' 注意：不重置状态，允许重复使用相同的数据和算法
 End Function
 
 '返回Base64格式的哈希值（链式调用）
@@ -542,27 +540,25 @@ End Function
 '使用示例:
 '   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnBase64()
 '   Hash.DataString("hello").ReturnBase64() ' 省略 Mode，使用默认 SHA256
+'注意: 此方法不重置状态，可以重复调用获取不同格式
 Public Function ReturnBase64() As String
     Dim baHash() As Byte
     Dim oBase64 As cToolsBase64
-    
+
     ' 检查是否已设置数据
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
     End If
-    
+
     ' 计算哈希值
     baHash = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
-    
+
     ' 使用 cToolsBase64 转换为 Base64
     Set oBase64 = New cToolsBase64
     ReturnBase64 = oBase64.BytesToBase64(baHash)
-    
+
     Set oBase64 = Nothing
-    
-    ' 重置链式调用状态，允许下次继续使用
-    m_ChainDataHasBeenSet = False
-    m_ChainAlgorithm = HASH_ALG_SHA256
+    ' 注意：不重置状态，允许重复使用相同的数据和算法
 End Function
 
 '返回字节数组格式的哈希值（链式调用）
@@ -570,18 +566,16 @@ End Function
 '使用示例:
 '   Hash.Mode(HASH_ALG_SHA256).DataString("hello").ReturnBytes()
 '   Hash.DataString("hello").ReturnBytes() ' 省略 Mode，使用默认 SHA256
+'注意: 此方法不重置状态，可以重复调用获取不同格式
 Public Function ReturnBytes() As Byte()
     ' 检查是否已设置数据
     If Not m_ChainDataHasBeenSet Then
         ERR.Raise vbObjectError + 1, MODULE_NAME, "No data has been set. Please call DataString or DataBytes first."
     End If
-    
+
     ' 计算并返回哈希值
     ReturnBytes = ComputeHashBytesInternal(m_ChainData, m_ChainAlgorithm)
-    
-    ' 重置链式调用状态，允许下次继续使用
-    m_ChainDataHasBeenSet = False
-    m_ChainAlgorithm = HASH_ALG_SHA256
+    ' 注意：不重置状态，允许重复使用相同的数据和算法
 End Function
 
 '=========================================================================

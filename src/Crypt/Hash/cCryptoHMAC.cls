@@ -12,21 +12,20 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 
-
-'=========================================================================
-'
-' cCryptoHMAC - HMAC (Hash-based Message Authentication Code) Implementation
-'
-' Purpose: Provides HMAC computation using standard hash algorithms
-'          - Support for HMAC-SHA1, HMAC-SHA256
-'          - String and byte array input
-'          - Hex string and Base64 output
-'          - Chain call support (fluent API)
-'
-' Author: Auto
-' Date: 2026-02-08
-'
-'=========================================================================
+    '=========================================================================
+    '
+    ' cCryptoHMAC - HMAC (Hash-based Message Authentication Code) Implementation
+    '
+    ' Purpose: Provides HMAC computation using standard hash algorithms
+    '          - Support for HMAC-SHA1, HMAC-SHA256
+    '          - String and byte array input
+    '          - Hex string and Base64 output
+    '          - Chain call support (fluent API)
+    '
+    ' Author: Auto
+    ' Date: 2026-02-08
+    '
+    '=========================================================================
 
 Option Explicit
 
@@ -117,6 +116,12 @@ End Enum
 Public Enum HMACStringEncoding
     HMAC_ENCODING_ANSI = 0
     HMAC_ENCODING_UTF8 = 1
+End Enum
+
+Public Enum SecretKeyType
+    SECRET_KEY_STRING = 0
+    SECRET_KEY_HEX = 1
+    SECRET_KEY_BASE64 = 2
 End Enum
 
 '=========================================================================
@@ -289,15 +294,24 @@ End Function
 
 'Set key from string (chain call)
 '@param KeyString The secret key string
+'@param KeyType Key input type (STRING/HEX/BASE64), default STRING
 '@param Encoding String encoding, default UTF8
 '@return Returns self for chaining
 Public Function Secret(ByVal KeyString As String, _
+                    Optional ByVal KeyType As SecretKeyType = SECRET_KEY_STRING, _
                     Optional ByVal Encoding As HMACStringEncoding = HMAC_ENCODING_UTF8) As cCryptoHMAC
-    If Encoding = HMAC_ENCODING_UTF8 Then
-        m_ChainKey = StringToUTF8Bytes(KeyString)
-    Else
-        m_ChainKey = StrConv(KeyString, vbFromUnicode)
-    End If
+    Select Case KeyType
+        Case SECRET_KEY_HEX
+            m_ChainKey = HexToBytes(KeyString)
+        Case SECRET_KEY_BASE64
+            m_ChainKey = Base64ToBytes(KeyString)
+        Case Else 'SECRET_KEY_STRING
+            If Encoding = HMAC_ENCODING_UTF8 Then
+                m_ChainKey = StringToUTF8Bytes(KeyString)
+            Else
+                m_ChainKey = StrConv(KeyString, vbFromUnicode)
+            End If
+    End Select
     m_ChainKeyHasBeenSet = True
     Set Secret = Me
 End Function
@@ -614,6 +628,55 @@ Private Function BytesToHex(ByRef Bytes() As Byte) As String
     BytesToHex = sHex
 End Function
 
+'Convert hex string to bytes
+Private Function HexToBytes(ByVal HexString As String) As Byte()
+    Dim i As Long
+    Dim ByteLen As Long
+    Dim Result() As Byte
+    
+    ' Remove spaces and validate
+    HexString = Replace(HexString, " ", "")
+    HexString = Replace(HexString, "-", "")
+    
+    If Len(HexString) = 0 Then
+        HexToBytes = Result
+        Exit Function
+    End If
+    
+    ' Handle odd length
+    If Len(HexString) Mod 2 = 1 Then
+        HexString = "0" & HexString
+    End If
+    
+    ByteLen = Len(HexString) \ 2
+    ReDim Result(ByteLen - 1)
+    
+    On Error Resume Next
+    For i = 0 To ByteLen - 1
+        Result(i) = CByte("&H" & Mid$(HexString, i * 2 + 1, 2))
+    Next i
+    On Error GoTo 0
+    
+    HexToBytes = Result
+End Function
+
+'Convert Base64 string to bytes
+Private Function Base64ToBytes(ByVal Base64String As String) As Byte()
+    Dim oXML As Object
+    Dim oNode As Object
+    Dim Result() As Byte
+    
+    On Error Resume Next
+    Set oXML = CreateObject("MSXML2.DOMDocument")
+    Set oNode = oXML.createElement("b64")
+    oNode.DataType = "bin.base64"
+    oNode.Text = Base64String
+    Result = oNode.nodeTypedValue
+    On Error GoTo 0
+    
+    Base64ToBytes = Result
+End Function
+
 'Simple memory copy with optional offset support
 Private Sub CopyMemory(ByRef Dest() As Byte, ByRef Source() As Byte, ByVal Length As Long, _
                        Optional ByVal DestOffset As Long = 0, Optional ByVal SourceOffset As Long = 0)
@@ -644,6 +707,8 @@ Private Sub RaiseError(ByVal Description As String)
     Debug.Print "[" & MODULE_NAME & "] Error: " & Description
     ERR.Raise vbObjectError + 1000, MODULE_NAME, Description
 End Sub
+
+
 
 
 

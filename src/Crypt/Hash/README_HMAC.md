@@ -44,11 +44,17 @@ sHMAC = HMAC.Secret("my-secret-key").DataString("Hello World").ReturnHex()
 **1. 指定算法**
 
 ```vb
-' HMAC-SHA256（默认）
+' HMAC-SHA256（默认，密钥为字符串）
 sHMAC = HMAC.Secret("secret").DataString("data").ReturnHex()
 
 ' HMAC-SHA1
 sHMAC = HMAC.Mode(HMAC_ALG_SHA1).Secret("secret").DataString("data").ReturnHex()
+
+' 使用 Hex 编码的密钥
+sHMAC = HMAC.Secret("736563726574", SECRET_KEY_HEX).DataString("data").ReturnHex()
+
+' 使用 Base64 编码的密钥
+sHMAC = HMAC.Secret("c2VjcmV0", SECRET_KEY_BASE64).DataString("data").ReturnHex()
 ```
 
 **2. 输入数据**
@@ -149,6 +155,10 @@ Private Sub TestHMACChainCall()
     HMAC.Mode(HMAC_ALG_SHA256)
     Debug.Print "Data 1: " & HMAC.Secret("key1").DataString("Hello").ReturnHex()
     Debug.Print "Data 2: " & HMAC.Secret("key2").DataString("World").ReturnHex()
+
+    ' 6. 不同密钥格式（Hex / Base64）
+    Debug.Print "Hex Key: " & HMAC.Secret("736563726574", SECRET_KEY_HEX).DataString("data").ReturnHex()
+    Debug.Print "Base64 Key: " & HMAC.Secret("c2VjcmV0", SECRET_KEY_BASE64).DataString("data").ReturnHex()
 End Sub
 ```
 
@@ -225,6 +235,9 @@ End Sub
 | `HMAC_ALG_SHA256`    | 32780 | HMAC-SHA256 算法（默认） |
 | `HMAC_ENCODING_UTF8` | 1     | UTF-8 编码（默认）       |
 | `HMAC_ENCODING_ANSI` | 0     | ANSI 编码                |
+| `SECRET_KEY_STRING`  | 0     | 密钥为普通字符串（默认） |
+| `SECRET_KEY_HEX`     | 1     | 密钥为 Hex 编码字符串    |
+| `SECRET_KEY_BASE64`  | 2     | 密钥为 Base64 编码字符串 |
 
 ### 属性
 
@@ -244,16 +257,16 @@ End Sub
 
 ### 链式调用方法
 
-| 方法                           | 说明                  |
-| ------------------------------ | --------------------- |
-| `Mode(Algorithm)`              | 设置算法              |
-| `Secret(KeyString, [Encoding])` | 设置字符串密钥        |
-| `SecretBytes(KeyBytes())`      | 设置字节数组密钥      |
-| `DataString(Text, [Encoding])` | 输入字符串数据        |
-| `DataBytes(Data())`            | 输入字节数组数据      |
-| `ReturnHex([UpperCase])`       | 返回十六进制 HMAC     |
-| `ReturnBase64()`               | 返回 Base64 编码 HMAC |
-| `ReturnBytes()`                | 返回字节数组 HMAC     |
+| 方法                                       | 说明                              |
+| ------------------------------------------ | --------------------------------- |
+| `Mode(Algorithm)`                          | 设置算法                          |
+| `Secret(KeyString, [KeyType], [Encoding])` | 设置密钥（支持字符串/Hex/Base64） |
+| `SecretBytes(KeyBytes())`                  | 设置字节数组密钥                  |
+| `DataString(Text, [Encoding])`             | 输入字符串数据                    |
+| `DataBytes(Data())`                        | 输入字节数组数据                  |
+| `ReturnHex([UpperCase])`                   | 返回十六进制 HMAC                 |
+| `ReturnBase64()`                           | 返回 Base64 编码 HMAC             |
+| `ReturnBytes()`                            | 返回字节数组 HMAC                 |
 
 ## 注意事项
 

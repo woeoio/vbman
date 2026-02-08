@@ -29,6 +29,13 @@ Public Sub TestHMACChainCall()
     HMAC.Mode (HMAC_ALG_SHA256)
     Debug.Print "Data 1: " & HMAC.Secret("key1").DataString("Hello").ReturnHex()
     Debug.Print "Data 2: " & HMAC.Secret("key2").DataString("World").ReturnHex()
+    
+    Debug.Print HMAC.Secret("secret").DataString("data").ReturnHex()
+    ' 使用 Hex 编码的密钥
+    Debug.Print HMAC.Secret("736563726574", SECRET_KEY_HEX).DataString("data").ReturnHex()
+    
+    ' 使用 Base64 编码的密钥
+    Debug.Print HMAC.Secret("c2VjcmV0", SECRET_KEY_BASE64).DataString("data").ReturnHex()
 End Sub
 
 '演示链式调用功能

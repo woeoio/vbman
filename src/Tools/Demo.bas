@@ -1,5 +1,44 @@
 Attribute VB_Name = "Demo"
+
 Option Explicit
+
+
+'演示基本哈希计算
+Public Sub DemoBasicHash()
+    Dim Hash As cCryptoHash
+    Set Hash = New cCryptoHash
+    
+    Dim sText As String
+    sText = "admin"
+    
+    Debug.Print "=== Basic Hash Demo ==="
+    Debug.Print "Text: " & sText
+    Debug.Print ""
+    
+    ' MD5
+    Hash.Algorithm = HASH_ALG_MD5
+    Debug.Print "MD5: " & Hash.ComputeHash(sText, HASH_ALG_MD5)
+    
+    ' SHA1
+    Hash.Algorithm = HASH_ALG_SHA1
+    Debug.Print "SHA1: " & Hash.ComputeHash(sText)
+    
+    ' SHA256
+    Hash.Algorithm = HASH_ALG_SHA256
+    Debug.Print "SHA256: " & Hash.ComputeHash(sText)
+    
+    ' SHA384
+    Hash.Algorithm = HASH_ALG_SHA384
+    Debug.Print "SHA384: " & Hash.ComputeHash(sText)
+    
+    ' SHA512
+    Hash.Algorithm = HASH_ALG_SHA512
+    Debug.Print "SHA512: " & Hash.ComputeHash(sText)
+    Debug.Print ""
+    
+    Set Hash = Nothing
+End Sub
+
 
 Sub Redis()
     With New cRedisClient
@@ -304,5 +343,6 @@ End Sub
 '    End With
 '    Debug.Print Data.Encode(Data.Item)
 'End Sub
+
 
 

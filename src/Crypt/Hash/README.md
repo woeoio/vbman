@@ -4,6 +4,14 @@
 
 `cCryptoHash` 是一个基于 Windows CryptoAPI 的哈希算法实现类，提供多种哈希算法的计算功能。
 
+## 特性
+
+- ✅ **支持多种哈希算法**：MD5、SHA1、SHA256、SHA384、SHA512
+- ✅ **自动 Provider 选择**：根据算法自动选择支持该算法的加密服务提供程序
+- ✅ **跨版本兼容**：支持 Windows XP 及以上版本
+- ✅ **UTF-8 编码**：使用经过验证的 `cToolsUtf8` 类确保编码一致性
+- ✅ **多种输入方式**：支持字符串、字节数组、文件
+
 ## 支持的算法
 
 - **MD5** - 128位哈希
@@ -14,7 +22,7 @@
 
 ## 支持的编码
 
-- **ENCODING_UTF8** - UTF-8 编码（默认）
+- **ENCODING_UTF8** - UTF-8 编码（默认，使用 `cToolsUtf8` 类）
 - **ENCODING_ANSI** - ANSI 编码
 
 ## 公共方法
@@ -119,16 +127,31 @@ sHashANSI = Hash.ComputeHash(sText, HASH_ALG_SHA256, ENCODING_ANSI)
 Debug.Print "ANSI: " & sHashANSI
 ```
 
-### 5. 更换加密服务提供程序
+### 5. 自动 Provider 选择
+
+类会根据所选算法自动选择最合适的加密服务提供程序（CSP）：
+
+- **SHA256/SHA384/SHA512**：优先使用支持这些算法的高级 CSP
+  - "Microsoft Enhanced RSA and AES Cryptographic Provider" (Windows Vista+)
+  - "Microsoft Enhanced Cryptographic Provider v1.0"
+  - "Microsoft Strong Cryptographic Provider"
+- **MD5/SHA1**：使用基础 CSP（更好的兼容性）
+  - "Microsoft Base Cryptographic Provider v1.0"
+  - "Microsoft Enhanced Cryptographic Provider v1.0"
+  - "Microsoft Strong Cryptographic Provider"
+
+如果需要强制使用特定 Provider，可以设置 `ProviderName` 属性：
 
 ```vb
 Dim Hash As New cCryptoHash
 
-' 使用标准提供程序
+' 强制使用特定 Provider（不推荐，可能导致算法不支持）
 Hash.ProviderName = "Microsoft Base Cryptographic Provider v1.0"
 Dim sHash As String
-sHash = Hash.ComputeHash("Hello World")
+sHash = Hash.ComputeHash("Hello World", HASH_ALG_MD5)  ' 只能使用 MD5/SHA1
 ```
+
+**注意**：如果不支持的算法被强制使用不合适的 Provider，会抛出错误。
 
 ## 完整示例
 
@@ -212,26 +235,31 @@ End Sub
 - `CryptHashData` - 计算数据哈希值
 - `CryptGetHashParam` - 获取哈希参数
 
-还使用以下字符编码 API：
+字符编码处理使用项目中提供的 `cToolsUtf8` 类：
 
-- `WideCharToMultiByte` - 将 Unicode 字符串转换为多字节字符串（UTF8）
-- `MultiByteToWideChar` - 将多字节字符串转换为 Unicode 字符串
+- `Encode` - 将 Unicode 字符串转换为 UTF-8 字节数组
+- `Decode` - 将 UTF-8 字节数组转换为 Unicode 字符串
 
 ## 注意事项
 
 1. **编码问题**：
-   - 默认使用 UTF-8 编码，适合现代应用
+   - 默认使用 UTF-8 编码，适合现代应用，与其他语言（如 JavaScript、Python）保持一致
    - 可以通过 `Encoding` 参数指定 ANSI 编码（兼容旧系统）
-   - UTF-8 编码使用系统 API 进行转换，确保准确性
+   - UTF-8 编码使用经过验证的 `cToolsUtf8` 类，确保编码转换的准确性
 
 2. **算法参数**：
-   - `Algorithm` 参数为可选参数，不指定时使用类属性 `Algorithm` 的值
+   - `Algorithm` 参数为可选参数，不指定时使用类属性 `Algorithm` 的值（默认 SHA256）
    - 可以在函数调用中直接指定算法，实现一行代码完成计算
    - 支持的算法：`HASH_ALG_MD5`, `HASH_ALG_SHA1`, `HASH_ALG_SHA256`, `HASH_ALG_SHA384`, `HASH_ALG_SHA512`
 
-3. **大文件处理**：对于大文件，建议分块读取和哈希计算
+3. **Provider 选择**：
+   - 类会自动根据算法选择最合适的加密服务提供程序
+   - 自动处理不同 Windows 版本的兼容性
+   - 不建议手动指定 Provider，除非有特殊需求
 
-4. **安全性**：
+4. **大文件处理**：对于大文件，建议分块读取和哈希计算
+
+5. **安全性**：
    - SHA1 和 MD5 已被证明存在碰撞攻击，不应在安全敏感的场景中使用
    - 对于密码存储，建议使用专门的密码哈希函数（如 bcrypt, PBKDF2, Argon2）
 
@@ -248,8 +276,11 @@ End Sub
 
 ## 兼容性
 
-- Windows 2000 及以上版本
-- 需要系统的加密服务提供程序支持
+- **操作系统**：Windows XP 及以上版本
+- **加密服务**：系统自动选择最合适的加密服务提供程序（CSP）
+  - Windows Vista+：支持 SHA2 系列算法（SHA256/384/512）
+  - Windows XP/2000：支持 MD5、SHA1 等基础算法
+- **编码依赖**：使用项目中的 `cToolsUtf8` 类处理 UTF-8 编码
 
 ## 作者
 

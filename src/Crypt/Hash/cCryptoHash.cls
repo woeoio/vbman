@@ -12,7 +12,6 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 
-
     '=========================================================================
     '
     ' cCryptoHash - Windows CryptoAPI Hash Algorithm Implementation
@@ -586,6 +585,8 @@ Private Sub RaiseError(ByVal Description As String)
     Debug.Print "[" & MODULE_NAME & "] Error: " & Description
     ERR.Raise vbObjectError + 1000, MODULE_NAME, Description
 End Sub
+
+
 
 
 

@@ -21,6 +21,7 @@ Option Explicit
 Public Const ALIYUN_CAPTCHA_ENDPOINT_CN As String = "captcha.cn-shanghai.aliyuncs.com"
 Public Const ALIYUN_CAPTCHA_ENDPOINT_SGP As String = "captcha.ap-southeast-1.aliyuncs.com"
 Public Const ALIYUN_CAPTCHA_ACTION_VERIFY As String = "VerifyIntelligentCaptcha"
+Public Const ALIYUN_CAPTCHA_API_VERSION As String = "2023-03-05"  ' API∞Ê±æ∫≈
 
 ' ƒ¨»œ≈‰÷√
 Public Const ALIYUN_CAPTCHA_DEFAULT_TIMEOUT As Long = 30000  ' 30√Î

@@ -145,11 +145,11 @@ End Function
 '@param SceneId 场景ID（可选，建议传入）
 '@return 验证结果对象
 Public Function Verify(ByVal CaptchaVerifyParam As String, _
-                        Optional ByVal SceneId As String = "") As AliyunCaptchaVerifyResult
+    Optional ByVal SceneId As String = "") As AliyunCaptchaVerifyResult
     On Error GoTo ErrorHandler
-
+    
     Dim Result As AliyunCaptchaVerifyResult
-
+    
     ' 参数验证
     If LenB(CaptchaVerifyParam) = 0 Then
         Call RaiseError("CaptchaVerifyParam不能为空")
@@ -158,7 +158,7 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
         Verify = Result
         Exit Function
     End If
-
+    
     ' 检查配置
     If LenB(m_Endpoint) = 0 Then
         Call RaiseError("Endpoint未配置，请先调用Region方法设置地域")
@@ -167,11 +167,11 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
         Verify = Result
         Exit Function
     End If
-
+    
     ' 构建请求URL
     Dim RequestUrl As String
     RequestUrl = m_Endpoint & "/?Action=VerifyIntelligentCaptcha"
-
+    
     ' 使用HttpClient发送请求
     With New cHttpClient
         ' 构建JSON请求体
@@ -186,19 +186,19 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
                 Debug.Print "[cAliyunCaptcha] Request Data: " & .Encode(, 2, True)
             End If
         End With
-
+        
         ' 设置超时时间
         .RequestTimeOut = m_Timeout
-
+        
         ' 启用调试信息
         .DebugStart = m_EnableDebug
-
+        
         ' 设置Content-Type
         .SetRequestContentType (EnumRequestContentType.JsonString)
-
+        
         ' 发送POST请求
         .SendPost RequestUrl
-
+        
         ' 解析响应
         With .ReturnJson()
             Result.Success = .Root("Success")
@@ -217,41 +217,48 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
                 Debug.Print "[cAliyunCaptcha] Response Data: " & .Encode(, 2, True)
             End If
         End With
-
+        
         ' 调试信息输出
         If m_EnableDebug Then
             Debug.Print "[cAliyunCaptcha] Debug Info: " & .DebugInfo.Encode(, 2, True)
         End If
+        
+        
+        ' 触发事件
+        If Result.Result = True Then
+            RaiseEvent OnVerifySuccess(Result.VerifyCode, Result.CertifyID, Result.Result)
+        Else
+            RaiseEvent OnVerifyFailure(Result.VerifyCode, GetVerifyMessage(Result.VerifyCode))
+        End If
+        
+        Verify = Result
+        
+QH:
+        If m_EnableDebug = True Then
+            Debug.Print .DebugInfo.Encode(, 2, True)
+        End If
     End With
-
-    ' 触发事件
-    If Result.Result = True Then
-        RaiseEvent OnVerifySuccess(Result.VerifyCode, Result.CertifyID, Result.Result)
-    Else
-        RaiseEvent OnVerifyFailure(Result.VerifyCode, GetVerifyMessage(Result.VerifyCode))
-    End If
-
-    Verify = Result
     Exit Function
-
+    
 ErrorHandler:
     Call RaiseError("Verify失败: " & ERR.Description)
     Result.Success = False
     Result.Message = "Verify失败: " & ERR.Description
     Verify = Result
+    Resume QH
 End Function
 
 ' 同步验证（简化接口）
 Public Function VerifySync(ByVal CaptchaVerifyParam As String, _
-                           Optional ByVal SceneId As String = "") As Boolean
-    On Error GoTo ErrorHandler
-
+    Optional ByVal SceneId As String = "") As Boolean
+    '    On Error GoTo ErrorHandler
+    
     Dim Result As AliyunCaptchaVerifyResult
     Result = Me.Verify(CaptchaVerifyParam, SceneId)
-
+    
     VerifySync = Result.Result
     Exit Function
-
+    
 ErrorHandler:
     Call RaiseError("VerifySync失败: " & ERR.Description)
     VerifySync = False

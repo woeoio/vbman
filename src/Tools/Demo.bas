@@ -2,6 +2,14 @@ Attribute VB_Name = "Demo"
 
 Option Explicit
 
+Public Sub TestAliyunCapt()
+    With New cAliyunCaptcha
+        .AccessKeyId ""
+        .AccessKeySecret ""
+        
+    End With
+End Sub
+
 
 Public Sub TestHMACChainCall()
     Dim HMAC As New cCryptoHMAC

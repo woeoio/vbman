@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短信登录 - 阿里云验证码演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #fff9c4 0%, #ffecb3 50%, #ffe082 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 气泡动画 */
+        .bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float-up linear infinite;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translateY(-120vh) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        /* 登录框 */
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+            padding: 50px 40px;
+            max-width: 420px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .login-header h1 {
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .login-header p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="tel"],
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        input[type="tel"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ffc107;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.1);
+        }
+
+        input.error {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        .code-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .code-group input {
+            flex: 1;
+        }
+
+        .btn-send-code {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            min-width: 110px;
+        }
+
+        .btn-send-code:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-send-code:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-send-code.counting {
+            background: #9e9e9e;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-login:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            display: none;
+            animation: slide-in 0.3s ease;
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .result-box.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .result-box.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .error-tip {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .error-tip.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 配置弹窗 */
+        .config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+
+        .config-modal.show {
+            display: flex;
+            animation: fade-in 0.3s ease;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .config-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slide-up 0.3s ease;
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .config-content h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .config-desc {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .config-group {
+            margin-bottom: 20px;
+        }
+
+        .config-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .config-group input,
+        .config-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .config-group input:focus,
+        .config-group select:focus {
+            outline: none;
+            border-color: #ffc107;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.1);
+        }
+
+        .config-error {
+            color: #f44336;
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: none;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 8px;
+        }
+
+        .config-error.show {
+            display: block;
+        }
+
+        .btn-save-config {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-save-config:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        }
+
+        .config-tip {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .config-tip a {
+            color: #ff9800;
+            text-decoration: none;
+        }
+
+        .config-tip a:hover {
+            text-decoration: underline;
+        }
+
+        .config-tip p {
+            margin-bottom: 5px;
+        }
+
+        /* 设置按钮 */
+        .btn-settings {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+            z-index: 100;
+            display: none;
+        }
+
+        .btn-settings.show {
+            display: block;
+        }
+
+        .btn-settings:hover {
+            transform: rotate(30deg) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        /* 阿里云验证码容器 */
+        #captcha-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #captcha-container.show {
+            display: flex;
+        }
+
+        #captcha-element {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+
+    <script src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"></script>
+</head>
+
+<body>
+    <!-- 配置弹窗 -->
+    <div id="config-modal" class="config-modal">
+        <div class="config-content">
+            <h2>⚙️ 首次配置</h2>
+            <p class="config-desc">请从阿里云验证码控制台获取以下配置信息</p>
+
+            <div class="config-form">
+                <div class="config-group">
+                    <label for="config-prefix">身份标识 (Prefix)</label>
+                    <input type="text" id="config-prefix" placeholder="请输入从控制台获取的 prefix">
+                </div>
+
+                <div class="config-group">
+                    <label for="config-sceneid">场景ID (SceneId)</label>
+                    <input type="text" id="config-sceneid" placeholder="请输入从控制台获取的 SceneId">
+                </div>
+
+                <div class="config-group">
+                    <label for="config-region">地域</label>
+                    <select id="config-region">
+                        <option value="cn">中国内地 (cn)</option>
+                        <option value="sgp">新加坡 (sgp)</option>
+                    </select>
+                </div>
+
+                <div class="config-error" id="config-error"></div>
+
+                <button class="btn-save-config" id="btn-save-config">保存配置</button>
+            </div>
+
+            <div class="config-tip">
+                <p>💡 获取方式：登录 <a href="https://captcha.console.aliyun.com/" target="_blank" rel="noopener">阿里云验证码控制台</a>
+                </p>
+                <p>配置信息将保存在浏览器本地，仅用于演示</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置按钮 -->
+    <button class="btn-settings" id="btn-settings" title="修改配置">⚙️</button>
+    <!-- 气泡背景 -->
+    <div class="bubbles" id="bubbles"></div>
+
+    <!-- 登录框 -->
+    <div class="login-container">
+        <div class="login-header">
+            <h1>📱 短信登录</h1>
+            <p>阿里云验证码 2.0 演示</p>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="phone">手机号</label>
+                <input type="tel" id="phone" placeholder="请输入11位手机号" maxlength="11">
+                <div class="error-tip" id="phone-error">请输入正确的手机号</div>
+            </div>
+
+            <div class="form-group">
+                <label for="sms-code">短信验证码</label>
+                <div class="code-group">
+                    <input type="text" id="sms-code" placeholder="请输入6位验证码" maxlength="6">
+                    <button type="button" class="btn-send-code" id="btn-send">获取验证码</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login" id="btn-login">登录</button>
+        </form>
+
+        <div id="result-box" class="result-box">
+            <span id="result-icon"></span>
+            <span id="result-text"></span>
+        </div>
+
+        <div class="footer">
+            演示项目 · VB6 + 阿里云验证码 2.0
+        </div>
+    </div>
+
+    <!-- 阿里云验证码弹窗 -->
+    <div id="captcha-container">
+        <div id="captcha-element"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // 全局配置项 - 可以在这里硬编码配置值
+        // 如果这里配置了值，将优先使用，不再显示配置表单
+        // ============================================
+        const GLOBAL_CONFIG = {
+            prefix: "",                // 阿里云身份标识 Prefix
+            sceneId: "",             // 阿里云场景ID SceneId
+            region: "",                    // 地域: cn=中国内地, sgp=新加坡
+            apiBaseUrl: "",              // 后端API基础地址，如: http://localhost:8080
+            apiSendSms: "/api/send-sms",     // 发送短信API端点
+            apiLogin: "/api/login"           // 登录API端点
+        };
+
+        // 创建气泡
+        function createBubbles() {
+            const bubblesContainer = document.getElementById('bubbles');
+            const bubbleCount = 15;
+
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+
+                const size = Math.random() * 60 + 20;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                bubble.style.animationDelay = (Math.random() * 10) + 's';
+
+                bubblesContainer.appendChild(bubble);
+            }
+        }
+
+        // 手机号验证
+        function validatePhone(phone) {
+            return /^1[3-9]\d{9}$/.test(phone);
+        }
+
+        // 显示结果
+        function showResult(type, message) {
+            const box = document.getElementById('result-box');
+            const icon = document.getElementById('result-icon');
+            const text = document.getElementById('result-text');
+
+            box.className = 'result-box ' + type + ' show';
+            icon.textContent = type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ ';
+            text.textContent = message;
+        }
+
+        // 隐藏结果
+        function hideResult() {
+            document.getElementById('result-box').classList.remove('show');
+        }
+
+        // 显示/隐藏手机号错误
+        function showPhoneError(show) {
+            const input = document.getElementById('phone');
+            const error = document.getElementById('phone-error');
+            if (show) {
+                input.classList.add('error');
+                error.classList.add('show');
+            } else {
+                input.classList.remove('error');
+                error.classList.remove('show');
+            }
+        }
+
+        // 倒计时
+        let countdownTimer = null;
+        function startCountdown() {
+            const btn = document.getElementById('btn-send');
+            let seconds = 60;
+
+            btn.disabled = true;
+            btn.classList.add('counting');
+            btn.textContent = seconds + '秒';
+
+            countdownTimer = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(countdownTimer);
+                    btn.disabled = false;
+                    btn.classList.remove('counting');
+                    btn.textContent = '获取验证码';
+                } else {
+                    btn.textContent = seconds + '秒';
+                }
+            }, 1000);
+        }
+
+        // 阿里云验证码实例
+        let captchaInstance = null;
+        let aliyunCaptchaToken = null;
+
+        // 发送短信验证码
+        async function sendSmsCode() {
+            const phone = document.getElementById('phone').value;
+            const btn = document.getElementById('btn-send');
+
+            btn.innerHTML = '<span class="loading"></span>发送中';
+
+            try {
+                // 发送到VB6后端
+                const apiUrl = (GLOBAL_CONFIG.apiBaseUrl || '') + (GLOBAL_CONFIG.apiSendSms || '/api/send-sms');
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        captchaVerifyParam: aliyunCaptchaToken,
+                        sceneId: appConfig.sceneId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('success', '验证码已发送到 ' + phone);
+                    startCountdown();
+                } else {
+                    showResult('error', data.message || '发送失败，请重试');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                // 演示模式：模拟成功
+                showResult('success', '【演示模式】验证码已发送 (实际项目中会调用VB6后端)');
+                startCountdown();
+            }
+
+            btn.textContent = '获取验证码';
+        }
+
+        // 获取验证码按钮点击
+        document.getElementById('btn-send').addEventListener('click', function () {
+            hideResult();
+
+            const phone = document.getElementById('phone').value;
+
+            // 验证手机号
+            if (!validatePhone(phone)) {
+                showPhoneError(true);
+                return;
+            }
+            showPhoneError(false);
+
+            // 显示阿里云验证码
+            document.getElementById('captcha-container').classList.add('show');
+
+            // 如果已初始化，直接显示
+            if (captchaInstance) {
+                captchaInstance.show();
+            }
+        });
+
+        // 手机号输入监听
+        document.getElementById('phone').addEventListener('input', function () {
+            showPhoneError(false);
+        });
+
+        // 登录表单提交
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            hideResult();
+
+            const phone = document.getElementById('phone').value;
+            const smsCode = document.getElementById('sms-code').value;
+            const btn = document.getElementById('btn-login');
+
+            // 验证
+            if (!validatePhone(phone)) {
+                showPhoneError(true);
+                return;
+            }
+
+            if (!smsCode || smsCode.length !== 6) {
+                showResult('error', '请输入6位短信验证码');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>登录中...';
+
+            try {
+                const apiUrl = (GLOBAL_CONFIG.apiBaseUrl || '') + (GLOBAL_CONFIG.apiLogin || '/api/login');
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        smsCode: smsCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('success', '登录成功！欢迎 ' + phone);
+                } else {
+                    showResult('error', data.message || '登录失败');
+                }
+            } catch (error) {
+                console.error('登录请求失败:', error);
+                showResult('success', '【演示模式】登录成功！(实际项目中会调用VB6后端)');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '登录';
+        });
+
+        // 配置管理
+        const CONFIG_KEYS = {
+            PREFIX: 'aliyun_captcha_prefix',
+            SCENE_ID: 'aliyun_captcha_scene_id',
+            REGION: 'aliyun_captcha_region'
+        };
+
+        let appConfig = {
+            prefix: '',
+            sceneId: '',
+            region: 'cn'
+        };
+
+        // 从 LocalStorage 加载配置
+        function loadConfig() {
+            appConfig.prefix = localStorage.getItem(CONFIG_KEYS.PREFIX) || '';
+            appConfig.sceneId = localStorage.getItem(CONFIG_KEYS.SCENE_ID) || '';
+            appConfig.region = localStorage.getItem(CONFIG_KEYS.REGION) || 'cn';
+            return appConfig.prefix && appConfig.sceneId;
+        }
+
+        // 保存配置到 LocalStorage
+        function saveConfig(prefix, sceneId, region) {
+            localStorage.setItem(CONFIG_KEYS.PREFIX, prefix);
+            localStorage.setItem(CONFIG_KEYS.SCENE_ID, sceneId);
+            localStorage.setItem(CONFIG_KEYS.REGION, region);
+
+            appConfig.prefix = prefix;
+            appConfig.sceneId = sceneId;
+            appConfig.region = region;
+        }
+
+        // 显示配置弹窗
+        function showConfigModal() {
+            const modal = document.getElementById('config-modal');
+            const prefixInput = document.getElementById('config-prefix');
+            const sceneIdInput = document.getElementById('config-sceneid');
+            const regionSelect = document.getElementById('config-region');
+
+            // 填充现有值
+            prefixInput.value = appConfig.prefix;
+            sceneIdInput.value = appConfig.sceneId;
+            regionSelect.value = appConfig.region || 'cn';
+
+            modal.classList.add('show');
+            prefixInput.focus();
+        }
+
+        // 隐藏配置弹窗
+        function hideConfigModal() {
+            document.getElementById('config-modal').classList.remove('show');
+            document.getElementById('config-error').classList.remove('show');
+        }
+
+        // 验证并保存配置
+        function validateAndSaveConfig() {
+            const prefix = document.getElementById('config-prefix').value.trim();
+            const sceneId = document.getElementById('config-sceneid').value.trim();
+            const region = document.getElementById('config-region').value;
+            const errorEl = document.getElementById('config-error');
+
+            // 验证
+            if (!prefix) {
+                errorEl.textContent = '请输入身份标识 (Prefix)';
+                errorEl.classList.add('show');
+                return false;
+            }
+
+            if (!sceneId) {
+                errorEl.textContent = '请输入场景ID (SceneId)';
+                errorEl.classList.add('show');
+                return false;
+            }
+
+            // 保存
+            saveConfig(prefix, sceneId, region);
+
+            // 更新阿里云配置
+            window.AliyunCaptchaConfig = {
+                region: region,
+                prefix: prefix
+            };
+
+            // 隐藏弹窗，显示设置按钮
+            hideConfigModal();
+            document.getElementById('btn-settings').classList.add('show');
+
+            // 重新初始化验证码
+            setupAliyunCaptcha();
+
+            showResult('success', '配置已保存！现在可以使用短信登录功能了。');
+            return true;
+        }
+
+        // 检查配置
+        function checkConfig() {
+            // 优先检查全局硬编码配置
+            if (GLOBAL_CONFIG.prefix && GLOBAL_CONFIG.sceneId) {
+                // 使用硬编码配置
+                appConfig.prefix = GLOBAL_CONFIG.prefix;
+                appConfig.sceneId = GLOBAL_CONFIG.sceneId;
+                appConfig.region = GLOBAL_CONFIG.region || 'cn';
+
+                window.AliyunCaptchaConfig = {
+                    region: appConfig.region,
+                    prefix: appConfig.prefix
+                };
+
+                // 显示设置按钮（点击可切换到 LocalStorage 配置）
+                document.getElementById('btn-settings').classList.add('show');
+
+                console.log('[Config] 使用硬编码配置:', appConfig);
+                return true;
+            }
+
+            // 无硬编码配置，检查 LocalStorage
+            const hasConfig = loadConfig();
+
+            if (hasConfig) {
+                // 已有配置，应用配置
+                window.AliyunCaptchaConfig = {
+                    region: appConfig.region,
+                    prefix: appConfig.prefix
+                };
+                document.getElementById('btn-settings').classList.add('show');
+                return true;
+            } else {
+                // 无配置，显示配置弹窗
+                showConfigModal();
+                return false;
+            }
+        }
+
+        // 绑定配置相关事件
+        document.getElementById('btn-save-config').addEventListener('click', validateAndSaveConfig);
+
+        document.getElementById('btn-settings').addEventListener('click', showConfigModal);
+
+        // 输入时隐藏错误提示
+        document.getElementById('config-prefix').addEventListener('input', function () {
+            document.getElementById('config-error').classList.remove('show');
+        });
+        document.getElementById('config-sceneid').addEventListener('input', function () {
+            document.getElementById('config-error').classList.remove('show');
+        });
+
+        // 按 Enter 键保存
+        document.getElementById('config-prefix').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                document.getElementById('config-sceneid').focus();
+            }
+        });
+        document.getElementById('config-sceneid').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                validateAndSaveConfig();
+            }
+        });
+
+        // 初始化阿里云验证码（使用动态配置）
+        function setupAliyunCaptcha() {
+            window.initAliyunCaptcha({
+                SceneId: appConfig.sceneId,
+                mode: "popup",
+                element: "#captcha-element",
+                button: "#btn-send",
+
+                success: function (captchaVerifyParam) {
+                    console.log("阿里云验证成功:", captchaVerifyParam);
+                    aliyunCaptchaToken = captchaVerifyParam;
+                    document.getElementById('captcha-container').classList.remove('show');
+                    sendSmsCode();
+                },
+
+                fail: function (result) {
+                    console.error("阿里云验证失败:", result);
+                    document.getElementById('captcha-container').classList.remove('show');
+                    showResult('error', '验证失败，请重试');
+                    document.getElementById('btn-send').disabled = false;
+                },
+
+                getInstance: function (instance) {
+                    captchaInstance = instance;
+                },
+
+                slideStyle: {
+                    width: 360,
+                    height: 40
+                },
+                language: "cn"
+            });
+        };
+
+        // 初始化
+        window.onload = function () {
+            createBubbles();
+
+            // 检查配置
+            if (checkConfig()) {
+                setupAliyunCaptcha();
+            }
+        };
+    </script>
+</body>
+
+</html>

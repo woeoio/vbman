@@ -3,10 +3,24 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 Public Sub TestAliyunCapt()
+    ' 使用链式调用配置并验证
     With New cAliyunCaptcha
-        .AccessKeyId ""
-        .AccessKeySecret ""
+        .AccessKeyId("LTAI5tMrmPNUQEdVMtwiN1dn") _
+        .AccessKeySecret("Ob7EtD21ZZ0kupK7BPnHnIkKvwlKQm") _
+        .Region(ALIYUN_CAPTCHA_REGION_CN) _
+        .Timeout (30000)
+        .EnableDebug True
         
+        ' 验证（从客户端获取的CaptchaVerifyParam）
+        Dim Result As Boolean
+        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJRTkNwMFpzY2NqIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS1FsMmdLTWZxNXVxWllUZFkrKytCdmkyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
+        Result = .VerifySync(fResult, "y3kvak9b")
+        
+        If Result = True Then
+            MsgBox "验证通过！"
+        Else
+            MsgBox "验证失败！"
+        End If
     End With
 End Sub
 

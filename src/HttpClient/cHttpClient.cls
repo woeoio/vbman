@@ -183,7 +183,8 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
         '            DoEvents                                                            '允许其他事件处理，防止卡死
         '        Loop
         '
-        If Inst.Status <> 200 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#" & Left(Inst.ResponseText, 1024)
+        '状态码判断：4xx/5xx 为明确错误，其余交给调用方处理
+        If Inst.Status >= 400 And Inst.Status <= 599 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#" & Left(Inst.ResponseText, 1024)
         '解析 返回头
         Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
     End If
@@ -202,8 +203,14 @@ ERR:
         End With
     End If
     LastError = ERR.Description
+    Dim ErrInfo(4) As Variant
+    ErrInfo(0) = ERR.Number
+    ErrInfo(1) = ERR.Source
+    ErrInfo(2) = ERR.Description
+    ErrInfo(3) = ERR.HelpFile
+    ErrInfo(4) = ERR.HelpContext
     GoSub CLEAN
-    ERR.Raise ERR.Number, ERR.Source, ERR.Description, ERR.HelpFile, ERR.HelpContext
+    ERR.Raise ErrInfo(0), ErrInfo(1), ErrInfo(2), ErrInfo(3), ErrInfo(4)
     Exit Function
 CLEAN:
     If DebugStart = True Then
@@ -222,6 +229,7 @@ CLEAN:
                     .Item("Status") = Inst.Status
                     .Item("StatusText") = Inst.StatusText
                     Set .Item("Headers") = ResponseHeaders
+                    'ReturnText 会干扰 err 对象
                     .Item("Content") = ReturnText(True)
                 End With
             End If

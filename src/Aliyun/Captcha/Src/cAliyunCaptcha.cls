@@ -41,12 +41,12 @@ Option Explicit
 '=========================================================================
 ' 私有变量
 '=========================================================================
-Private m_AccessKeyId As String            ' AccessKey ID
-Private m_AccessKeySecret As String         ' AccessKey Secret
-Private m_Region As AliyunCaptchaRegion    ' 地域
-Private m_Endpoint As String               ' API Endpoint
-Private m_Timeout As Long                  ' 超时时间（毫秒）
-Private m_EnableDebug As Boolean           ' 是否启用调试
+Private m_AccessKeyId As String                                                 ' AccessKey ID
+Private m_AccessKeySecret As String                                             ' AccessKey Secret
+Private m_Region As AliyunCaptchaRegion                                         ' 地域
+Private m_Endpoint As String                                                    ' API Endpoint
+Private m_Timeout As Long                                                       ' 超时时间（毫秒）
+Private m_EnableDebug As Boolean                                                ' 是否启用调试
 
 '=========================================================================
 ' API 常量
@@ -62,14 +62,14 @@ Private Const API_SIGNATURE_VERSION As String = "1.0"
 
 ' 阿里云验证码地域枚举
 Public Enum AliyunCaptchaRegion
-    ALIYUN_CAPTCHA_REGION_CN = 1     ' 中国内地
-    ALIYUN_CAPTCHA_REGION_SGP = 2    ' 新加坡
+    ALIYUN_CAPTCHA_REGION_CN = 1                                                ' 中国内地
+    ALIYUN_CAPTCHA_REGION_SGP = 2                                               ' 新加坡
 End Enum
 
 ' 验证码模式枚举（客户端使用）
 Public Enum AliyunCaptchaMode
-    ALIYUN_CAPTCHA_MODE_POPUP = 1    ' 弹出式
-    ALIYUN_CAPTCHA_MODE_EMBED = 2    ' 嵌入式
+    ALIYUN_CAPTCHA_MODE_POPUP = 1                                               ' 弹出式
+    ALIYUN_CAPTCHA_MODE_EMBED = 2                                               ' 嵌入式
 End Enum
 
 '=========================================================================
@@ -78,12 +78,12 @@ End Enum
 
 ' 验证结果结构
 Public Type AliyunCaptchaVerifyResult
-    Result As Boolean        ' 验证结果
-    VerifyCode As String     ' 验证码
-    CertifyID As String      ' 认证ID
-    Success As Boolean       ' 请求是否成功
-    requestID As String      ' 请求ID
-    Message As String        ' 错误信息
+    Result As Boolean                                                           ' 验证结果
+    VerifyCode As String                                                        ' 验证码
+    CertifyID As String                                                         ' 认证ID
+    Success As Boolean                                                          ' 请求是否成功
+    requestID As String                                                         ' 请求ID
+    Message As String                                                           ' 错误信息
 End Type
 
 ' 验证码配置结构
@@ -99,14 +99,14 @@ End Type
 '=========================================================================
 ' 验证成功事件
 Public Event OnVerifySuccess(ByVal VerifyCode As String, _
-                             ByVal CertifyID As String, _
-                             ByVal Result As Boolean)
+    ByVal CertifyID As String, _
+    ByVal Result As Boolean)
 
-' 验证失败事件
+    ' 验证失败事件
 Public Event OnVerifyFailure(ByVal ErrorCode As String, _
-                             ByVal ErrorMessage As String)
+    ByVal ErrorMessage As String)
 
-' 错误事件
+    ' 错误事件
 Public Event OnError(ByVal Description As String)
 
 '=========================================================================
@@ -373,30 +373,9 @@ Private Function GenerateNonce() As String
     GenerateNonce = Replace(CStr(Now), " ", "") & CStr(Int(Rnd * 1000000))
 End Function
 
-' URL编码（符合阿里云要求的RFC3986）
+' URL编码（使用cToolsHttp的UTF-8编码方法）
 Private Function UrlEncode(ByVal Text As String) As String
-    Dim i As Long
-    Dim charCode As Integer
-    Dim Result As String
-    
-    For i = 1 To Len(Text)
-        charCode = AscW(Mid$(Text, i, 1))
-        ' 保留字符不编码: A-Z a-z 0-9 - _ . ~
-        If (charCode >= 65 And charCode <= 90) Or _
-           (charCode >= 97 And charCode <= 122) Or _
-           (charCode >= 48 And charCode <= 57) Or _
-           charCode = 45 Or charCode = 95 Or charCode = 46 Or charCode = 126 Then
-            Result = Result & ChrW(charCode)
-        ElseIf charCode = 32 Then
-            ' 空格编码为 %20
-            Result = Result & "%20"
-        Else
-            ' 其他字符编码为 %XX
-            Result = Result & "%" & Right$("0" & Hex$(charCode), 2)
-        End If
-    Next i
-    
-    UrlEncode = Result
+    UrlEncode = ToolsHttp.UrlEncodeUtf8(Text)
 End Function
 
 ' 计算RPC签名（HMAC-SHA1）

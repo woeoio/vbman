@@ -34,6 +34,20 @@ Public Function GetUnixTimestamp() As Currency
     GetUnixTimestamp = timestamp * 1000# + sysTime.wMilliseconds
 End Function
 
+' 生成ISO8601格式时间戳 (UTC)
+Public Function GetIso8601Timestamp() As String
+    ' 格式: 2023-03-05T12:00:00Z (UTC时间)
+    Dim st As SYSTEMTIME
+    Call GetSystemTime(st)
+    
+    GetIso8601Timestamp = Format$(st.wYear, "0000") & "-" & _
+                          Format$(st.wMonth, "00") & "-" & _
+                          Format$(st.wDay, "00") & "T" & _
+                          Format$(st.wHour, "00") & ":" & _
+                          Format$(st.wMinute, "00") & ":" & _
+                          Format$(st.wSecond, "00") & "Z"
+End Function
+
 ' 生成UTC时间戳（ISO8601格式）
 Public Function GetUtcTimestamp() As String
     Dim dt As Date

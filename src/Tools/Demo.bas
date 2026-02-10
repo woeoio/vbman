@@ -3,17 +3,30 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 Public Sub TestAliyunCapt()
+    ' 阿里云验证码2.0服务端验证示例
+    ' 注意：请替换为您的真实阿里云AccessKey
+    ' 从阿里云控制台获取: https://ram.console.aliyun.com/manage/ak
+    dim ID as String, Secret as String
+    with new cIni
+        .LoadFrom "D:\code\vi\vbmanlib\vbman\config\aliyun.ini"
+        with .Section("aliyun")
+            ID = .item("app_id")
+            Secret = .item("app_key")
+        end with
+    End With
+        
     ' 使用链式调用配置并验证
     With New cAliyunCaptcha
-        .AccessKeyId("LTAI5tMrmPNUQEdVMtwiN1dn") _
-        .AccessKeySecret("Ob7EtD21ZZ0kupK7BPnHnIkKvwlKQm") _
+        .AccessKeyId(ID) _
+        .AccessKeySecret(Secret) _
         .Region(ALIYUN_CAPTCHA_REGION_CN) _
-        .Timeout (30000)
+        .Timeout(30000) _
         .EnableDebug True
         
         ' 验证（从客户端获取的CaptchaVerifyParam）
         Dim Result As Boolean
-        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJRTkNwMFpzY2NqIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS1FsMmdLTWZxNXVxWllUZFkrKytCdmkyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
+        ' 注意：下面的fResult是从前端验证码组件获取的验证参数，每次验证都不同
+        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJkdEtPSmVKM09kIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS2JiYjhVcHNtclo0WUkxK2xpS3pJWVMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
         Result = .VerifySync(fResult, "y3kvak9b")
         
         If Result = True Then

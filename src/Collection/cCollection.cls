@@ -15,6 +15,7 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Private m_col As New Collection
+Private m_Keys As New Collection  ' 用于存储 Key，保持与 m_col 同步
 
 Public Property Get RawCollection() As Collection
     Set RawCollection = m_col
@@ -22,20 +23,41 @@ End Property
 
 ' 添加或更新元素
 Public Sub Add(ByVal Item As Variant, Optional ByVal Key As String = "")
+    Dim RemoveIndex As Long
+    
     On Error Resume Next
     
     ' 如果提供了键，尝试先删除（如果存在）
     If Len(Key) > 0 Then
-        m_col.Remove Key
-    End If
-    
-    ' 添加元素
-    If Len(Key) > 0 Then
+        ' 先找到并删除旧的 Key-Value 对
+        RemoveIndex = FindKeyIndex(Key)
+        If RemoveIndex > 0 Then
+            m_col.Remove RemoveIndex
+            m_Keys.Remove RemoveIndex
+        End If
+        
+        ' 添加新元素
         m_col.Add Item, Key
+        m_Keys.Add Key
     Else
         m_col.Add Item
+        m_Keys.Add ""  ' 空字符串表示无 Key
     End If
 End Sub
+
+' 根据 Key 查找索引
+Private Function FindKeyIndex(ByVal Key As String) As Long
+    Dim i As Long
+    FindKeyIndex = 0
+    
+    On Error Resume Next
+    For i = 1 To m_Keys.Count
+        If m_Keys.Item(i) = Key Then
+            FindKeyIndex = i
+            Exit Function
+        End If
+    Next i
+End Function
 
 ' 更新元素（必须已存在）
 Public Function Update(ByVal Item As Variant, ByVal Key As String) As Boolean
@@ -83,12 +105,42 @@ End Function
 ' 删除元素
 Public Sub Remove(ByVal KeyOrIndex As Variant)
     On Error Resume Next
-    m_col.Remove KeyOrIndex
+    Dim idx As Long
+    
+    If IsNumeric(KeyOrIndex) Then
+        idx = CInt(KeyOrIndex)
+    Else
+        ' 通过 Key 找到索引
+        idx = FindKeyIndex(CStr(KeyOrIndex))
+    End If
+    
+    If idx > 0 Then
+        m_col.Remove idx
+        m_Keys.Remove idx
+    End If
 End Sub
 
 ' 返回集合数量
 Public Function Count() As Long
     Count = m_col.Count
+End Function
+
+' 通过索引获取 Key（用于遍历）
+' @param Index 索引（从1开始）
+' @return Key 字符串，如果索引无效则返回空字符串
+Public Function KeyByIndex(ByVal Index As Long) As String
+    On Error GoTo ErrorHandler
+    
+    If Index >= 1 And Index <= m_Keys.Count Then
+        KeyByIndex = m_Keys.Item(Index)
+    Else
+        KeyByIndex = ""
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    KeyByIndex = ""
 End Function
 
 '=========================================================================
@@ -109,32 +161,13 @@ Private Function CollectionToArray(ByRef Keys() As String, ByRef Values() As Var
     ReDim Keys(0 To Count - 1)
     ReDim Values(0 To Count - 1)
     
-    ' 注意：VBA Collection 无法直接获取 Keys，
-    ' 这里我们遍历索引，Keys 数组将存储为 ""
-    On Error Resume Next
+    ' 使用 m_Keys 集合获取 Keys
     For i = 1 To Count
         Values(i - 1) = m_col.Item(i)
-        ' 尝试获取 Key（如果存在）
-        Keys(i - 1) = GetKeyByIndex(i)
+        Keys(i - 1) = m_Keys.Item(i)
     Next i
-    On Error GoTo 0
     
     CollectionToArray = Count
-End Function
-
-' 根据索引获取 Key（通过错误处理尝试）
-Private Function GetKeyByIndex(ByVal Index As Long) As String
-    On Error GoTo NoKey
-    Dim Key As String
-    ' 尝试用索引和 Key 来访问，如果 Key 存在则返回
-    m_col.Item Index
-    ' 如果上面没有错误，尝试获取 Key
-    ' 由于 VBA Collection 不暴露 Keys，我们无法直接获取
-    ' 这里返回空字符串作为标记
-    GetKeyByIndex = ""
-    Exit Function
-NoKey:
-    GetKeyByIndex = ""
 End Function
 
 ' 快速排序（按 Key 字典序升序）
@@ -228,12 +261,14 @@ Public Sub SortByKey()
     
     ' 清空原集合并按排序后的顺序重新添加
     Set m_col = New Collection
+    Set m_Keys = New Collection
     For i = 0 To Count - 1
         If Keys(i) <> "" Then
             m_col.Add Values(i), Keys(i)
         Else
             m_col.Add Values(i)
         End If
+        m_Keys.Add Keys(i)
     Next i
 End Sub
 
@@ -252,12 +287,14 @@ Public Sub SortByValue()
     
     ' 清空原集合并按排序后的顺序重新添加
     Set m_col = New Collection
+    Set m_Keys = New Collection
     For i = 0 To Count - 1
         If Keys(i) <> "" Then
             m_col.Add Values(i), Keys(i)
         Else
             m_col.Add Values(i)
         End If
+        m_Keys.Add Keys(i)
     Next i
 End Sub
 

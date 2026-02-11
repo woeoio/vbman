@@ -92,15 +92,84 @@ ErrorHandler:
     Exists = False
 End Function
 
-' 获取元素
-Public Function Item(ByVal KeyOrIndex As Variant) As Variant
+' 获取或设置元素（Property 实现，兼容 Dictionary 用法）
+Public Property Get Item(ByVal KeyOrIndex As Variant) As Variant
     On Error Resume Next
     If IsNumeric(KeyOrIndex) Then
         Item = m_col.Item(CInt(KeyOrIndex))
     Else
         Item = m_col.Item(CStr(KeyOrIndex))
     End If
-End Function
+End Property
+
+Public Property Let Item(ByVal KeyOrIndex As Variant, ByVal Value As Variant)
+    On Error Resume Next
+    If IsNumeric(KeyOrIndex) Then
+        ' 通过索引更新（需要知道对应的 Key）
+        Dim idx As Long
+        idx = CInt(KeyOrIndex)
+        If idx >= 1 And idx <= m_col.Count Then
+            Dim Key As String
+            Key = m_Keys.Item(idx)
+            m_col.Remove idx
+            m_Keys.Remove idx
+            If Key <> "" Then
+                m_col.Add Value, Key
+            Else
+                m_col.Add Value
+            End If
+            m_Keys.Add Key
+        End If
+    Else
+        ' 通过 Key 更新
+        Dim sKey As String
+        sKey = CStr(KeyOrIndex)
+        idx = FindKeyIndex(sKey)
+        If idx > 0 Then
+            m_col.Remove idx
+            m_Keys.Remove idx
+            m_col.Add Value, sKey
+            m_Keys.Add sKey
+        Else
+            ' Key 不存在则添加
+            m_col.Add Value, sKey
+            m_Keys.Add sKey
+        End If
+    End If
+End Property
+
+Public Property Set Item(ByVal KeyOrIndex As Variant, ByVal Value As Object)
+    On Error Resume Next
+    If IsNumeric(KeyOrIndex) Then
+        Dim idx As Long
+        idx = CInt(KeyOrIndex)
+        If idx >= 1 And idx <= m_col.Count Then
+            Dim Key As String
+            Key = m_Keys.Item(idx)
+            m_col.Remove idx
+            m_Keys.Remove idx
+            If Key <> "" Then
+                m_col.Add Value, Key
+            Else
+                m_col.Add Value
+            End If
+            m_Keys.Add Key
+        End If
+    Else
+        Dim sKey As String
+        sKey = CStr(KeyOrIndex)
+        idx = FindKeyIndex(sKey)
+        If idx > 0 Then
+            m_col.Remove idx
+            m_Keys.Remove idx
+            m_col.Add Value, sKey
+            m_Keys.Add sKey
+        Else
+            m_col.Add Value, sKey
+            m_Keys.Add sKey
+        End If
+    End If
+End Property
 
 ' 删除元素
 Public Sub Remove(ByVal KeyOrIndex As Variant)
@@ -141,6 +210,92 @@ Public Function KeyByIndex(ByVal Index As Long) As String
     
 ErrorHandler:
     KeyByIndex = ""
+End Function
+
+'=========================================================================
+' 标准字典成员（Scripting.Dictionary 兼容）
+'=========================================================================
+
+' 返回所有 Key 的数组
+' @return 包含所有 Key 的 String 数组
+Public Function Keys() As String()
+    Dim KeyArray() As String
+    Dim i As Long
+    Dim n As Long
+    
+    n = m_Keys.Count
+    If n = 0 Then
+        Keys = Array()
+        Exit Function
+    End If
+    
+    ReDim KeyArray(0 To n - 1)
+    For i = 1 To n
+        KeyArray(i - 1) = m_Keys.Item(i)
+    Next i
+    
+    Keys = KeyArray
+End Function
+
+' 返回所有 Value 的数组
+' @return 包含所有 Value 的 Variant 数组
+Public Function Items() As Variant()
+    Dim ItemArray() As Variant
+    Dim i As Long
+    Dim n As Long
+    
+    n = m_col.Count
+    If n = 0 Then
+        Items = Array()
+        Exit Function
+    End If
+    
+    ReDim ItemArray(0 To n - 1)
+    For i = 1 To n
+        ItemArray(i - 1) = m_col.Item(i)
+    Next i
+    
+    Items = ItemArray
+End Function
+
+' 清空集合（删除所有元素）
+Public Sub RemoveAll()
+    Set m_col = New Collection
+    Set m_Keys = New Collection
+End Sub
+
+' 修改指定 Key 的名称（Dictionary 兼容方法）
+' @param OldKey 原 Key 名称
+' @param NewKey 新 Key 名称
+' @return 是否修改成功
+Public Function RenameKey(ByVal OldKey As String, ByVal NewKey As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ' 检查原 Key 是否存在
+    Dim idx As Long
+    idx = FindKeyIndex(OldKey)
+    If idx = 0 Then GoTo ErrorHandler
+    
+    ' 检查新 Key 是否已存在
+    If FindKeyIndex(NewKey) > 0 Then GoTo ErrorHandler
+    
+    ' 获取 Value
+    Dim Value As Variant
+    Value = m_col.Item(OldKey)
+    
+    ' 删除旧的
+    m_col.Remove idx
+    m_Keys.Remove idx
+    
+    ' 添加新的
+    m_col.Add Value, NewKey
+    m_Keys.Add NewKey
+    
+    RenameKey = True
+    Exit Function
+    
+ErrorHandler:
+    RenameKey = False
 End Function
 
 '=========================================================================

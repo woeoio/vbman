@@ -383,6 +383,124 @@ Public Function MapMethodName(Index As Long) As String
     MapMethodName = Arr(Index)
 End Function
 
+'=========================================================================
+' cCollection 与 Form URL-Encoded 格式转换
+'=========================================================================
+
+' 将集合对象转换为 application/x-www-form-urlencoded 格式字符串
+' @param Obj 集合对象（支持 cCollection 或 Scripting.Dictionary）
+' @param IsUrlEncode 是否对值进行 URL 编码（默认 True）
+' @return Form URL-Encoded 格式字符串，如 "key1=value1&key2=value2"
+' @note 对于 Dictionary 按 Keys 插入顺序遍历；对于 cCollection 按当前顺序遍历
+Public Function ToWwwFormUrlencoded(ByRef Obj As Object, Optional ByVal IsUrlEncode As Boolean = True) As String
+    Dim Result As String
+    Dim Key As Variant
+    Dim Value As Variant
+    Dim EncodedValue As String
+    Dim Keys As Variant
+    
+    If Obj Is Nothing Then
+        ToWwwFormUrlencoded = ""
+        Exit Function
+    End If
+    
+    If Obj.Count = 0 Then
+        ToWwwFormUrlencoded = ""
+        Exit Function
+    End If
+    
+    On Error Resume Next
+    
+    ' 获取 Keys 数组（cCollection 和 Scripting.Dictionary 都支持 Keys() 方法）
+    Keys = Obj.Keys()
+    If Err.Number <> 0 Then
+        ToWwwFormUrlencoded = ""
+        Exit Function
+    End If
+    
+    ' 遍历所有 Keys
+    For Each Key In Keys
+        ' 获取值（两者都支持 Item(Key)）
+        Value = Obj.Item(Key)
+        
+        ' 对值进行 URL 编码（如果需要）
+        If IsUrlEncode Then
+            EncodedValue = UrlEncodeUtf8(CStr(Value))
+        Else
+            EncodedValue = CStr(Value)
+        End If
+        
+        ' 拼接键值对
+        If Len(Result) > 0 Then
+            Result = Result & "&"
+        End If
+        Result = Result & Key & "=" & EncodedValue
+    Next Key
+    
+    On Error GoTo 0
+    ToWwwFormUrlencoded = Result
+End Function
+
+' 将 application/x-www-form-urlencoded 格式字符串解析到集合对象
+' @param Content Form URL-Encoded 格式字符串
+' @param Obj 集合对象（支持 cCollection 或 Scripting.Dictionary，会被清空后填充）
+' @param IsUrlDecode 是否对值进行 URL 解码（默认 True）
+' @return 是否解析成功
+Public Function FromWwwFormUrlencoded(ByVal Content As String, ByRef Obj As Object, Optional ByVal IsUrlDecode As Boolean = True) As Boolean
+    On Error GoTo ErrorHandler
+    
+    If Obj Is Nothing Then
+        FromWwwFormUrlencoded = False
+        Exit Function
+    End If
+    
+    ' 清空现有内容
+    Obj.RemoveAll
+    
+    If Trim(Content) = "" Then
+        FromWwwFormUrlencoded = True
+        Exit Function
+    End If
+    
+    Dim Pairs() As String
+    Dim Pair As Variant
+    Dim KeyValue() As String
+    Dim Key As String
+    Dim Value As String
+    Dim DecodedValue As String
+    
+    ' 按 & 分割键值对
+    Pairs = Split(Content, "&")
+    
+    For Each Pair In Pairs
+        If Trim(Pair) <> "" Then
+            ' 按 = 分割键和值
+            KeyValue = Split(Pair & "=", "=")
+            Key = Trim(KeyValue(0))
+            Value = KeyValue(1)
+            
+            If Key <> "" Then
+                ' 对值进行 URL 解码（如果需要）
+                If IsUrlDecode Then
+                    DecodedValue = UrlDecodeUtf8(Value)
+                Else
+                    DecodedValue = Value
+                End If
+                
+                ' 添加到集合（两者都支持 Item(Key)=Value）
+                Obj.Item(Key) = DecodedValue
+            End If
+        End If
+    Next Pair
+    
+    FromWwwFormUrlencoded = True
+    Exit Function
+    
+ErrorHandler:
+    FromWwwFormUrlencoded = False
+End Function
+
+
 
 
 

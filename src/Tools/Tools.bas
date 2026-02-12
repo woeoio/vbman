@@ -12,4 +12,4 @@ Public ToolsArray As New cToolsArray
 Public ToolsDic As New cToolsDic
 Public ToolsFso As New cToolsFso
 Public ToolsList As New cToolsList
-
+Public ToolsDateTime As New cToolsDateTime

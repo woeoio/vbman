@@ -309,7 +309,7 @@ Private Sub DisplayResult(ByRef Result As AliyunCaptchaVerifyResult)
     
     Output = "========== 验证结果 ==========" & vbCrLf & _
 "请求成功: " & IIf(Result.Success, "是", "否") & vbCrLf & _
-"验证结果: " & IIf(Result.Result, "通过", "未通过") & vbCrLf & _
+"验证结果: " & IIf(Result.VerifyResult, "通过", "未通过") & vbCrLf & _
 "VerifyCode: " & Result.VerifyCode & vbCrLf & _
 "CertifyID: " & Result.CertifyID & vbCrLf & _
 "RequestId: " & Result.requestID & vbCrLf

@@ -144,6 +144,24 @@ Public Function Region(RegionCode As AliyunCaptchaRegion) As cAliyunCaptcha
     Set Region = Me
 End Function
 
+' 设置地域（直接使用地域字符串）
+' @param Area 地域字符串，如 "cn-shanghai" 或 "ap-southeast-1"
+' @return 返回当前对象，支持链式调用
+Public Function RegionArea(ByVal Area As String) As cAliyunCaptcha
+    ' 根据地域字符串自动映射到枚举值
+    Select Case LCase(Trim(Area))
+    Case "cn-shanghai"
+        m_Region = ALIYUN_CAPTCHA_REGION_CN
+    Case "ap-southeast-1"
+        m_Region = ALIYUN_CAPTCHA_REGION_SGP
+    Case Else
+        ' 未知地域，保持不变
+        Debug.Print "[cAliyunCaptcha] Warning: Unknown RegionArea '" & Area & "', region unchanged"
+    End Select
+    Call UpdateEndpoint
+    Set RegionArea = Me
+End Function
+
 ' 设置超时时间
 Public Function Timeout(Milliseconds As Long) As cAliyunCaptcha
     m_Timeout = Milliseconds

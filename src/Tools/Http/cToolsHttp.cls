@@ -229,6 +229,11 @@ Public Function UrlEncodeUtf8(ByVal szInput As Variant) As String
     Dim wch As Variant, uch As Variant, szRet As Variant
     Dim x As Variant
     Dim nAsc As Variant, nAsc2 As Variant, nAsc3 As Variant
+    Dim szSafeChars As String
+    
+    ' RFC3986 标准的安全字符（不需要编码）
+    szSafeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
+    
     If szInput = "" Then
         UrlEncodeUtf8 = szInput
         Exit Function
@@ -239,9 +244,15 @@ Public Function UrlEncodeUtf8(ByVal szInput As Variant) As String
         
         If nAsc < 0 Then nAsc = nAsc + 65536
         
-        If (nAsc And &HFF80) = 0 Then
+        ' 检查是否是安全字符（RFC3986）
+        If InStr(szSafeChars, wch) > 0 Then
+            ' 安全字符，直接追加
             szRet = szRet & wch
+        ElseIf (nAsc And &HFF80) = 0 Then
+            ' 单字节非安全字符（如 / = & : 等），进行 URL 编码
+            szRet = szRet & "%" & Right("00" & Hex(nAsc), 2)
         Else
+            ' 多字节 UTF-8 字符
             If (nAsc And &HF000) = 0 Then
                 uch = "%" & Hex(((nAsc \ 2 ^ 6)) Or &HC0) & Hex(nAsc And &H3F Or &H80)
                 szRet = szRet & uch

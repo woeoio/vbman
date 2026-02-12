@@ -37,7 +37,7 @@ Public Sub TestAliyunCapt()
         ' 验证（从客户端获取的CaptchaVerifyParam）
         Dim Result As Boolean
         ' 注意：下面的fResult是从前端验证码组件获取的验证参数，每次验证都不同
-        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJseUl2Q28xcDdiIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS05zZ1g1YkloTWZsZ3ROWDNZYWRiclMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
+        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJacVpQS3IwMVdGIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS3ZaL0dTWFd2UXIySjRud0gxUStBaEMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
         Result = .VerifySync(fResult, "y3kvak9b")
         
         If Result = True Then

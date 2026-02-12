@@ -28,7 +28,7 @@ Public Function FindItem(ByVal Path As String, Optional ByVal Name As String) As
     Const Q As String = "reg query "
     Dim N As String
     If Name <> "" Then N = " /v " & Name
-    Dim R As String: R = Cmd.ExecuteCommand(Q & Path & N)
+    Dim R As String: R = Cmd.ExecuteCommand(Q & """" & Path & """" & N)
     Dim H As Variant: H = Split(R, vbCrLf)
     Dim i As Long, A As Variant
     Dim Arr() As TypeRegData
@@ -101,7 +101,7 @@ Public Function DeleteItem(ByVal Path As String, ByVal Name As String) As Boolea
     Const Q As String = "reg delete "
     Dim N As String: N = " /v " & Name
     Dim F As String:  F = " /f"
-    Dim R As String: R = Cmd.ExecuteCommand(Q & Path & N & F)
+    Dim R As String: R = Cmd.ExecuteCommand(Q & """" & Path & """" & N & F)
     Dim H As Variant: H = Split(R, vbCrLf)
     Dim L As Long: L = UBound(H)
     If L > 1 Then
@@ -110,5 +110,25 @@ Public Function DeleteItem(ByVal Path As String, ByVal Name As String) As Boolea
     End If
     DeleteItem = True
     LastError = ""
+End Function
+
+Public Function FindFirst(ByVal Path As String, Optional ByVal Name As String) As Variant
+    Dim Arr() As TypeRegData
+    Arr = FindItem(Path, Name)
+    If Arr(0).HasName = False Then
+        FindFirst = vbNullString
+    Else
+        FindFirst = Arr(0).RegValue
+    End If
+End Function
+
+Public Function FindLast(ByVal Path As String, Optional ByVal Name As String) As Variant
+    Dim Arr() As TypeRegData
+    Arr = FindItem(Path, Name)
+    If Arr(0).HasName = False Then
+        FindLast = vbNullString
+    Else
+        FindLast = Arr(UBound(Arr)).RegValue
+    End If
 End Function
 

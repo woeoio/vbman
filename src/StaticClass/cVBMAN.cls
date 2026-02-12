@@ -46,6 +46,7 @@ Public ToolsArray As New cToolsArray
 Public ToolsDic As New cToolsDic
 Public ToolsFso As New cToolsFso
 Public ToolsList As New cToolsList
+Public ToolsSystem As New cToolsSystem
 
 '实验证明，dll编译后的app对象就是dll所属的
 Public Function Version(Optional HostApp As Object) As String

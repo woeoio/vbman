@@ -114,11 +114,11 @@ Public Event OnVerifySuccess(ByVal VerifyCode As String, _
     ByVal CertifyID As String, _
     ByVal Result As Boolean)
 
-' 验证失败事件
+    ' 验证失败事件
 Public Event OnVerifyFailure(ByVal ErrorCode As String, _
     ByVal ErrorMessage As String)
 
-' 错误事件
+    ' 错误事件
 Public Event OnError(ByVal Description As String)
 
 '=========================================================================
@@ -257,9 +257,9 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
     Dim Signature As String
     
     Signature = HMAC.Mode(HMAC_ALG_SHA1) _
-                    .Secret(m_AccessKeySecret & "&", SECRET_KEY_STRING, HMAC_ENCODING_UTF8) _
-                    .DataString(StringToSign, HMAC_ENCODING_UTF8) _
-                    .ReturnBase64()
+    .Secret(m_AccessKeySecret & "&", SECRET_KEY_STRING, HMAC_ENCODING_UTF8) _
+    .DataString(StringToSign, HMAC_ENCODING_UTF8) _
+    .ReturnBase64()
     
     Set HMAC = Nothing
     
@@ -312,22 +312,12 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
             Result.requestID = .Root("RequestId")
             
             ' 解析Result对象（包含VerifyResult和VerifyCode）
-            If .Root.Exists("Result") Then
-                Dim ResultObj As Object
-                Set ResultObj = .Root("Result")
-                If TypeOf ResultObj Is cJson Then
-                    Result.VerifyResult = ResultObj.Item("VerifyResult")
-                    Result.VerifyCode = ResultObj.Item("VerifyCode")
-                End If
-            End If
+            Result.VerifyResult = .Root("Result")("VerifyResult")
+            Result.VerifyCode = .Root("Result")("VerifyCode")
             
             ' 解析其他字段
             Result.CertifyID = .Root("CertifyID")
-            
-            ' 获取错误信息
-            If .Root.Exists("Message") Then
-                Result.Message = .Root("Message")
-            End If
+            Result.Message = .Root("Message")
             
             ' 调试输出响应
             If m_EnableDebug Then
@@ -356,9 +346,9 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
     Exit Function
     
 ErrorHandler:
-    Call RaiseError("Verify失败: " & Err.Description)
+    Call RaiseError("Verify失败: " & ERR.Description)
     Result.Success = False
-    Result.Message = "Verify失败: " & Err.Description
+    Result.Message = "Verify失败: " & ERR.Description
     Verify = Result
 End Function
 
@@ -375,7 +365,7 @@ Public Function VerifySync(ByVal CaptchaVerifyParam As String, _
     Exit Function
     
 ErrorHandler:
-    Call RaiseError("VerifySync失败: " & Err.Description)
+    Call RaiseError("VerifySync失败: " & ERR.Description)
     VerifySync = False
 End Function
 

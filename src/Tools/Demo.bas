@@ -290,6 +290,12 @@ Sub StartUp()
     End With
 End Sub
 
+Sub reg2()
+    With New cRegedit
+        MsgBox .FindFirst("HKCU\Software\VB and VBA Program Settings\vbman\demo", "name")
+    End With
+End Sub
+
 Sub Reg()
     With New cRegedit
         Dim A() As TypeRegData

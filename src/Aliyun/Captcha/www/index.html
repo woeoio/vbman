@@ -959,6 +959,11 @@
                     document.getElementById('btn-send').disabled = false;
                 },
 
+                onClose: function () {
+                    console.log("验证码弹窗已关闭");
+                    document.getElementById('captcha-container').classList.remove('show');
+                },
+
                 getInstance: function (instance) {
                     captchaInstance = instance;
                 },

@@ -486,3 +486,68 @@ End Sub
 Private Sub Class_Terminate()
     ' 清理资源
 End Sub
+
+
+
+'=========================================================================
+' 公共函数
+'=========================================================================
+
+' 获取地域的Endpoint
+Public Function GetRegionEndpoint(Region As AliyunCaptchaRegion, _
+                                  Optional DualStack As Boolean = False) As String
+    Select Case Region
+        Case ALIYUN_CAPTCHA_REGION_CN
+            If DualStack Then
+                GetRegionEndpoint = "https://captcha-dualstack.cn-shanghai.aliyuncs.com"
+            Else
+                GetRegionEndpoint = "https://captcha.cn-shanghai.aliyuncs.com"
+            End If
+        Case ALIYUN_CAPTCHA_REGION_SGP
+            If DualStack Then
+                GetRegionEndpoint = "https://captcha-dualstack.ap-southeast-1.aliyuncs.com"
+            Else
+                GetRegionEndpoint = "https://captcha.ap-southeast-1.aliyuncs.com"
+            End If
+    End Select
+End Function
+
+' 获取错误码描述
+Public Function GetVerifyCodeDescription(ByVal VerifyCode As String) As String
+    Select Case VerifyCode
+        Case "T001": GetVerifyCodeDescription = "服务端校验通过"
+        Case "T005": GetVerifyCodeDescription = "测试模式，配置了验证通过"
+        Case "F001": GetVerifyCodeDescription = "疑似攻击请求，风险策略不通过"
+        Case "F002": GetVerifyCodeDescription = "CaptchaVerifyParam参数为空"
+        Case "F003": GetVerifyCodeDescription = "CaptchaVerifyParam格式不合法"
+        Case "F004": GetVerifyCodeDescription = "测试模式，配置了验证不通过"
+        Case "F005": GetVerifyCodeDescription = "场景ID不合法（参数异常）"
+        Case "F006": GetVerifyCodeDescription = "场景ID不合法（前端配置错误）"
+        Case "F008": GetVerifyCodeDescription = "验证数据重复提交"
+        Case "F009": GetVerifyCodeDescription = "检测到虚拟设备环境"
+        Case "F010": GetVerifyCodeDescription = "同IP访问频率超出限制"
+        Case "F011": GetVerifyCodeDescription = "同设备访问频率超出限制"
+        Case "F012": GetVerifyCodeDescription = "服务端SceneID与前端不一致"
+        Case "F013": GetVerifyCodeDescription = "CaptchaVerifyParam缺少参数"
+        Case "F014": GetVerifyCodeDescription = "无初始化记录"
+        Case "F015": GetVerifyCodeDescription = "验证交互不通过"
+        Case "F016": GetVerifyCodeDescription = "自定义策略URL验证不通过"
+        Case "F017": GetVerifyCodeDescription = "疑似攻击请求，协议或参数异常"
+        Case "F018": GetVerifyCodeDescription = "V3架构：CaptchaVerifyParam重复使用"
+        Case "F019": GetVerifyCodeDescription = "V3架构：请求间隔超出90秒"
+        Case "F020": GetVerifyCodeDescription = "V3架构：参数不匹配"
+        Case "F023": GetVerifyCodeDescription = "V2架构：初始化失败自动触发"
+        Case "F024": GetVerifyCodeDescription = "检测到自动化脚本操作"
+        Case Else: GetVerifyCodeDescription = "未知错误：" & VerifyCode
+    End Select
+End Function
+
+' 获取验证结果是否通过
+Public Function IsVerifySuccess(ByVal VerifyCode As String) As Boolean
+    Select Case VerifyCode
+        Case "T001", "T005"
+            IsVerifySuccess = True
+        Case Else
+            IsVerifySuccess = False
+    End Select
+End Function

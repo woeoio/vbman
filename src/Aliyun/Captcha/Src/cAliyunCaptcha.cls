@@ -18,11 +18,19 @@ Attribute VB_Exposed = True
 '
 ' Purpose: 提供阿里云验证码2.0服务端验证功能
 '          - 调用VerifyIntelligentCaptcha接口
-'          - 验证码验证
+'          - 实现阿里云RPC V1签名算法（HMAC-SHA1）
 '          - 支持中国内地和新加坡地域
 '
 ' Author: Auto
 ' Date: 2026-02-08
+'
+' 重构说明：
+' 本版本基于文档 03.md 的指导进行重构：
+' 1. 使用 cCollection 替代 Scripting.Dictionary，支持 SortByKey() 排序
+' 2. 使用 ToolsDateTime.GetIso8601Timestamp() 生成 UTC 时间戳
+' 3. 使用 cCryptoHMAC 链式调用简化签名计算
+' 4. 严格遵循阿里云 RPC V1 签名流程
+' 5. 正确处理 Query 和 Body 参数合并签名
 '
 '=========================================================================
 
@@ -32,11 +40,23 @@ Option Explicit
 ' 依赖引用
 '=========================================================================
 ' - cHttpClient.cls: HTTP请求客户端（含内置JSON处理）
-' - mAliyunCaptcha.bas: 枚举、常量、类型定义
+' - cCollection.cls: 带排序功能的集合类（Key字典序排序）
+' - cCryptoHMAC.cls: HMAC-SHA1签名计算（支持链式调用）
+' - cToolsHttp.cls: URL编码和Form编码工具
+' - ToolsDateTime.bas: ISO8601时间戳和UUID生成
 '
 ' 注意：HttpClient自带RequestDataJson和ResponseJson方法，
 '       无需额外引用cJson。
 '=========================================================================
+
+'=========================================================================
+' API 常量
+'=========================================================================
+Private Const API_VERSION As String = "2023-03-05"
+Private Const API_FORMAT As String = "json"
+Private Const API_SIGNATURE_METHOD As String = "HMAC-SHA1"
+Private Const API_SIGNATURE_VERSION As String = "1.0"
+Private Const API_ACTION As String = "VerifyIntelligentCaptcha"
 
 '=========================================================================
 ' 私有变量
@@ -47,14 +67,6 @@ Private m_Region As AliyunCaptchaRegion                                         
 Private m_Endpoint As String                                                    ' API Endpoint
 Private m_Timeout As Long                                                       ' 超时时间（毫秒）
 Private m_EnableDebug As Boolean                                                ' 是否启用调试
-
-'=========================================================================
-' API 常量
-'=========================================================================
-Private Const API_VERSION As String = "2023-03-05"
-Private Const API_FORMAT As String = "json"
-Private Const API_SIGNATURE_METHOD As String = "HMAC-SHA1"
-Private Const API_SIGNATURE_VERSION As String = "1.0"
 
 '=========================================================================
 ' 枚举定义
@@ -78,8 +90,8 @@ End Enum
 
 ' 验证结果结构
 Public Type AliyunCaptchaVerifyResult
-    Result As Boolean                                                           ' 验证结果
-    VerifyCode As String                                                        ' 验证码
+    VerifyResult As Boolean                                                     ' 验证结果（true=通过，false=未通过）
+    VerifyCode As String                                                        ' 验证结果代码
     CertifyID As String                                                         ' 认证ID
     Success As Boolean                                                          ' 请求是否成功
     requestID As String                                                         ' 请求ID
@@ -102,43 +114,43 @@ Public Event OnVerifySuccess(ByVal VerifyCode As String, _
     ByVal CertifyID As String, _
     ByVal Result As Boolean)
 
-    ' 验证失败事件
+' 验证失败事件
 Public Event OnVerifyFailure(ByVal ErrorCode As String, _
     ByVal ErrorMessage As String)
 
-    ' 错误事件
+' 错误事件
 Public Event OnError(ByVal Description As String)
 
 '=========================================================================
-' 公共方法 - 配置
+' 公共方法 - 配置（链式调用）
 '=========================================================================
 
-' 设置AccessKey（链式调用）
+' 设置AccessKeyId
 Public Function AccessKeyId(Key As String) As cAliyunCaptcha
     m_AccessKeyId = Key
     Set AccessKeyId = Me
 End Function
 
-' 设置AccessKeySecret（链式调用）
+' 设置AccessKeySecret
 Public Function AccessKeySecret(Secret As String) As cAliyunCaptcha
     m_AccessKeySecret = Secret
     Set AccessKeySecret = Me
 End Function
 
-' 设置地域（链式调用）
+' 设置地域
 Public Function Region(RegionCode As AliyunCaptchaRegion) As cAliyunCaptcha
     m_Region = RegionCode
     Call UpdateEndpoint
     Set Region = Me
 End Function
 
-' 设置超时时间（链式调用）
+' 设置超时时间
 Public Function Timeout(Milliseconds As Long) As cAliyunCaptcha
     m_Timeout = Milliseconds
     Set Timeout = Me
 End Function
 
-' 设置调试模式（链式调用）
+' 设置调试模式
 Public Function EnableDebug(Value As Boolean) As cAliyunCaptcha
     m_EnableDebug = Value
     Set EnableDebug = Me
@@ -150,110 +162,176 @@ End Function
 
 ' 验证验证码（带阿里云RPC签名）
 '@param CaptchaVerifyParam 客户端验证参数
-'@param SceneId 场景ID（可选，建议传入）
+'@param SceneId 场景ID（必填）
 '@return 验证结果对象
 Public Function Verify(ByVal CaptchaVerifyParam As String, _
-    Optional ByVal SceneId As String = "") As AliyunCaptchaVerifyResult
+    ByVal SceneId As String) As AliyunCaptchaVerifyResult
+    
     On Error GoTo ErrorHandler
     
     Dim Result As AliyunCaptchaVerifyResult
     
     ' 参数验证
     If LenB(CaptchaVerifyParam) = 0 Then
-        Call RaiseError("CaptchaVerifyParam不能为空")
         Result.Success = False
         Result.Message = "CaptchaVerifyParam不能为空"
+        Call RaiseError(Result.Message)
         Verify = Result
         Exit Function
     End If
     
     ' 检查配置
     If LenB(m_Endpoint) = 0 Then
-        Call RaiseError("Endpoint未配置，请先调用Region方法设置地域")
         Result.Success = False
-        Result.Message = "Endpoint未配置"
+        Result.Message = "Endpoint未配置，请先调用Region方法设置地域"
+        Call RaiseError(Result.Message)
         Verify = Result
         Exit Function
     End If
     
     If LenB(m_AccessKeyId) = 0 Or LenB(m_AccessKeySecret) = 0 Then
-        Call RaiseError("AccessKey未配置")
         Result.Success = False
         Result.Message = "AccessKey未配置"
+        Call RaiseError(Result.Message)
         Verify = Result
         Exit Function
     End If
     
-    ' 构建签名参数
-    Dim Params As Object
-    Set Params = CreateObject("Scripting.Dictionary")
+    '=========================================================================
+    ' 步骤1：构建系统参数（Query参数）
+    '=========================================================================
+    Dim QueryParams As New cCollection
     
-    ' 系统参数
-    Params.Add "Action", "VerifyIntelligentCaptcha"
-    Params.Add "Version", API_VERSION
-    Params.Add "Format", API_FORMAT
-    Params.Add "Timestamp", GetUTCTimestamp()
-    Params.Add "SignatureNonce", GenerateNonce()
-    Params.Add "SignatureMethod", API_SIGNATURE_METHOD
-    Params.Add "SignatureVersion", API_SIGNATURE_VERSION
-    Params.Add "AccessKeyId", m_AccessKeyId
+    ' 系统级参数
+    QueryParams.Add API_ACTION, "Action"
+    QueryParams.Add API_VERSION, "Version"
+    QueryParams.Add API_FORMAT, "Format"
+    QueryParams.Add ToolsDateTime.GetIso8601Timestamp(), "Timestamp"
+    QueryParams.Add GenerateNonce(), "SignatureNonce"
+    QueryParams.Add API_SIGNATURE_METHOD, "SignatureMethod"
+    QueryParams.Add API_SIGNATURE_VERSION, "SignatureVersion"
+    QueryParams.Add m_AccessKeyId, "AccessKeyId"
     
-    ' 业务参数
-    Params.Add "CaptchaVerifyParam", CaptchaVerifyParam
-    If LenB(SceneId) > 0 Then
-        Params.Add "SceneId", SceneId
-    End If
+    '=========================================================================
+    ' 步骤2：构建业务参数（Body参数）
+    '=========================================================================
+    Dim BodyParams As New cCollection
+    BodyParams.Add CaptchaVerifyParam, "CaptchaVerifyParam"
+    BodyParams.Add SceneId, "SceneId"
     
-    ' 计算签名
+    '=========================================================================
+    ' 步骤3：计算签名（合并Query和Body参数，统一排序）
+    '=========================================================================
+    ' 创建用于签名的参数集合（合并Query和Body参数）
+    Dim SignParams As New cCollection
+    
+    ' 复制Query参数
+    Dim Keys() As String
+    Dim Key As Variant
+    Keys = QueryParams.Keys()
+    For Each Key In Keys
+        SignParams.Add QueryParams.Item(Key), Key
+    Next Key
+    
+    ' 复制Body参数
+    Keys = BodyParams.Keys()
+    For Each Key In Keys
+        SignParams.Add BodyParams.Item(Key), Key
+    Next Key
+    
+    ' 按Key字典序排序（ASCII升序）
+    SignParams.SortByKey
+    
+    ' 生成规范化查询字符串（参数名和值都已URL编码）
+    Dim ToolsHttp As New cToolsHttp
+    Dim CanonicalQueryString As String
+    CanonicalQueryString = ToolsHttp.ToWwwFormUrlencoded(SignParams, True)
+    
+    ' 构造待签名字符串
+    ' StringToSign = HTTPMethod + "&" + percentEncode("/") + "&" + percentEncode(CanonicalQueryString)
+    Dim StringToSign As String
+    StringToSign = "POST" & "&" & ToolsHttp.UrlEncodeUtf8("/") & "&" & ToolsHttp.UrlEncodeUtf8(CanonicalQueryString)
+    
+    ' 使用HMAC-SHA1计算签名（链式调用）
+    Dim HMAC As New cCryptoHMAC
     Dim Signature As String
-    Signature = CalculateRPCSignature(Params, "POST", m_AccessKeySecret)
-    Params.Add "Signature", Signature
     
-    ' 构建请求URL（带所有参数）
+    Signature = HMAC.Mode(HMAC_ALG_SHA1) _
+                    .Secret(m_AccessKeySecret & "&", SECRET_KEY_STRING, HMAC_ENCODING_UTF8) _
+                    .DataString(StringToSign, HMAC_ENCODING_UTF8) _
+                    .ReturnBase64()
+    
+    Set HMAC = Nothing
+    
+    ' 最后添加Signature到Query参数（不参与签名计算）
+    QueryParams.Add Signature, "Signature"
+    
+    '=========================================================================
+    ' 步骤4：构建请求URL和Body
+    '=========================================================================
     Dim RequestUrl As String
-    RequestUrl = m_Endpoint & "/?" & BuildQueryString(Params)
+    Dim RequestBody As String
+    
+    ' URL包含所有Query参数（包括Signature）
+    RequestUrl = m_Endpoint & "/?" & ToolsHttp.ToWwwFormUrlencoded(QueryParams, True)
+    
+    ' Body只包含业务参数
+    RequestBody = ToolsHttp.ToWwwFormUrlencoded(BodyParams, True)
     
     ' 调试输出
     If m_EnableDebug Then
+        Debug.Print "[cAliyunCaptcha] === 请求详情 ==="
         Debug.Print "[cAliyunCaptcha] Request URL: " & RequestUrl
+        Debug.Print "[cAliyunCaptcha] Request Body: " & RequestBody
+        Debug.Print "[cAliyunCaptcha] CanonicalQueryString: " & CanonicalQueryString
+        Debug.Print "[cAliyunCaptcha] StringToSign: " & StringToSign
         Debug.Print "[cAliyunCaptcha] Signature: " & Signature
     End If
     
-    ' 使用HttpClient发送POST请求（form-urlencoded格式，Body为空）
-    With New cHttpClient
-        ' 设置超时时间
+    '=========================================================================
+    ' 步骤5：发送HTTPS POST请求
+    '=========================================================================
+    Dim Http As New cHttpClient
+    
+    With Http
+        ' 设置超时
         .RequestTimeOut = m_Timeout
         
-        ' 启用调试信息
+        ' 启用调试
         .DebugStart = m_EnableDebug
         
-        ' 发送POST请求（RPC签名方式，参数已在URL中）
-        .SendPost RequestUrl
+        ' 发送POST请求（参数已在URL中，Body为form-urlencoded格式）
+        .SendPost RequestUrl, RequestBody
         
-        ' 解析响应
+        '=========================================================================
+        ' 步骤6：解析响应
+        '=========================================================================
         With .ReturnJson()
+            ' 解析基本响应字段
             Result.Success = .Root("Success")
-            Result.Result = .Root("Result")
-            ' 注意：阿里云返回的是 Result.VerifyResult 和 Result.VerifyCode
+            Result.requestID = .Root("RequestId")
+            
+            ' 解析Result对象（包含VerifyResult和VerifyCode）
             If .Root.Exists("Result") Then
                 Dim ResultObj As Object
                 Set ResultObj = .Root("Result")
                 If TypeOf ResultObj Is cJson Then
-                    Result.Result = ResultObj.Item("VerifyResult")
+                    Result.VerifyResult = ResultObj.Item("VerifyResult")
                     Result.VerifyCode = ResultObj.Item("VerifyCode")
                 End If
             End If
+            
+            ' 解析其他字段
             Result.CertifyID = .Root("CertifyID")
-            Result.requestID = .Root("RequestId")
             
             ' 获取错误信息
             If .Root.Exists("Message") Then
                 Result.Message = .Root("Message")
             End If
             
-            ' 调试输出响应数据
+            ' 调试输出响应
             If m_EnableDebug Then
-                Debug.Print "[cAliyunCaptcha] Response Data: " & .Encode(, 2, True)
+                Debug.Print "[cAliyunCaptcha] Response: " & .Encode(, 2, True)
             End If
         End With
         
@@ -263,48 +341,47 @@ Public Function Verify(ByVal CaptchaVerifyParam As String, _
         End If
         
         ' 触发事件
-        If Result.Result = True Then
-            RaiseEvent OnVerifySuccess(Result.VerifyCode, Result.CertifyID, Result.Result)
+        If Result.VerifyResult = True Then
+            RaiseEvent OnVerifySuccess(Result.VerifyCode, Result.CertifyID, Result.VerifyResult)
         Else
             RaiseEvent OnVerifyFailure(Result.VerifyCode, GetVerifyMessage(Result.VerifyCode))
         End If
         
-        Verify = Result
-        
-QH:
-        If m_EnableDebug = True Then
-            Debug.Print .DebugInfo.Encode(, 2, True)
-        End If
     End With
+    
+    Set Http = Nothing
+    Set ToolsHttp = Nothing
+    
+    Verify = Result
     Exit Function
     
 ErrorHandler:
-    Call RaiseError("Verify失败: " & ERR.Description)
+    Call RaiseError("Verify失败: " & Err.Description)
     Result.Success = False
-    Result.Message = "Verify失败: " & ERR.Description
+    Result.Message = "Verify失败: " & Err.Description
     Verify = Result
-    Resume QH
 End Function
 
-' 同步验证（简化接口）
+' 同步验证（简化接口，只返回布尔结果）
 Public Function VerifySync(ByVal CaptchaVerifyParam As String, _
-    Optional ByVal SceneId As String = "") As Boolean
-    '    On Error GoTo ErrorHandler
+    ByVal SceneId As String) As Boolean
+    
+    On Error GoTo ErrorHandler
     
     Dim Result As AliyunCaptchaVerifyResult
     Result = Me.Verify(CaptchaVerifyParam, SceneId)
     
-    VerifySync = Result.Result
+    VerifySync = Result.VerifyResult
     Exit Function
     
 ErrorHandler:
-    Call RaiseError("VerifySync失败: " & ERR.Description)
+    Call RaiseError("VerifySync失败: " & Err.Description)
     VerifySync = False
 End Function
 
 ' 重试验证
 Public Function VerifyWithRetry(ByVal CaptchaVerifyParam As String, _
-                               Optional ByVal SceneId As String = "", _
+                               ByVal SceneId As String, _
                                Optional ByVal MaxRetries As Long = 3) As Boolean
     Dim RetryCount As Long
     Dim Result As Boolean
@@ -316,9 +393,6 @@ Public Function VerifyWithRetry(ByVal CaptchaVerifyParam As String, _
             VerifyWithRetry = True
             Exit Function
         End If
-
-        ' 等待一段时间后重试
-'        Call Sleep(1000 * RetryCount)
     Next RetryCount
 
     VerifyWithRetry = False
@@ -359,134 +433,18 @@ Private Sub UpdateEndpoint()
     End Select
 End Sub
 
-' 获取UTC时间戳（ISO8601格式）
-Private Function GetUTCTimestamp() As String
-    Dim dt As Date
-    dt = DateAdd("h", -8, Now) ' 本地时间转UTC（假设本地为北京时间）
-    GetUTCTimestamp = Format$(dt, "yyyy-mm-ddThh:nn:ssZ")
-End Function
-
-' 生成随机nonce
+' 生成随机nonce（UUID格式）
 Private Function GenerateNonce() As String
-    ' 使用系统时间和随机数生成唯一标识
-    Randomize
-    GenerateNonce = Replace(CStr(Now), " ", "") & CStr(Int(Rnd * 1000000))
-End Function
-
-' URL编码（使用cToolsHttp的UTF-8编码方法）
-Private Function UrlEncode(ByVal Text As String) As String
-    UrlEncode = ToolsHttp.UrlEncodeUtf8(Text)
-End Function
-
-' 计算RPC签名（HMAC-SHA1）
-Private Function CalculateRPCSignature(ByRef Params As Object, ByVal Method As String, ByVal Secret As String) As String
-    Dim SortedKeys() As Variant
-    Dim KeyCount As Long
-    Dim i As Long
-    Dim CanonicalQueryString As String
-    Dim StringToSign As String
-    Dim HMAC As cCryptoHMAC
-    
-    ' 获取所有键并排序
-    KeyCount = Params.Count
-    '    ReDim SortedKeys(KeyCount - 1)
-    '    For i = 0 To KeyCount - 1
-    SortedKeys = Params.Keys()
-    '    Next i
-    Call QuickSort(SortedKeys, 0, KeyCount - 1)
-    
-    ' 构建规范化的查询字符串
-    For i = 0 To KeyCount - 1
-        If i > 0 Then CanonicalQueryString = CanonicalQueryString & "&"
-        CanonicalQueryString = CanonicalQueryString & UrlEncode(SortedKeys(i)) & "=" & UrlEncode(CStr(Params(SortedKeys(i))))
-    Next i
-    
-    ' 构建待签名字符串
-    StringToSign = Method & "&%2F&" & UrlEncode(CanonicalQueryString)
-    
-    ' 使用HMAC-SHA1签名
-    Set HMAC = New cCryptoHMAC
-    HMAC.Algorithm = HMAC_ALG_SHA1
-    HMAC.SetKey Secret & "&", HMAC_ENCODING_UTF8                                ' 阿里云密钥格式: Secret&
-    
-    Dim DataBytes() As Byte
-    DataBytes = StrConv(StringToSign, vbFromUnicode)
-    
-    Dim SignatureBytes() As Byte
-    SignatureBytes = HMAC.ComputeBytes(DataBytes, StrConv(Secret & "&", vbFromUnicode))
-    
-    ' 返回Base64编码的签名
-    CalculateRPCSignature = BytesToBase64(SignatureBytes)
-    
-    Set HMAC = Nothing
-End Function
-
-' 构建查询字符串
-Private Function BuildQueryString(ByRef Params As Object) As String
-    Dim Result As String
-    Dim i As Long
-    Dim Key As Variant
-    
-    For Each Key In Params.Keys
-        If Len(Result) > 0 Then Result = Result & "&"
-        Result = Result & UrlEncode(CStr(Key)) & "=" & UrlEncode(CStr(Params(Key)))
-    Next Key
-    
-    BuildQueryString = Result
-End Function
-
-' 快速排序（用于参数排序）
-Private Sub QuickSort(ByRef Arr() As Variant, ByVal Low As Long, ByVal High As Long)
-    Dim i As Long, j As Long
-    Dim Pivot As String
-    Dim Temp As String
-    
-    If Low < High Then
-        i = Low
-        j = High
-        Pivot = Arr((Low + High) \ 2)
-        
-        Do While i <= j
-            Do While Arr(i) < Pivot And i < High
-                i = i + 1
-            Loop
-            Do While Arr(j) > Pivot And j > Low
-                j = j - 1
-            Loop
-            If i <= j Then
-                Temp = Arr(i)
-                Arr(i) = Arr(j)
-                Arr(j) = Temp
-                i = i + 1
-                j = j - 1
-            End If
-        Loop
-        
-        If Low < j Then QuickSort Arr, Low, j
-        If i < High Then QuickSort Arr, i, High
-    End If
-End Sub
-
-' 字节数组转Base64
-Private Function BytesToBase64(ByRef Data() As Byte) As String
-    Dim oXML As Object
-    Dim oNode As Object
-    
-    On Error Resume Next
-    Set oXML = CreateObject("MSXML2.DOMDocument")
-    Set oNode = oXML.createElement("b64")
-    oNode.DataType = "bin.base64"
-    oNode.nodeTypedValue = Data
-    BytesToBase64 = oNode.Text
-    On Error GoTo 0
-    
-    Set oNode = Nothing
-    Set oXML = Nothing
+    ' 使用 cToolsStr.GetGUID 生成标准UUID
+    Dim ToolsStr As New cToolsStr
+    GenerateNonce = ToolsStr.GetGUID()
+    Set ToolsStr = Nothing
 End Function
 
 ' 获取验证码错误信息
 Private Function GetVerifyMessage(ByVal VerifyCode As String) As String
     Select Case VerifyCode
+        Case "100": GetVerifyMessage = "验证通过"
         Case "T001": GetVerifyMessage = "服务端校验通过"
         Case "T005": GetVerifyMessage = "测试模式，配置了验证通过"
         Case "F001": GetVerifyMessage = "疑似攻击请求，风险策略不通过"
@@ -510,7 +468,7 @@ Private Function GetVerifyMessage(ByVal VerifyCode As String) As String
         Case "F020": GetVerifyMessage = "V3架构：参数不匹配"
         Case "F023": GetVerifyMessage = "V2架构：初始化失败自动触发"
         Case "F024": GetVerifyMessage = "检测到自动化脚本操作"
-        Case Else: GetVerifyMessage = "未知错误码" & VerifyCode
+        Case Else: GetVerifyMessage = "未知错误码: " & VerifyCode
     End Select
 End Function
 
@@ -527,12 +485,14 @@ End Sub
 Private Sub Class_Initialize()
     ' 初始化默认值
     m_Region = ALIYUN_CAPTCHA_REGION_CN
-    m_Timeout = 30000  ' 30秒
+    m_Timeout = 30000                                                           ' 默认30秒超时
     m_EnableDebug = False
     Call UpdateEndpoint
+    
+    ' 初始化随机数种子
+    Randomize
 End Sub
 
 Private Sub Class_Terminate()
-    ' 清理资源（如果需要）
-    ' HttpClient在With块中使用，自动释放
+    ' 清理资源
 End Sub

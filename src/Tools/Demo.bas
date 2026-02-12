@@ -2,19 +2,30 @@ Attribute VB_Name = "Demo"
 
 Option Explicit
 
+
+Public Sub TestUrlEncode()
+    Dim ToolsHttp As New cToolsHttp
+    Debug.Print "UrlEncodeUtf8测试:"
+    Debug.Print "/  -> " & ToolsHttp.UrlEncodeUtf8("/")                         ' 应该是 %2F
+    Debug.Print "=  -> " & ToolsHttp.UrlEncodeUtf8("=")                         ' 应该是 %3D
+    Debug.Print "&  -> " & ToolsHttp.UrlEncodeUtf8("&")                         ' 应该是 %26
+    Debug.Print "abc -> " & ToolsHttp.UrlEncodeUtf8("abc")                      ' 应该是 abc
+End Sub
+
+
 Public Sub TestAliyunCapt()
     ' 阿里云验证码2.0服务端验证示例
     ' 注意：请替换为您的真实阿里云AccessKey
     ' 从阿里云控制台获取: https://ram.console.aliyun.com/manage/ak
-    dim ID as String, Secret as String
-    with new cIni
+    Dim ID As String, Secret As String
+    With New cIni
         .LoadFrom "D:\code\vi\vbmanlib\vbman\config\aliyun.ini"
-        with .Section("aliyun")
-            ID = .item("app_id")
-            Secret = .item("app_key")
-        end with
+        With .Section("aliyun")
+            ID = .Item("app_id")
+            Secret = .Item("app_key")
+        End With
     End With
-        
+    
     ' 使用链式调用配置并验证
     With New cAliyunCaptcha
         .AccessKeyId(ID) _
@@ -26,7 +37,7 @@ Public Sub TestAliyunCapt()
         ' 验证（从客户端获取的CaptchaVerifyParam）
         Dim Result As Boolean
         ' 注意：下面的fResult是从前端验证码组件获取的验证参数，每次验证都不同
-        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJkdEtPSmVKM09kIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS2JiYjhVcHNtclo0WUkxK2xpS3pJWVMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
+        Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJseUl2Q28xcDdiIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS05zZ1g1YkloTWZsZ3ROWDNZYWRiclMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
         Result = .VerifySync(fResult, "y3kvak9b")
         
         If Result = True Then

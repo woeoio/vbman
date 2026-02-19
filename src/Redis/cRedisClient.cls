@@ -1535,98 +1535,108 @@ Private Function ParseResp(ByVal Buffer As String) As Variant
     lPos = lPos + 1
     
     Select Case sType
-        Case "+"
-            ' 简单字符串
-            lCrLf = InStr(lPos, Buffer, vbCrLf)
-            ParseResp = Mid(Buffer, lPos, lCrLf - lPos)
+    Case "+"
+        ' 简单字符串
+        lCrLf = InStr(lPos, Buffer, vbCrLf)
+        ParseResp = Mid(Buffer, lPos, lCrLf - lPos)
         
-        Case "-"
-            ' 错误
-            lCrLf = InStr(lPos, Buffer, vbCrLf)
-            ERR.Raise vbObjectError, MODULE_NAME, Mid(Buffer, lPos, lCrLf - lPos)
+    Case "-"
+        ' 错误
+        lCrLf = InStr(lPos, Buffer, vbCrLf)
+        ERR.Raise vbObjectError, MODULE_NAME, Mid(Buffer, lPos, lCrLf - lPos)
         
-        Case ":"
-            ' 整数
-            lCrLf = InStr(lPos, Buffer, vbCrLf)
-            ParseResp = CLng(Mid(Buffer, lPos, lCrLf - lPos))
+    Case ":"
+        ' 整数
+        lCrLf = InStr(lPos, Buffer, vbCrLf)
+        ParseResp = CLng(Mid(Buffer, lPos, lCrLf - lPos))
         
-        Case "$"
-            ' 批量字符串
-            lCrLf = InStr(lPos, Buffer, vbCrLf)
-            Dim lLength As Long
-            lLength = Val(Mid(Buffer, lPos, lCrLf - lPos))
+    Case "$"
+        ' 批量字符串
+        lCrLf = InStr(lPos, Buffer, vbCrLf)
+        Dim lLength As Long
+        lLength = Val(Mid(Buffer, lPos, lCrLf - lPos))
+        
+        lPos = lCrLf + 2
+        If lLength = -1 Then
+            ParseResp = Null
+        Else
+            ' 注意：因为 ReceiveResponse/ReceiveElement 已经将 UTF-8 解码为 VB6 字符串
+            ' 所以这里需要使用下一个 \r\n 的位置来确定字符串的实际长度
+            Dim lActualCrLf As Long
+            lActualCrLf = InStr(lPos, Buffer, vbCrLf)
+            ParseResp = Mid(Buffer, lPos, lActualCrLf - lPos)
+            lPos = lActualCrLf + 2
+        End If
+        
+    Case "*"
+        ' 数组
+        lCrLf = InStr(lPos, Buffer, vbCrLf)
+        Dim lCount As Long
+        lCount = Val(Mid(Buffer, lPos, lCrLf - lPos))
+        
+        lPos = lCrLf + 2
+        
+        If lCount = -1 Then
+            ParseResp = Null
+        ElseIf lCount = 0 Then
+            ParseResp = Array()
+        Else
+            Dim vArray() As Variant
+            ReDim vArray(lCount - 1)
             
-            lPos = lCrLf + 2
-            If lLength = -1 Then
-                ParseResp = Null
-            Else
-                ParseResp = Mid(Buffer, lPos, lLength)
-                lPos = lPos + lLength + 2
-            End If
-        
-        Case "*"
-            ' 数组
-            lCrLf = InStr(lPos, Buffer, vbCrLf)
-            Dim lCount As Long
-            lCount = Val(Mid(Buffer, lPos, lCrLf - lPos))
-            
-            lPos = lCrLf + 2
-            
-            If lCount = -1 Then
-                ParseResp = Null
-            ElseIf lCount = 0 Then
-                ParseResp = Array()
-            Else
-                Dim vArray() As Variant
-                ReDim vArray(lCount - 1)
+            Dim i As Long
+            For i = 0 To lCount - 1
+                ' 读取下一个元素的类型
+                Dim sElemType As String
+                sElemType = Mid(Buffer, lPos, 1)
+                lPos = lPos + 1
                 
-                Dim i As Long
-                For i = 0 To lCount - 1
-                    ' 读取下一个元素的类型
-                    Dim sElemType As String
-                    sElemType = Mid(Buffer, lPos, 1)
-                    lPos = lPos + 1
+                Select Case sElemType
+                Case "+", "-", ":"
+                    ' 简单字符串、错误、整数
+                    Dim lElemCrLf As Long
+                    lElemCrLf = InStr(lPos, Buffer, vbCrLf)
+                    If sElemType = "+" Then
+                        vArray(i) = Mid(Buffer, lPos, lElemCrLf - lPos)
+                    ElseIf sElemType = "-" Then
+                        vArray(i) = "ERROR: " & Mid(Buffer, lPos, lElemCrLf - lPos)
+                    Else                                                        ' ":"
+                        vArray(i) = CLng(Mid(Buffer, lPos, lElemCrLf - lPos))
+                    End If
+                    lPos = lElemCrLf + 2
                     
-                    Select Case sElemType
-                        Case "+", "-", ":"
-                            ' 简单字符串、错误、整数
-                            Dim lElemCrLf As Long
-                            lElemCrLf = InStr(lPos, Buffer, vbCrLf)
-                            If sElemType = "+" Then
-                                vArray(i) = Mid(Buffer, lPos, lElemCrLf - lPos)
-                            ElseIf sElemType = "-" Then
-                                vArray(i) = "ERROR: " & Mid(Buffer, lPos, lElemCrLf - lPos)
-                            Else ' ":"
-                                vArray(i) = CLng(Mid(Buffer, lPos, lElemCrLf - lPos))
-                            End If
-                            lPos = lElemCrLf + 2
-                        
-                        Case "$"
-                            ' 批量字符串
-                            Dim lElemCrLf2 As Long
-                            lElemCrLf2 = InStr(lPos, Buffer, vbCrLf)
-                            Dim lElemLen As Long
-                            lElemLen = Val(Mid(Buffer, lPos, lElemCrLf2 - lPos))
-                            
-                            lPos = lElemCrLf2 + 2
-                            If lElemLen = -1 Then
-                                vArray(i) = Null
-                            Else
-                                vArray(i) = Mid(Buffer, lPos, lElemLen)
-                                lPos = lPos + lElemLen + 2
-                            End If
-                        
-                        Case "*"
-                            ' 嵌套数组（简化处理，暂不支持）
-                            vArray(i) = "NESTED_ARRAY"
-                    End Select
-                Next
-                
-                ParseResp = vArray
-            End If
+                Case "$"
+                    ' 批量字符串
+                    Dim lElemCrLf2 As Long
+                    lElemCrLf2 = InStr(lPos, Buffer, vbCrLf)
+                    Dim lElemLen As Long
+                    lElemLen = Val(Mid(Buffer, lPos, lElemCrLf2 - lPos))
+                    
+                    lPos = lElemCrLf2 + 2
+                    If lElemLen = -1 Then
+                        vArray(i) = Null
+                    Else
+                        ' 注意：因为 ReceiveElement 已经将 UTF-8 解码为 VB6 字符串
+                        ' 所以这里需要使用 Len() 函数来获取实际字符长度，而不是原始 UTF-8 字节长度
+                        ' 但是 RESP 协议中的 lElemLen 是 UTF-8 字节长度，不是字符长度
+                        ' 由于数据已经被解码，我们需要找到下一个 \r\n 的位置来确定字符串的实际长度
+                        '                        Dim lActualCrLf As Long
+                        lActualCrLf = InStr(lPos, Buffer, vbCrLf)
+                        vArray(i) = Mid(Buffer, lPos, lActualCrLf - lPos)
+                        lPos = lActualCrLf + 2
+                    End If
+                    
+                Case "*"
+                    ' 嵌套数组（简化处理，暂不支持）
+                    vArray(i) = "NESTED_ARRAY"
+                End Select
+            Next
+            
+            ParseResp = vArray
+        End If
         
-        Case Else
-            ParseResp = Buffer
+    Case Else
+        ParseResp = Buffer
     End Select
 End Function
 

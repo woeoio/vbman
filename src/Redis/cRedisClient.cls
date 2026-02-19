@@ -1101,11 +1101,9 @@ Private Function SendCommand(ByVal Command As Variant) As Variant
         ERR.Raise vbObjectError, MODULE_NAME, "Not connected to Redis server"
     End If
 
-    Dim sCmd As String
-    sCmd = BuildRedisCommand(Command)
-
+    ' 构建命令（现在直接返回 UTF-8 字节数组）
     Dim baCmd() As Byte
-    baCmd = ToolsUtf8.Encode(sCmd)
+    baCmd = BuildRedisCommand(Command)
 
     ' 使用同步发送
     If Not m_oSocket.SyncSendArray(baCmd, m_dTimeout * 1000) Then
@@ -1120,29 +1118,92 @@ Private Function SendCommand(ByVal Command As Variant) As Variant
     SendCommand = ParseResp(sResponse)
 End Function
 
-' 构建 Redis RESP 协议命令
-Private Function BuildRedisCommand(ByVal Command As Variant) As String
-    Dim vParts As Variant
-    Dim sCmd As String
-    Dim i As Long, j As Long
+' 构建 Redis RESP 协议命令（返回字节数组）
+Private Function BuildRedisCommand(ByVal Command As Variant) As Byte()
     Dim vFlatten() As Variant
+    Dim i As Long, j As Long
     Dim lCount As Long
+    Dim baPart() As Byte
+    Dim baResult() As Byte
+    Dim lOffset As Long
+    Dim sPart As String
+    Dim baHeader() As Byte
     
     ' 展平数组（处理 ParamArray 嵌套）
     vFlatten = FlattenArray(Command)
     lCount = UBound(vFlatten) + 1
     
-    ' 数组格式: *<number of elements>\r\n<elements>
-    sCmd = "*" & lCount & vbCrLf
+    ' 计算最终数组大小
+    Dim lTotalSize As Long
+    lTotalSize = 0
     
-    For i = 0 To lCount - 1
-        Dim sPart As String
-        sPart = CStr(vFlatten(i))
-        ' 批量字符串格式: $<length>\r\n<string>\r\n
-        sCmd = sCmd & "$" & Len(sPart) & vbCrLf & sPart & vbCrLf
+    ' 数组头部: *<count>\r\n
+    Dim sHeader As String
+    sHeader = "*" & lCount & vbCrLf
+    baHeader = ToolsUtf8.Encode(sHeader)
+    lTotalSize = UBound(baHeader) + 1
+    lOffset = 0
+    
+    ' 预分配结果数组
+    ReDim baResult(0 To 1023) As Byte ' 初始分配1KB
+    lOffset = 0
+    
+    ' 复制数组头
+    For i = 0 To UBound(baHeader)
+        If lOffset > UBound(baResult) Then
+            ReDim Preserve baResult(UBound(baResult) + 1024) As Byte
+        End If
+        baResult(lOffset) = baHeader(i)
+        lOffset = lOffset + 1
     Next
     
-    BuildRedisCommand = sCmd
+    ' 处理每个元素
+    For i = 0 To lCount - 1
+        sPart = CStr(vFlatten(i))
+        
+        ' 编码字符串为 UTF-8
+        baPart = ToolsUtf8.Encode(sPart)
+        
+        ' 构建批量字符串头部: $<length>\r\n
+        Dim sLength As String
+        sLength = "$" & (UBound(baPart) + 1) & vbCrLf
+        baHeader = ToolsUtf8.Encode(sLength)
+        
+        ' 复制长度头
+        For j = 0 To UBound(baHeader)
+            If lOffset > UBound(baResult) Then
+                ReDim Preserve baResult(UBound(baResult) + 1024) As Byte
+            End If
+            baResult(lOffset) = baHeader(j)
+            lOffset = lOffset + 1
+        Next
+        
+        ' 复制字符串内容
+        For j = 0 To UBound(baPart)
+            If lOffset > UBound(baResult) Then
+                ReDim Preserve baResult(UBound(baResult) + 1024) As Byte
+            End If
+            baResult(lOffset) = baPart(j)
+            lOffset = lOffset + 1
+        Next
+        
+        ' 复制 \r\n
+        baHeader = ToolsUtf8.Encode(vbCrLf)
+        For j = 0 To UBound(baHeader)
+            If lOffset > UBound(baResult) Then
+                ReDim Preserve baResult(UBound(baResult) + 1024) As Byte
+            End If
+            baResult(lOffset) = baHeader(j)
+            lOffset = lOffset + 1
+        Next
+    Next
+    
+    ' 调整到实际大小
+    If lOffset > 0 Then
+        ReDim Preserve baResult(lOffset - 1) As Byte
+    End If
+    
+    BuildRedisCommand = baResult
 End Function
 
 ' 展平数组（递归处理嵌套数组）

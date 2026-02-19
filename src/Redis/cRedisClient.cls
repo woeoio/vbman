@@ -1582,14 +1582,44 @@ Private Function ParseResp(ByVal Buffer As String) As Variant
                 
                 Dim i As Long
                 For i = 0 To lCount - 1
-                    vArray(i) = ParseResp(Mid(Buffer, lPos))
-                    ' 更新位置(简化处理,实际需要计算每个元素的长度)
-                    lPos = InStr(lPos, Buffer, vbCrLf) + 2
-                    If Mid(Buffer, lPos - 2, 1) = "$" Then
-                        Dim lLen As Long
-                        lLen = Val(Mid(Buffer, lPos))
-                        lPos = lPos + InStr(lPos, Buffer, vbCrLf) + 2 + lLen + 2
-                    End If
+                    ' 读取下一个元素的类型
+                    Dim sElemType As String
+                    sElemType = Mid(Buffer, lPos, 1)
+                    lPos = lPos + 1
+                    
+                    Select Case sElemType
+                        Case "+", "-", ":"
+                            ' 简单字符串、错误、整数
+                            Dim lElemCrLf As Long
+                            lElemCrLf = InStr(lPos, Buffer, vbCrLf)
+                            If sElemType = "+" Then
+                                vArray(i) = Mid(Buffer, lPos, lElemCrLf - lPos)
+                            ElseIf sElemType = "-" Then
+                                vArray(i) = "ERROR: " & Mid(Buffer, lPos, lElemCrLf - lPos)
+                            Else ' ":"
+                                vArray(i) = CLng(Mid(Buffer, lPos, lElemCrLf - lPos))
+                            End If
+                            lPos = lElemCrLf + 2
+                        
+                        Case "$"
+                            ' 批量字符串
+                            Dim lElemCrLf2 As Long
+                            lElemCrLf2 = InStr(lPos, Buffer, vbCrLf)
+                            Dim lElemLen As Long
+                            lElemLen = Val(Mid(Buffer, lPos, lElemCrLf2 - lPos))
+                            
+                            lPos = lElemCrLf2 + 2
+                            If lElemLen = -1 Then
+                                vArray(i) = Null
+                            Else
+                                vArray(i) = Mid(Buffer, lPos, lElemLen)
+                                lPos = lPos + lElemLen + 2
+                            End If
+                        
+                        Case "*"
+                            ' 嵌套数组（简化处理，暂不支持）
+                            vArray(i) = "NESTED_ARRAY"
+                    End Select
                 Next
                 
                 ParseResp = vArray

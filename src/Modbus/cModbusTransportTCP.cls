@@ -21,7 +21,7 @@ Attribute VB_Exposed = True
 '          - MBAP header handling
 '          - Multiple client management
 '
-' Author: Auto
+' Author: woeoio
 ' Date: 2026-01-16
 '
 '=========================================================================
@@ -198,7 +198,7 @@ ErrorHandler:
 End Sub
 
 ' Disconnect from server
-Public Sub Disconnect()
+Public Sub DisConnect()
     On Error Resume Next
 
     If Not m_Socket Is Nothing Then
@@ -605,7 +605,7 @@ Private Sub Class_Terminate()
     On Error Resume Next
 
     If m_Mode = MB_TCP_MODE_CLIENT Then
-        Disconnect
+        DisConnect
     Else
         StopListening
     End If

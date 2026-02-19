@@ -1529,6 +1529,8 @@ Private Function ParseResp(ByVal Buffer As String) As Variant
     Dim lCrLf As Long
     Dim sType As String
     Dim sLine As String
+
+    Dim lActualCrLf As Long
     
     lPos = 1
     sType = Mid(Buffer, lPos, 1)
@@ -1562,7 +1564,7 @@ Private Function ParseResp(ByVal Buffer As String) As Variant
         Else
             ' 注意：因为 ReceiveResponse/ReceiveElement 已经将 UTF-8 解码为 VB6 字符串
             ' 所以这里需要使用下一个 \r\n 的位置来确定字符串的实际长度
-            Dim lActualCrLf As Long
+            
             lActualCrLf = InStr(lPos, Buffer, vbCrLf)
             ParseResp = Mid(Buffer, lPos, lActualCrLf - lPos)
             lPos = lActualCrLf + 2

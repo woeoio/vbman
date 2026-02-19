@@ -1124,25 +1124,63 @@ End Function
 Private Function BuildRedisCommand(ByVal Command As Variant) As String
     Dim vParts As Variant
     Dim sCmd As String
-    Dim i As Long
+    Dim i As Long, j As Long
+    Dim vFlatten() As Variant
+    Dim lCount As Long
     
-    If IsArray(Command) Then
-        vParts = Command
-    Else
-        vParts = Array(Command)
-    End If
+    ' 展平数组（处理 ParamArray 嵌套）
+    vFlatten = FlattenArray(Command)
+    lCount = UBound(vFlatten) + 1
     
     ' 数组格式: *<number of elements>\r\n<elements>
-    sCmd = "*" & UBound(vParts) + 1 & vbCrLf
+    sCmd = "*" & lCount & vbCrLf
     
-    For i = LBound(vParts) To UBound(vParts)
+    For i = 0 To lCount - 1
         Dim sPart As String
-        sPart = CStr(vParts(i))
+        sPart = CStr(vFlatten(i))
         ' 批量字符串格式: $<length>\r\n<string>\r\n
         sCmd = sCmd & "$" & Len(sPart) & vbCrLf & sPart & vbCrLf
     Next
     
     BuildRedisCommand = sCmd
+End Function
+
+' 展平数组（递归处理嵌套数组）
+Private Function FlattenArray(ByVal vInput As Variant) As Variant()
+    Dim vResult() As Variant
+    Dim i As Long, j As Long
+    Dim lIndex As Long
+    Dim vTemp() As Variant
+    
+    lIndex = 0
+    ReDim vResult(0) As Variant
+    
+    If IsArray(vInput) Then
+        For i = LBound(vInput) To UBound(vInput)
+            If IsArray(vInput(i)) Then
+                ' 递归展平嵌套数组
+                vTemp = FlattenArray(vInput(i))
+                For j = LBound(vTemp) To UBound(vTemp)
+                    ReDim Preserve vResult(lIndex) As Variant
+                    vResult(lIndex) = vTemp(j)
+                    lIndex = lIndex + 1
+                Next
+            Else
+                ReDim Preserve vResult(lIndex) As Variant
+                vResult(lIndex) = vInput(i)
+                lIndex = lIndex + 1
+            End If
+        Next
+    Else
+        vResult(0) = vInput
+    End If
+    
+    ' 调整数组大小
+    If lIndex > 0 Then
+        ReDim Preserve vResult(lIndex - 1) As Variant
+    End If
+    
+    FlattenArray = vResult
 End Function
 
 ' 接收响应

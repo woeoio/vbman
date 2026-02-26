@@ -497,7 +497,7 @@ Public Function GetTableFields(ByVal TableName As String) As Collection
     Dim rsTemp As New ADODB.Recordset
     rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
     Do Until rsTemp.EOF
-        GetTableFields.Add rsTemp(0)
+        GetTableFields.Add rsTemp(0).Value
         rsTemp.MoveNext
     Loop
     rsTemp.Close
@@ -588,7 +588,7 @@ Public Function GetDatabases() As Collection
     Dim rsTemp As New ADODB.Recordset
     rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
     Do Until rsTemp.EOF
-        GetDatabases.Add rsTemp(0)
+        GetDatabases.Add rsTemp(0).Value
         rsTemp.MoveNext
     Loop
     rsTemp.Close
@@ -631,7 +631,7 @@ Public Function GetTables(Optional ByVal DatabaseName As String = "") As Collect
     Dim rsTemp As New ADODB.Recordset
     rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
     Do Until rsTemp.EOF
-        GetTables.Add rsTemp(0)
+        GetTables.Add rsTemp(0).Value
         rsTemp.MoveNext
     Loop
     rsTemp.Close

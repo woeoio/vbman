@@ -27,8 +27,8 @@ Public LastErrDescription As String
 'Save rs in class inst.
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
-Public Rows As New Collection
-Public Row As New Scripting.Dictionary
+Public Rows As cCollection
+Public Row As Scripting.Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection
 Attribute Conn.VB_VarHelpID = -1
@@ -42,6 +42,7 @@ Private pvRawSqlString As String
 Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
+Private IsCloneInstance As Boolean  '标记是否为连接池克隆实例
 
 Dim IsAsync As Boolean
 Dim Cmd As ADODB.Command
@@ -64,8 +65,12 @@ Public Function ConnInst(ByVal InstName As String, Optional ByVal IsCloneMasterC
         Connections.Add InstName, New cDataBase
         Set ConnInst = Connections(InstName)
         If IsCloneMasterConnection = True Then
-            ConnInst.Conn = Me.Conn
-            ConnInst.Connect DatabaseType
+            '直接使用主连接对象，不需要重新连接
+            Set ConnInst.Conn = Me.Conn
+            ConnInst.IsConnect = Me.IsConnect
+            ConnInst.DatabaseType = Me.DatabaseType
+            '标记为克隆实例，断开时不关闭共享连接
+            ConnInst.IsCloneInstance = True
         End If
     Else
         Set ConnInst = Connections(InstName)
@@ -203,24 +208,35 @@ End Function
 '断开与数据库的连接
 Public Function DisConnect() As Boolean
     On Error GoTo eee
-    
+
     '如果连接标记为假，标明已经断开连接，则直接返回
     If IsConnect = False Then
         Exit Function
     End If
     '如果正在事务中，先回滚
     If IsTrans Then Call TransRollback
+
+    '如果是克隆实例，只清空本地引用，不关闭共享连接
+    If IsCloneInstance Then
+        If Rs.State <> adStateClosed Then Rs.Close
+        Set Rs = Nothing
+        Set Conn = Nothing
+        IsConnect = False
+        DisConnect = True
+        Exit Function
+    End If
+
     '关闭连接
     Conn.Close
     If Rs.State <> adStateClosed Then Rs.Close
     '释放conn
     Set Conn = Nothing
     Set Rs = Nothing
-    
+
     '设置连接标记，表示已经断开与数据库的连接
     IsConnect = False
     DisConnect = True
-    
+
     Exit Function
 eee:
     LastErr = "Disconnect Err[" & ERR.Number & "]" & ERR.Description
@@ -243,7 +259,27 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
     Cmd.CommandType = adCmdText
     
     Dim P As ADODB.Parameter
-    Set P = Cmd.CreateParameter(ParamName, ParamType, adParamInput, , ParamValue)
+    Dim lSize As Long
+    '根据参数类型设置大小
+    Select Case ParamType
+    Case adVarChar, adVarWChar, adChar, adWChar
+        lSize = 255
+    Case adInteger, adSmallInt, adTinyInt
+        lSize = 4
+    Case adBigInt
+        lSize = 8
+    Case adDouble, adSingle, adCurrency
+        lSize = 8
+    Case adDate, adDBTimeStamp
+        lSize = 8
+    Case adBoolean
+        lSize = 1
+    Case Else
+        lSize = Len(CStr(ParamValue))
+        If lSize = 0 Then lSize = 255
+    End Select
+    
+    Set P = Cmd.CreateParameter(ParamName, ParamType, adParamInput, lSize, ParamValue)
     Cmd.Parameters.Append P
 End Function
 
@@ -317,8 +353,14 @@ Public Function Exec(Optional RecordsAffected, Optional Options As Long = -1) As
         IsAsync = False
     End If
     
-    '设置要执行的命令文本
-    Set Rs = Conn.Execute(pvRawSqlString, RecordsAffected, Options)
+    '设置要执行的命令文本，使用 adExecuteNoRecords 标志避免创建记录集
+    Dim executeOptions As Long
+    executeOptions = Options Or adExecuteNoRecords
+    
+    Dim lRecordsAffected As Long
+    Conn.Execute pvRawSqlString, lRecordsAffected, executeOptions
+    If Not IsMissing(RecordsAffected) Then RecordsAffected = lRecordsAffected
+    
     '返回记录集d对象
     Exec = True
     Exit Function
@@ -367,7 +409,7 @@ Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     End If
     
     '打开记录集
-    Rs.Open SqlString, , CurType, LockType, Options
+    Rs.Open SqlString, Conn, CurType, LockType, Options
     Query = True
     Exit Function
 eee:

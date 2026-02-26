@@ -117,10 +117,10 @@ eee:
     LastErrDescription = ERR.Description
 End Function
 
-Public Function Page(Optional num As Long = 1, Optional Limit As Long = 10) As cDataBase
+Public Function Page(Optional Num As Long = 1, Optional Limit As Long = 10) As cDataBase
     Set Page = Me
     IsPage = True
-    pvPageNum = num
+    pvPageNum = Num
     pvPageLimit = Limit
     If pvPageNum < 1 Then pvPageNum = 1
     If pvPageLimit < 1 Then pvPageLimit = 10
@@ -131,7 +131,7 @@ Public Function Connect( _
     ByVal DbType As enumDbType, _
     Optional ByVal DbAddress As String = "127.0.0.1,1433", _
     Optional ByVal username As String = "sa", _
-    Optional ByVal password As String = "Sa123456", _
+    Optional ByVal Password As String = "Sa123456", _
     Optional ByVal DefaultDataBase As String = "master") As Boolean
     
     On Error GoTo eee
@@ -153,7 +153,7 @@ Public Function Connect( _
             DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Text Driver (*.txt; *.csv)};DefaultDir=" & DbAddress
         Case MsSql
-            Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & username & ";pwd=" & password & ";Database=" & DefaultDataBase & ";"
+            Conn.ConnectionString = "Driver={SQL Server};Server=" & DbAddress & ";Uid=" & username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
         Case Mysql
             Dim Svr: Svr = Split(DbAddress, ",")
             Dim Address$: Address = Svr(0)
@@ -164,7 +164,7 @@ Public Function Connect( _
             If InStr(DbAddress, ",") > 0 Then
                 DbAddress = Replace(DbAddress, ",", ":")
             End If
-            Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Uid=" & username & ";pwd=" & password & ";Database=" & DefaultDataBase & ";"
+            Conn.ConnectionString = "Driver={MySQL ODBC 5.1 Driver};Server=" & DbAddress & ";Uid=" & username & ";pwd=" & Password & ";Database=" & DefaultDataBase & ";"
         End Select
     End If
     '打开到数据库的连接
@@ -201,7 +201,7 @@ eee:
 End Function
 
 '断开与数据库的连接
-Public Function Disconnect() As Boolean
+Public Function DisConnect() As Boolean
     On Error GoTo eee
     
     '如果连接标记为假，标明已经断开连接，则直接返回
@@ -219,7 +219,7 @@ Public Function Disconnect() As Boolean
     
     '设置连接标记，表示已经断开与数据库的连接
     IsConnect = False
-    Disconnect = True
+    DisConnect = True
     
     Exit Function
 eee:
@@ -242,9 +242,9 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
     Cmd.CommandText = pvRawSqlString
     Cmd.CommandType = adCmdText
     
-    Dim p As ADODB.Parameter
-    Set p = Cmd.CreateParameter(ParamName, ParamType, adParamInput, , ParamValue)
-    Cmd.Parameters.Append p
+    Dim P As ADODB.Parameter
+    Set P = Cmd.CreateParameter(ParamName, ParamType, adParamInput, , ParamValue)
+    Cmd.Parameters.Append P
 End Function
 
 '执行参数化查询
@@ -381,7 +381,7 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Call Disconnect
+    Call DisConnect
 End Sub
 
 '获取最后插入的ID（自增主键）
@@ -504,6 +504,7 @@ Public Function GetTableFields(ByVal TableName As String) As Collection
     Set rsTemp = Nothing
     Exit Function
 eee:
+    Set GetTableFields = Nothing
     LastErr = "GetTableFields Err[" & ERR.Number & "]" & ERR.Description
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
@@ -594,6 +595,7 @@ Public Function GetDatabases() As Collection
     Set rsTemp = Nothing
     Exit Function
 eee:
+    Set GetDatabases = Nothing
     LastErr = "GetDatabases Err[" & ERR.Number & "]" & ERR.Description
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
@@ -636,14 +638,15 @@ Public Function GetTables(Optional ByVal DatabaseName As String = "") As Collect
     Set rsTemp = Nothing
     Exit Function
 eee:
+    Set GetTables = Nothing
     LastErr = "GetTables Err[" & ERR.Number & "]" & ERR.Description
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
 End Function
 
 '转义SQL字符串（防止SQL注入）
-Public Function Escape(ByVal Str As String) As String
-    Escape = Replace(Str, "'", "''")
+Public Function Escape(ByVal str As String) As String
+    Escape = Replace(str, "'", "''")
 End Function
 
 '检查连接状态并尝试重连

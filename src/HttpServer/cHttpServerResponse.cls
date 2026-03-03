@@ -64,9 +64,9 @@ End Sub
 '返回 json
 Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As String, Optional Count As Long, Optional Whitespace As Variant)
     '判断是否 Recordset 对象，是就先转换为集合
-    If TypeOf Data Is ADODB.Recordset Then
-        Set Data = ToolsList.RsToCollection(Data)
-    End If
+    '    If TypeOf Data Is ADODB.Recordset Then
+    '        Set Data = ToolsList.RsToCollection(Data)
+    '    End If
     If Code = -1 Then
         Call SendBodyText(JsonInst.Encode(Data, Whitespace), "application/json")
         Exit Sub
@@ -134,7 +134,7 @@ End Sub
 '    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
 'End Sub
 Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
-    Dim d() As Byte
+    Dim D() As Byte
     If Data = "" Then
         Header("Content-Type") = "text/plain; charset=" & CharSet
         Header("Content-Length") = 0
@@ -143,11 +143,11 @@ Private Sub SendBodyText(Data As String, DataType As String, Optional Status As 
         Exit Sub
     End If
     If CodePage = 65001 Then
-        d = ToolsUtf8.Encode(Data)
+        D = ToolsUtf8.Encode(Data)
     Else
-        d = StrConv(Data, vbFromUnicode)
+        D = StrConv(Data, vbFromUnicode)
     End If
-    Call SendBodyByte(d, DataType, Status, StatusText)
+    Call SendBodyByte(D, DataType, Status, StatusText)
 End Sub
 Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
     Header("Content-Type") = DataType & "; charset=" & CharSet

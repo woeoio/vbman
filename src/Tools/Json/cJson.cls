@@ -128,9 +128,9 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     End If
     If IsMissing(Obj) = True Then GoTo ret
     If IsObject(Obj) = False Then RootText = Obj: GoTo ret
-    '    If TypeOf Obj Is ADODB.Recordset Then
-    '        Set Obj = ToolsList.RsToCollection(Obj)
-    '    End If
+    If TypeOf Obj Is ADODB.Recordset Then
+        Set Obj = ToolsList.RsToCollection(Obj)
+    End If
     If TypeOf Obj Is cJson Then
         Set Obj = Obj.Root
     End If

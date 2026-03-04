@@ -95,10 +95,19 @@ End Function
 Public Property Get Item(ByVal KeyOrIndex As Variant) As Variant
 Attribute Item.VB_UserMemId = 0
     On Error Resume Next
-    If IsNumeric(KeyOrIndex) Then
-        Item = m_col.Item(CInt(KeyOrIndex))
+    
+    '    Dim v As Variant
+    '    If IsNumeric(KeyOrIndex) Then
+    '        v = m_col.Item(CInt(KeyOrIndex))
+    '    Else
+    '        v = m_col.Item(CStr(KeyOrIndex))
+    '    End If
+    
+    ' 检查是否是对象，如果是则使用 Set 返回对象引用
+    If IsObject(m_col(KeyOrIndex)) = True Then
+        Set Item = m_col(KeyOrIndex)
     Else
-        Item = m_col.Item(CStr(KeyOrIndex))
+        Item = m_col(KeyOrIndex)
     End If
 End Property
 

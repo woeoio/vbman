@@ -26,7 +26,7 @@ Private Const ADMIN_DB_DATABASE As String = ""                                  
 ' 主测试入口
 '===============================================================
 Public Sub RunAllTests()
-    On Error GoTo ErrHandler
+'    On Error GoTo ErrHandler
     
     Dim StartTime As Double
     StartTime = Timer
@@ -44,8 +44,8 @@ Public Sub RunAllTests()
     Call Test_ConnectDisconnect
     Call Test_CreateTestTable
     Call Test_InsertData
-    '    Call Test_QueryData
-    '    Call Test_UpdateData
+    Call Test_QueryData
+    Call Test_UpdateData
     Call Test_DeleteData
     Call Test_Transaction
     Call Test_ParameterizedQuery
@@ -573,7 +573,7 @@ End Sub
 Private Sub Test_Pagination()
     Debug.Print ">>> 测试9: 分页查询"
     
-    On Error GoTo ErrHandler
+    '    On Error GoTo ErrHandler
     
     '获取总记录数
     Dim lTotalCount As Long
@@ -602,6 +602,11 @@ Private Sub Test_Pagination()
                 Debug.Print "    ID: " & TestDB.Rs("id") & ", 用户名: " & TestDB.Rs("username")
                 TestDB.Rs.MoveNext
             Loop
+        End If
+        
+        '关闭记录集以释放资源
+        If TestDB.Rs.State <> adStateClosed Then
+            TestDB.Rs.Close
         End If
     Else
         Debug.Print "  [FAIL] 第1页查询失败"

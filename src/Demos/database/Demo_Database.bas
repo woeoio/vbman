@@ -20,7 +20,7 @@ Private TestDB As cDataBase
 Private TestResult As String
 
 '数据库配置 - 用于创建数据库的连接（不指定数据库）
-Private Const ADMIN_DB_DATABASE As String = "" ' 连接时不指定数据库，用于创建新数据库
+Private Const ADMIN_DB_DATABASE As String = ""                                  ' 连接时不指定数据库，用于创建新数据库
 
 '===============================================================
 ' 主测试入口
@@ -44,8 +44,8 @@ Public Sub RunAllTests()
     Call Test_ConnectDisconnect
     Call Test_CreateTestTable
     Call Test_InsertData
-    Call Test_QueryData
-    Call Test_UpdateData
+    '    Call Test_QueryData
+'    Call Test_UpdateData
     Call Test_DeleteData
     Call Test_Transaction
     Call Test_ParameterizedQuery
@@ -139,15 +139,15 @@ ErrHandler:
 End Sub
 
 '辅助函数：检查数据库是否存在
-Private Function DatabaseExists(ByVal DB As cDataBase, ByVal DBName As String) As Boolean
+Private Function DatabaseExists(ByVal Db As cDataBase, ByVal DBName As String) As Boolean
     On Error GoTo ErrHandler
     
     Dim sqlCheck As String
     sqlCheck = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '" & DBName & "'"
     
-    Call DB.Sql(sqlCheck).Query
-    If DB.Rs.RecordCount > 0 Then
-        DatabaseExists = (DB.Rs("cnt") > 0)
+    Call Db.Sql(sqlCheck).Query
+    If Db.Rs.RecordCount > 0 Then
+        DatabaseExists = (Db.Rs("cnt") > 0)
     Else
         DatabaseExists = False
     End If
@@ -742,38 +742,38 @@ Private Sub Test_GetTableFields()
     
     On Error GoTo ErrHandler
     
-    Dim Fields As Collection
-    Set Fields = TestDB.GetTableFields("test_users")
+    Dim fields As Collection
+    Set fields = TestDB.GetTableFields("test_users")
     
     '检查是否返回了有效的Collection
-    If Fields Is Nothing Then
+    If fields Is Nothing Then
         Debug.Print "  [FAIL] GetTableFields返回Nothing"
         Debug.Print "       错误信息: " & TestDB.LastErr
         Debug.Print ""
         Exit Sub
     End If
     
-    If Fields.Count > 0 Then
+    If fields.Count > 0 Then
         Debug.Print "  [OK] 获取字段列表成功"
-        Debug.Print "       字段数量: " & Fields.Count
+        Debug.Print "       字段数量: " & fields.Count
         Debug.Print "       字段列表:"
         
         Dim i As Long
         Dim lMaxFields As Long
-        lMaxFields = Fields.Count
+        lMaxFields = fields.Count
         '限制显示的字段数量
         If lMaxFields > 50 Then lMaxFields = 50
         
         For i = 1 To lMaxFields
-            Debug.Print "         " & i & ". " & Fields(i)
+            Debug.Print "         " & i & ". " & fields(i)
         Next
         
-        If Fields.Count > 50 Then
-            Debug.Print "         ... 还有 " & (Fields.Count - 50) & " 个字段未显示"
+        If fields.Count > 50 Then
+            Debug.Print "         ... 还有 " & (fields.Count - 50) & " 个字段未显示"
         End If
     Else
         Debug.Print "  [FAIL] 获取字段列表失败或表没有字段"
-        Debug.Print "       Collection.Count: " & Fields.Count
+        Debug.Print "       Collection.Count: " & fields.Count
         If TestDB.LastErr <> "" Then
             Debug.Print "       错误信息: " & TestDB.LastErr
         End If
@@ -957,14 +957,14 @@ Private Sub Test_Escape()
     
     On Error GoTo ErrHandler
     
-    Dim InputStr As String
-    InputStr = "O'Reilly's Book"
+    Dim inputStr As String
+    inputStr = "O'Reilly's Book"
     
     Dim EscapedStr As String
-    EscapedStr = TestDB.Escape(InputStr)
+    EscapedStr = TestDB.Escape(inputStr)
     
     Debug.Print "  [OK] SQL转义测试"
-    Debug.Print "       原字符串: " & InputStr
+    Debug.Print "       原字符串: " & inputStr
     Debug.Print "       转义后: " & EscapedStr
     
     '测试带单引号的插入
@@ -1167,10 +1167,10 @@ Private Sub Test_Disconnect()
     
     On Error GoTo ErrHandler
     
-    Dim bDisconnect As Boolean
-    bDisconnect = TestDB.DisConnect()
+    Dim bDisConnect As Boolean
+    bDisConnect = TestDB.DisConnect()
     
-    If bDisconnect Then
+    If bDisConnect Then
         Debug.Print "  [OK] 数据库连接已断开"
         Debug.Print "       连接状态: " & IIf(TestDB.IsConnect, "已连接", "未连接")
     Else

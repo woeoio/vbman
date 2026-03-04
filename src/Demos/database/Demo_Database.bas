@@ -45,7 +45,7 @@ Public Sub RunAllTests()
     Call Test_CreateTestTable
     Call Test_InsertData
     '    Call Test_QueryData
-'    Call Test_UpdateData
+    '    Call Test_UpdateData
     Call Test_DeleteData
     Call Test_Transaction
     Call Test_ParameterizedQuery
@@ -1187,77 +1187,77 @@ ErrHandler:
     Debug.Print ""
 End Sub
 
-'===============================================================
-' 异步执行完成事件处理
-'===============================================================
-Private Sub TestDB_AsyncExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
-    Debug.Print "  [AsyncEvent] 异步执行完成"
-    
-    If adStatus = adErrorsOccurred Then
-        Debug.Print "       发生错误: " & pError.Description
-    Else
-        Debug.Print "       影响行数: " & RecordsAffected
-    End If
-End Sub
+''===============================================================
+'' 异步执行完成事件处理
+''===============================================================
+'Private Sub TestDB_AsyncExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
+'    Debug.Print "  [AsyncEvent] 异步执行完成"
+'
+'    If adStatus = adErrorsOccurred Then
+'        Debug.Print "       发生错误: " & pError.Description
+'    Else
+'        Debug.Print "       影响行数: " & RecordsAffected
+'    End If
+'End Sub
 
 '===============================================================
 ' 单独测试函数
 '===============================================================
 Public Sub TestSpecificCase(ByVal TestCase As String)
     Select Case LCase(TestCase)
-        Case "database"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_Disconnect
-            
-        Case "connect"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_Disconnect
-            
-        Case "insert"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_CreateTestTable
-            Call Test_InsertData
-            Call Test_Cleanup
-            Call Test_Disconnect
-            
-        Case "query"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_CreateTestTable
-            Call Test_InsertData
-            Call Test_QueryData
-            Call Test_Cleanup
-            Call Test_Disconnect
-            
-        Case "transaction"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_CreateTestTable
-            Call Test_Transaction
-            Call Test_Cleanup
-            Call Test_Disconnect
-            
-        Case "pagination"
-            Set TestDB = New cDataBase
-            Call Test_CreateDatabase
-            Call Test_ConnectDisconnect
-            Call Test_CreateTestTable
-            Call Test_InsertData
-            Call Test_Pagination
-            Call Test_Cleanup
-            Call Test_Disconnect
-            
-        Case Else
-            Debug.Print "未知测试用例: " & TestCase
-            Debug.Print "可用测试用例: database, connect, insert, query, transaction, pagination"
+    Case "database"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_Disconnect
+        
+    Case "connect"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_Disconnect
+        
+    Case "insert"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_CreateTestTable
+        Call Test_InsertData
+        Call Test_Cleanup
+        Call Test_Disconnect
+        
+    Case "query"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_CreateTestTable
+        Call Test_InsertData
+        Call Test_QueryData
+        Call Test_Cleanup
+        Call Test_Disconnect
+        
+    Case "transaction"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_CreateTestTable
+        Call Test_Transaction
+        Call Test_Cleanup
+        Call Test_Disconnect
+        
+    Case "pagination"
+        Set TestDB = New cDataBase
+        Call Test_CreateDatabase
+        Call Test_ConnectDisconnect
+        Call Test_CreateTestTable
+        Call Test_InsertData
+        Call Test_Pagination
+        Call Test_Cleanup
+        Call Test_Disconnect
+        
+    Case Else
+        Debug.Print "未知测试用例: " & TestCase
+        Debug.Print "可用测试用例: database, connect, insert, query, transaction, pagination"
     End Select
 End Sub
 

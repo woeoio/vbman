@@ -41,7 +41,7 @@ Public Sub Add(ByVal Item As Variant, Optional ByVal Key As String = "")
         m_Keys.Add Key
     Else
         m_col.Add Item
-        m_Keys.Add ""  ' 空字符串表示无 Key
+        m_Keys.Add ""                                                           ' 空字符串表示无 Key
     End If
 End Sub
 
@@ -80,7 +80,6 @@ End Function
 
 ' 检查键是否存在
 Public Function Exists(ByVal Key As String) As Boolean
-Attribute Exists.VB_UserMemId = 0
     On Error GoTo ErrorHandler
     
     Dim v As Variant
@@ -94,6 +93,7 @@ End Function
 
 ' 获取或设置元素（Property 实现，兼容 Dictionary 用法）
 Public Property Get Item(ByVal KeyOrIndex As Variant) As Variant
+Attribute Item.VB_UserMemId = 0
     On Error Resume Next
     If IsNumeric(KeyOrIndex) Then
         Item = m_col.Item(CInt(KeyOrIndex))
@@ -221,16 +221,16 @@ End Function
 Public Function Keys() As String()
     Dim KeyArray() As String
     Dim i As Long
-    Dim n As Long
+    Dim N As Long
     
-    n = m_Keys.Count
-    If n = 0 Then
+    N = m_Keys.Count
+    If N = 0 Then
         Keys = Array()
         Exit Function
     End If
     
-    ReDim KeyArray(0 To n - 1)
-    For i = 1 To n
+    ReDim KeyArray(0 To N - 1)
+    For i = 1 To N
         KeyArray(i - 1) = m_Keys.Item(i)
     Next i
     
@@ -242,16 +242,16 @@ End Function
 Public Function Items() As Variant()
     Dim ItemArray() As Variant
     Dim i As Long
-    Dim n As Long
+    Dim N As Long
     
-    n = m_col.Count
-    If n = 0 Then
+    N = m_col.Count
+    If N = 0 Then
         Items = Array()
         Exit Function
     End If
     
-    ReDim ItemArray(0 To n - 1)
-    For i = 1 To n
+    ReDim ItemArray(0 To N - 1)
+    For i = 1 To N
         ItemArray(i - 1) = m_col.Item(i)
     Next i
     

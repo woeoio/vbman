@@ -42,7 +42,7 @@ Private pvRawSqlString As String
 Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
-Private IsCloneInstance As Boolean                                              '标记是否为连接池克隆实例
+Public IsCloneInstance As Boolean                                               '标记是否为连接池克隆实例
 
 Dim IsAsync As Boolean
 Dim Cmd As ADODB.Command

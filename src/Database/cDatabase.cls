@@ -42,7 +42,7 @@ Private pvRawSqlString As String
 Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
-Private IsCloneInstance As Boolean  '标记是否为连接池克隆实例
+Private IsCloneInstance As Boolean                                              '标记是否为连接池克隆实例
 
 Dim IsAsync As Boolean
 Dim Cmd As ADODB.Command
@@ -563,18 +563,18 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
     
     Dim i As Long
     Dim Row As Scripting.Dictionary
-    Dim Fields As String, Values As String
+    Dim fields As String, Values As String
     Dim SqlString As String
     
     For i = 1 To Data.Count
         Set Row = Data(i)
-        Fields = ""
+        fields = ""
         Values = ""
         
         Dim Key As Variant
         For Each Key In Row.Keys
-            If Fields <> "" Then Fields = Fields & ", ": Values = Values & ", "
-            Fields = Fields & Key
+            If fields <> "" Then fields = fields & ", ": Values = Values & ", "
+            fields = fields & Key
             '处理值，转义单引号
             Dim Val As String
             Val = CStr(Row(Key))
@@ -582,7 +582,7 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
             Values = Values & "'" & Val & "'"
         Next
         
-        SqlString = "INSERT INTO " & TableName & " (" & Fields & ") VALUES (" & Values & ")"
+        SqlString = "INSERT INTO " & TableName & " (" & fields & ") VALUES (" & Values & ")"
         Call Conn.Execute(SqlString)
     Next
     

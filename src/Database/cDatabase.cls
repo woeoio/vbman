@@ -43,6 +43,7 @@ Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
 Public IsCloneInstance As Boolean                                               '标记是否为连接池克隆实例
+'Public CustomConnectionString As String
 
 Dim IsAsync As Boolean
 Dim Cmd As ADODB.Command
@@ -52,6 +53,7 @@ Public Enum enumDbType
     Mysql = 2
     MsSql = 3
     Csv = 4
+    CUSTOM = 5
 End Enum
 Public DatabaseType As enumDbType
 
@@ -151,6 +153,8 @@ Public Function Connect( _
     '设置连接字符串ConnectionString属性
     If Conn.ConnectionString = "" Then
         Select Case DbType
+        Case CUSTOM
+            Conn.ConnectionString = DbAddress
         Case Access
             DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
             Conn.ConnectionString = "Driver={Microsoft Access Driver (*.mdb)};Dbq=" & DbAddress & ";"

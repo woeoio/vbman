@@ -124,20 +124,22 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     LastError = ""
     Dim TmpO As Variant
     If IsMissing(Obj) = True Then
-        If RootItems.Count > 0 Then Set TmpO = RootItems: GoTo start
-        If RootItem.Count > 0 Then Set TmpO = RootItem: GoTo start
+        If RootItems.Count > 0 Then Set TmpO = RootItems: GoTo Start
+        If RootItem.Count > 0 Then Set TmpO = RootItem: GoTo Start
         Exit Function
     Else
         If IsObject(Obj) = False Then RootText = Obj: GoTo ret
         Set TmpO = Obj
     End If
-start:
-    If TypeOf Obj Is ADODB.Recordset Then
-        Set TmpO = ToolsList.RsToCollection(Obj)
-    ElseIf TypeOf Obj Is cJson Then
-        Set TmpO = Obj.Root
-    ElseIf TypeOf Obj Is cCollection Then
-        Set TmpO = Obj.RawCollection
+Start:
+    If TypeOf TmpO Is ADODB.Recordset Then
+        Set TmpO = ToolsList.RsToCollection(TmpO)
+    End If
+    If TypeOf TmpO Is cJson Then
+        Set TmpO = TmpO.Root
+    End If
+    If TypeOf TmpO Is cCollection Then
+        Set TmpO = TmpO.RawCollection
     End If
     '
     If TmpO.Count = 0 Then GoTo ret
@@ -162,7 +164,7 @@ Public Function Decode(ByRef Text As String) As cJson
     On Error GoTo EH
     LastError = ""
     RootText = ToolsStr.TrimEx(Text)
-start:
+Start:
     If RootText = "" Then ERR.Raise 1, "", "No JSON data."
     If Left(RootText, 1) = "[" Then
         Set RootItems = ParseJson(RootText)
@@ -183,7 +185,7 @@ CheckJSONP:
         Dim LastChar As String: LastChar = Right(RootText, 1)
         If LastChar = ";" Then LastChar = ");"
         RootText = ToolsStr.SubStr(RootText, "(", LastChar, False, vbBinaryCompare, True)
-        GoTo start
+        GoTo Start
     End If
     Return
 CheckVar:
@@ -191,7 +193,7 @@ CheckVar:
     If LeftWord = "var" Then
         'Dim FirstPos As String: FirstPos = ToolsStr.HasStr("=", RootText)
         RootText = ToolsStr.SubStr(RootText, "=")
-        GoTo start
+        GoTo Start
     End If
     Return
 EH:

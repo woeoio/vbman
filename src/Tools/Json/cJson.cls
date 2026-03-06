@@ -122,23 +122,26 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     LastError = ""
-    dim TmpO As Variant
+    Dim TmpO As Variant
     If IsMissing(Obj) = True Then
-        If RootItems.Count > 0 Then Set TmpO = RootItems
-        If RootItem.Count > 0 Then Set TmpO = RootItem
+        If RootItems.Count > 0 Then Set TmpO = RootItems: GoTo start
+        If RootItem.Count > 0 Then Set TmpO = RootItem: GoTo start
+        Exit Function
+    Else
+        If IsObject(Obj) = False Then RootText = Obj: GoTo ret
+        Set TmpO = Obj
     End If
-    If IsMissing(TmpO) = True Then GoTo ret
-    If IsObject(Obj) = False Then RootText = Obj: GoTo ret
+start:
     If TypeOf Obj Is ADODB.Recordset Then
         Set TmpO = ToolsList.RsToCollection(Obj)
-    End If
-    If TypeOf Obj Is cJson Then
+    ElseIf TypeOf Obj Is cJson Then
         Set TmpO = Obj.Root
-    End If
-    If TypeOf Obj Is cCollection Then
+    ElseIf TypeOf Obj Is cCollection Then
         Set TmpO = Obj.RawCollection
     End If
+    '
     If TmpO.Count = 0 Then GoTo ret
+    '
     If IsEmpty(WhiteSpaceSet) = False Then
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
     End If
@@ -159,7 +162,7 @@ Public Function Decode(ByRef Text As String) As cJson
     On Error GoTo EH
     LastError = ""
     RootText = ToolsStr.TrimEx(Text)
-Start:
+start:
     If RootText = "" Then ERR.Raise 1, "", "No JSON data."
     If Left(RootText, 1) = "[" Then
         Set RootItems = ParseJson(RootText)
@@ -180,7 +183,7 @@ CheckJSONP:
         Dim LastChar As String: LastChar = Right(RootText, 1)
         If LastChar = ";" Then LastChar = ");"
         RootText = ToolsStr.SubStr(RootText, "(", LastChar, False, vbBinaryCompare, True)
-        GoTo Start
+        GoTo start
     End If
     Return
 CheckVar:
@@ -188,7 +191,7 @@ CheckVar:
     If LeftWord = "var" Then
         'Dim FirstPos As String: FirstPos = ToolsStr.HasStr("=", RootText)
         RootText = ToolsStr.SubStr(RootText, "=")
-        GoTo Start
+        GoTo start
     End If
     Return
 EH:

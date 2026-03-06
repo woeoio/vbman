@@ -50,20 +50,21 @@ End Function
 
 Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet As String = "UTF-8") As String
     With Inst
+        If .State <> adStateClosed Then .Close
         .Type = adTypeText
         .Open
         .CharSet = CharSet
         .LoadFromFile FileName
         LoadFileAsText = .ReadText()
         .position = 0
-        '        .Close
+        .Close
     End With
     ' 如果 UseLine 为 true，则将内容按行分割并存储到 LineDict
     If UseLine Then
         Set LineData = Txt.SplitLinesToCollection(LoadFileAsText)
         LineNumber = 1
     End If
-    Inst.Close
+    '    Inst.Close
 End Function
 Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String, Optional ByVal CharSet As String = "UTF-8") As Boolean
     Dim Dat As String, isInst As Boolean

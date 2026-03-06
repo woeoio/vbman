@@ -134,6 +134,9 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     If TypeOf Obj Is cJson Then
         Set Obj = Obj.Root
     End If
+    If TypeOf Obj Is cCollection Then
+        Set Obj = Obj.RawCollection
+    End If
     If Obj.Count = 0 Then GoTo ret
     If IsEmpty(WhiteSpaceSet) = False Then
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet

@@ -63,6 +63,7 @@ Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet 
         Set LineData = Txt.SplitLinesToCollection(LoadFileAsText)
         LineNumber = 1
     End If
+    Inst.Close
 End Function
 Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String, Optional ByVal CharSet As String = "UTF-8") As Boolean
     Dim Dat As String, isInst As Boolean

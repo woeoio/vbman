@@ -388,32 +388,16 @@ Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     If Rs.State <> adStateClosed Then Rs.Close
     
-    '处理分页
-    Dim SqlString As String
-    SqlString = pvRawSqlString
+    '打开记录集
+    Rs.Open pvRawSqlString, Conn, CurType, LockType, Options
+    
+    '处理分页（使用 ADO 原生分页属性，支持所有数据库类型）
     If IsPage Then
-        Select Case DatabaseType
-        Case MsSql
-            'SQL Server 2012+ 使用 OFFSET FETCH
-            If InStr(1, UCase(SqlString), "ORDER BY") = 0 Then
-                SqlString = SqlString & " ORDER BY (SELECT NULL)"
-            End If
-            SqlString = SqlString & " OFFSET " & pvPageOffset & " ROWS FETCH NEXT " & pvPageLimit & " ROWS ONLY"
-        Case Mysql
-            'MySQL 使用 LIMIT
-            SqlString = SqlString & " LIMIT " & pvPageLimit & " OFFSET " & pvPageOffset
-        Case Access
-            'Access 不支持标准分页，使用TOP和子查询
-            '这里简化处理，使用TOP
-            SqlString = "SELECT TOP " & (pvPageOffset + pvPageLimit) & " * FROM (" & SqlString & ") AS T"
-        Case Else
-            '其他数据库类型暂不支持分页
-        End Select
+        Rs.PageSize = pvPageLimit
+        Rs.AbsolutePage = pvPageNum
         IsPage = False
     End If
     
-    '打开记录集
-    Rs.Open SqlString, Conn, CurType, LockType, Options
     Query = True
     Exit Function
 eee:

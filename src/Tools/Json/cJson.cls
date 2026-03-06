@@ -122,26 +122,27 @@ Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, 
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     LastError = ""
+    dim TmpO As Variant
     If IsMissing(Obj) = True Then
-        If RootItems.Count > 0 Then Set Obj = RootItems
-        If RootItem.Count > 0 Then Set Obj = RootItem
+        If RootItems.Count > 0 Then Set TmpO = RootItems
+        If RootItem.Count > 0 Then Set TmpO = RootItem
     End If
-    If IsMissing(Obj) = True Then GoTo ret
+    If IsMissing(TmpO) = True Then GoTo ret
     If IsObject(Obj) = False Then RootText = Obj: GoTo ret
     If TypeOf Obj Is ADODB.Recordset Then
-        Set Obj = ToolsList.RsToCollection(Obj)
+        Set TmpO = ToolsList.RsToCollection(Obj)
     End If
     If TypeOf Obj Is cJson Then
-        Set Obj = Obj.Root
+        Set TmpO = Obj.Root
     End If
     If TypeOf Obj Is cCollection Then
-        Set Obj = Obj.RawCollection
+        Set TmpO = Obj.RawCollection
     End If
-    If Obj.Count = 0 Then GoTo ret
+    If TmpO.Count = 0 Then GoTo ret
     If IsEmpty(WhiteSpaceSet) = False Then
         If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
     End If
-    RootText = ConvertToJson(Obj, Whitespace)
+    RootText = ConvertToJson(TmpO, Whitespace)
 ret:
     If FromUnicode = True Then
         Encode = ToolsStr.UnicodeDecode(RootText)

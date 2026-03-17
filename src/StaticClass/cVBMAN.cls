@@ -27,6 +27,7 @@ Public QRcode As New cQRcode
 Public Collection As New cCollection
 Public Regedit As New cRegedit
 Public StartUp As New cStartUp
+Public Toast As New cToast
 
 'µÚÈý·½
 Public Baidu As New cBaidu

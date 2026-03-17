@@ -10,7 +10,8 @@ Option Explicit
 
 '数据库配置 - 请根据实际环境修改
 Private Const TEST_DB_TYPE As Long = enumDbType.Mysql                           '1:Access, 2:Mysql, 3:MsSql, 4:Csv
-Private Const TEST_DB_ADDRESS As String = "10.0.0.252,3306"
+Private Const TEST_DB_ADDRESS As String = "10.0.0.252,3306"                     '如果使用CUSTOM，这里参数2填写完整DSN，后面参数3+不用填写
+'Private Const TEST_DB_ADDRESS As String = "DRIVER=VBMAN Mysql ODBC Driver;MULTI_HOST=1;SERVER=10.0.0.252,3306;DATABASE=mysql;UID=root;PWD=root"
 Private Const TEST_DB_USERNAME As String = "root"
 Private Const TEST_DB_PASSWORD As String = "root"
 Private Const TEST_DB_DATABASE As String = "testdb"
@@ -26,7 +27,7 @@ Private Const ADMIN_DB_DATABASE As String = ""                                  
 ' 主测试入口
 '===============================================================
 Public Sub RunAllTests()
-'    On Error GoTo ErrHandler
+    '    On Error GoTo ErrHandler
     
     Dim StartTime As Double
     StartTime = Timer

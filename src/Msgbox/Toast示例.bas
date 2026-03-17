@@ -55,7 +55,7 @@ Public Sub Demo_StyleCustomization()
     ' 4. 带边框
     Toast().Text("带边框的提示"). _
         BackColor(RGB(50, 50, 50)). _
-        Border(RGB(255, 255, 255), 2). _
+        bOrder(RGB(255, 255, 255), 2). _
         Show
 End Sub
 
@@ -136,7 +136,7 @@ Public Sub Demo_ChainedCalls()
     Toast().Text("夜间模式提示"). _
         BackColor(RGB(30, 30, 30)). _
         ForeColor(RGB(200, 200, 200)). _
-        Border(RGB(80, 80, 80), 1). _
+        bOrder(RGB(80, 80, 80), 1). _
         BottomCenter(50). _
         Show
     
@@ -168,6 +168,55 @@ Public Sub Demo_MultipleToasts()
     ' 第三个
     Set t = Toast().Text("全部完成！").Style(ToastStyle_Success).TopRight
     t.Show
+End Sub
+
+Public Sub Demo_AsyncMultipleToasts()
+    ' ========== 异步显示多个 Toast（自动堆叠） ==========
+    ' 使用 cTimer 实现真正的异步，所有 Toast 同时显示
+    
+    ' 同时创建并显示多个Toast，它们会自动堆叠避免重叠
+    Toast().Text("第一条消息").Style(ToastStyle_Info).BottomCenter.Show
+    Toast().Text("第二条消息").Style(ToastStyle_Success).BottomLeft.Show
+    Toast().Text("第三条消息").Style(ToastStyle_Warning).TopCenter.Show
+    Toast().Text("第四条消息").Style(ToastStyle_Error).BottomCenter.Show
+    
+    ' 结果：四个Toast同时显示，从下到上依次堆叠
+    ' 每个Toast会在3秒后自动关闭（由 cTimer 触发）
+End Sub
+
+Public Sub Demo_MixedPositionsAsync()
+    ' ========== 不同位置的Toast独立堆叠（异步） ==========
+    
+    ' 不同位置的Toast独立显示和堆叠
+    Toast().Text("左下角1").Style(ToastStyle_Info).BottomLeft.Show
+    Toast().Text("底部居中1").Style(ToastStyle_Success).BottomCenter.Show
+    Toast().Text("右下角1").Style(ToastStyle_Warning).BottomRight.Show
+    
+    ' 同一位置会继续堆叠
+    Toast().Text("左下角2").Style(ToastStyle_Error).BottomLeft.Show
+    Toast().Text("底部居中2").Style(ToastStyle_Info).BottomCenter.Show
+    Toast().Text("右下角2").Style(ToastStyle_Success).BottomRight.Show
+    
+    ' 结果：三个位置各自独立堆叠，共显示6个Toast
+End Sub
+
+Public Sub Demo_SyncVsAsync()
+    ' ========== 同步 vs 异步对比 ==========
+    
+    Dim t As cToast
+    
+    ' 异步模式：立即返回，可以同时显示多个
+    Debug.Print "异步模式：同时显示3个Toast"
+    Toast().Text("异步1").TopLeft.Show
+    Toast().Text("异步2").TopCenter.Show
+    Toast().Text("异步3").TopRight.Show
+    Debug.Print "异步模式已返回，Toast正在显示"
+    
+    ' 同步模式：阻塞直到Toast关闭
+    ' Debug.Print "同步模式开始"
+    ' Set t = Toast().Text("同步显示3秒").Duration(3000)
+    ' t.ShowSync  ' 阻塞3秒
+    ' Debug.Print "同步模式结束"
 End Sub
 
 ' 辅助函数 - 延时

@@ -182,10 +182,16 @@ Public Enum ToastStyle
     ToastStyle_Info = 4
 End Enum
 
+'--------------------- 静态集合（用于管理多个Toast） ---------------------
+Private m_ToastCollection As Collection                                         ' 所有活动的Toast实例
+Private m_Token As Long                                                         ' GDI+ 令牌（共享）
+Private m_TokenRefCount As Long                                                 ' GDI+ 引用计数
+
 '--------------------- 成员变量 ---------------------
-Private m_Token As Long
 Private m_hwnd As Long
-Private m_TimerID As Long
+Private WithEvents m_Timer As cTimer                                            ' 使用 cTimer 实现异步关闭（WithEvents 捕获事件）
+Attribute m_Timer.VB_VarHelpID = -1
+Private m_InstanceID As String                                                  ' 实例唯一标识
 
 ' 位置和尺寸
 Private m_X As Long
@@ -195,6 +201,7 @@ Private m_Height As Long
 Private m_Position As ToastPosition
 Private m_Padding As Long
 Private m_CornerRadius As Long
+Private m_Margin As Long                                                        ' 多个Toast之间的间距
 
 ' 内容
 Private m_Text As String
@@ -216,7 +223,7 @@ Private m_FadeInTime As Long
 Private m_FadeOutTime As Long
 Private m_Opacity As Byte
 Private m_IsShowing As Boolean
-Private m_StartTime As Long
+Private m_AsyncMode As Boolean                                                  ' 是否异步模式
 
 ' 阴影
 Private m_ShadowEnabled As Boolean
@@ -231,12 +238,37 @@ Private m_IconSize As Long
 
 '--------------------- 初始化 ---------------------
 Private Sub Class_Initialize()
+    ' 初始化静态集合
+    If m_ToastCollection Is Nothing Then
+        Set m_ToastCollection = New Collection
+    End If
+    
+    ' 初始化GDI+（引用计数）
     InitGDIPlus
+    
+    ' 创建定时器
+    Set m_Timer = New cTimer
+    
+    ' 生成唯一实例ID
+    m_InstanceID = CStr(ObjPtr(Me)) & "_" & CStr(Timer * 1000)
+    
     ResetToDefaults
 End Sub
 
 Private Sub Class_Terminate()
     Hide
+    
+    ' 从集合中移除
+    On Error Resume Next
+    If Not m_ToastCollection Is Nothing Then
+        m_ToastCollection.Remove m_InstanceID
+    End If
+    On Error GoTo 0
+    
+    ' 释放定时器
+    Set m_Timer = Nothing
+    
+    ' 关闭GDI+（引用计数）
     ShutdownGDIPlus
 End Sub
 
@@ -248,6 +280,7 @@ Private Sub ResetToDefaults()
     m_Position = Toast_BottomCenter
     m_Padding = 20
     m_CornerRadius = 8
+    m_Margin = 10
     
     m_Text = ""
     m_FontName = "微软雅黑"
@@ -266,6 +299,7 @@ Private Sub ResetToDefaults()
     m_FadeOutTime = 200
     m_Opacity = 255
     m_IsShowing = False
+    m_AsyncMode = True  ' 默认异步模式
     
     m_ShadowEnabled = True
     m_ShadowColor = RGB(0, 0, 0)
@@ -277,17 +311,28 @@ Private Sub ResetToDefaults()
     m_IconSize = 24
 End Sub
 
-'--------------------- GDI+ 初始化 ---------------------
+'--------------------- GDI+ 初始化（引用计数） ---------------------
 Private Sub InitGDIPlus()
-    Dim GDIInput As GdiplusStartupInput
-    GDIInput.GdiplusVersion = 1
-    GdiplusStartup m_Token, GDIInput
+    ' 只有第一个实例才初始化GDI+
+    If m_TokenRefCount = 0 Then
+        Dim GDIInput As GdiplusStartupInput
+        GDIInput.GdiplusVersion = 1
+        GdiplusStartup m_Token, GDIInput
+    End If
+    m_TokenRefCount = m_TokenRefCount + 1
 End Sub
 
 Private Sub ShutdownGDIPlus()
-    If m_Token <> 0 Then
-        GdiplusShutdown m_Token
-        m_Token = 0
+    ' 引用计数减一
+    m_TokenRefCount = m_TokenRefCount - 1
+    
+    ' 只有最后一个实例才关闭GDI+
+    If m_TokenRefCount <= 0 Then
+        If m_Token <> 0 Then
+            GdiplusShutdown m_Token
+            m_Token = 0
+        End If
+        m_TokenRefCount = 0
     End If
 End Sub
 
@@ -371,6 +416,7 @@ Private Sub CalculatePosition()
     Dim ScreenWidth As Long
     Dim ScreenHeight As Long
     Dim TaskbarHeight As Long
+    Dim OffsetY As Long
     
     ScreenWidth = GetSystemMetrics(SM_CXSCREEN)
     ScreenHeight = GetSystemMetrics(SM_CYSCREEN)
@@ -405,7 +451,69 @@ Private Sub CalculatePosition()
             m_X = ScreenWidth - m_Width - 20
             m_Y = ScreenHeight - m_Height - TaskbarHeight - 20
     End Select
+    
+    ' 计算偏移量，避免与同一位置的其他Toast重叠
+    OffsetY = CalculateStackOffset
+    
+    ' 根据位置调整偏移方向
+    Select Case m_Position
+        Case Toast_TopLeft, Toast_TopCenter, Toast_TopRight
+            m_Y = m_Y + OffsetY  ' 向下偏移
+        Case Toast_BottomLeft, Toast_BottomCenter, Toast_BottomRight
+            m_Y = m_Y - OffsetY  ' 向上偏移
+        Case Else
+            ' 中间位置：根据已有Toast数量上下偏移
+            If OffsetY > 0 Then
+                m_Y = m_Y + OffsetY \ 2
+            End If
+    End Select
 End Sub
+
+' 计算堆叠偏移量
+Private Function CalculateStackOffset() As Long
+    Dim Toast As cToast
+    Dim Count As Long
+    Dim TotalHeight As Long
+    
+    On Error Resume Next
+    
+    If m_ToastCollection Is Nothing Then
+        CalculateStackOffset = 0
+        Exit Function
+    End If
+    
+    ' 统计同一位置且正在显示的Toast数量
+    For Each Toast In m_ToastCollection
+        If Toast.Position = m_Position And Toast.IsShowing And Toast.InstanceID <> m_InstanceID Then
+            Count = Count + 1
+            TotalHeight = TotalHeight + Toast.ToastHeight + m_Margin
+        End If
+    Next Toast
+    
+    On Error GoTo 0
+    
+    CalculateStackOffset = TotalHeight
+End Function
+
+' 获取实例ID（用于集合管理）
+Public Property Get InstanceID() As String
+    InstanceID = m_InstanceID
+End Property
+
+' 获取位置
+Public Property Get Position() As ToastPosition
+    Position = m_Position
+End Property
+
+' 获取显示状态
+Public Property Get IsShowing() As Boolean
+    IsShowing = m_IsShowing
+End Property
+
+' 获取Toast高度（用于计算堆叠）
+Public Property Get ToastHeight() As Long
+    ToastHeight = m_Height + m_ShadowBlur * 2 + m_ShadowOffsetY
+End Property
 
 '--------------------- 绘制 ---------------------
 Private Sub DrawToast()
@@ -684,16 +792,24 @@ End Sub
 Private Sub FadeIn()
     Dim StartTime As Long
     Dim Elapsed As Long
-    Dim Alpha As Byte
+    Dim Alpha As Long
+    Dim AlphaValue As Byte
     
     StartTime = GetTickCount
     
     Do While Elapsed < m_FadeInTime
         Elapsed = GetTickCount - StartTime
-        Alpha = CByte((Elapsed / m_FadeInTime) * 255)
+        
+        ' 计算透明度（使用 Long 避免溢出）
+        Alpha = (Elapsed / m_FadeInTime) * 255
+        
+        ' 限制范围
+        If Alpha < 0 Then Alpha = 0
         If Alpha > 255 Then Alpha = 255
         
-        SetLayeredWindowAttributes m_hwnd, 0, Alpha, LWA_ALPHA
+        AlphaValue = CByte(Alpha)
+        
+        SetLayeredWindowAttributes m_hwnd, 0, AlphaValue, LWA_ALPHA
         UpdateWindow m_hwnd
         DoEvents
     Loop
@@ -704,16 +820,24 @@ End Sub
 Private Sub FadeOut()
     Dim StartTime As Long
     Dim Elapsed As Long
-    Dim Alpha As Byte
+    Dim Alpha As Long
+    Dim AlphaValue As Byte
     
     StartTime = GetTickCount
     
     Do While Elapsed < m_FadeOutTime
         Elapsed = GetTickCount - StartTime
-        Alpha = CByte(255 - (Elapsed / m_FadeOutTime) * 255)
-        If Alpha < 0 Then Alpha = 0
         
-        SetLayeredWindowAttributes m_hwnd, 0, Alpha, LWA_ALPHA
+        ' 计算透明度（使用 Long 避免溢出）
+        Alpha = 255 - (Elapsed / m_FadeOutTime) * 255
+        
+        ' 限制范围
+        If Alpha < 0 Then Alpha = 0
+        If Alpha > 255 Then Alpha = 255
+        
+        AlphaValue = CByte(Alpha)
+        
+        SetLayeredWindowAttributes m_hwnd, 0, AlphaValue, LWA_ALPHA
         UpdateWindow m_hwnd
         DoEvents
     Loop
@@ -931,17 +1055,27 @@ Public Function Style(ByVal ToastStyle As ToastStyle) As cToast
     m_UseGradient = True
 End Function
 
-' 显示Toast
+' 设置同步/异步模式
+Public Function Async(ByVal Enabled As Boolean) As cToast
+    Set Async = Me
+    m_AsyncMode = Enabled
+End Function
+
+' 显示Toast（默认异步）
 Public Function Show(Optional ByVal Message As String = "") As cToast
     Set Show = Me
     
     If Message <> "" Then m_Text = Message
     If m_Text = "" Then m_Text = "Toast"
     
-    ' 隐藏之前的
-    Hide
+    ' 添加到集合（用于管理多个Toast）
+    On Error Resume Next
+    If Not m_ToastCollection Is Nothing Then
+        m_ToastCollection.Add Me, m_InstanceID
+    End If
+    On Error GoTo 0
     
-    ' 计算尺寸和位置
+    ' 计算尺寸和位置（会计算堆叠偏移）
     CalculateSize
     
     ' 创建窗口
@@ -954,17 +1088,32 @@ Public Function Show(Optional ByVal Message As String = "") As cToast
     FadeIn
     
     m_IsShowing = True
-    m_StartTime = GetTickCount
     
-    ' 启动定时器
+    ' 启动定时器（使用 cTimer 实现真正的异步）
     If m_Duration > 0 Then
         StartAutoCloseTimer
     End If
 End Function
 
+' 同步显示Toast（阻塞直到关闭）
+Public Function ShowSync(Optional ByVal Message As String = "") As cToast
+    Set ShowSync = Me
+    m_AsyncMode = False
+    Show Message
+    ' 等待关闭
+    Do While m_IsShowing
+        DoEvents
+    Loop
+End Function
+
 ' 隐藏Toast
 Public Function Hide() As cToast
     Set Hide = Me
+    
+    ' 停止定时器
+    If Not m_Timer Is Nothing Then
+        m_Timer.Enabled = False
+    End If
     
     If m_hwnd <> 0 Then
         If m_FadeOutTime > 0 And m_IsShowing Then
@@ -974,30 +1123,59 @@ Public Function Hide() As cToast
         m_hwnd = 0
     End If
     
-    If m_TimerID <> 0 Then
-        KillTimer 0, m_TimerID
-        m_TimerID = 0
-    End If
-    
     m_IsShowing = False
+    
+    ' 从集合中移除
+    On Error Resume Next
+    If Not m_ToastCollection Is Nothing Then
+        m_ToastCollection.Remove m_InstanceID
+    End If
+    On Error GoTo 0
 End Function
 
 ' 关闭所有Toast（类方法）
 Public Sub CloseAll()
-    ' 清理静态集合中的所有Toast
-    Hide
+    Dim Toast As cToast
+    Dim TempCollection As Collection
+    
+    On Error Resume Next
+    
+    If m_ToastCollection Is Nothing Then Exit Sub
+    
+    ' 复制集合避免遍历时修改
+    Set TempCollection = New Collection
+    For Each Toast In m_ToastCollection
+        TempCollection.Add Toast
+    Next Toast
+    
+    ' 关闭所有Toast
+    For Each Toast In TempCollection
+        Toast.Hide
+    Next Toast
+    
+    Set TempCollection = Nothing
+    
+    On Error GoTo 0
 End Sub
 
+' 使用 cTimer 启动异步自动关闭
 Private Sub StartAutoCloseTimer()
-    ' 使用简单的延时替代定时器
-    Dim StartTime As Long
-    StartTime = GetTickCount
+    ' 设置定时器间隔（使用 cTimer）
+    m_Timer.Interval = m_Duration
     
-    Do While GetTickCount - StartTime < m_Duration
-        DoEvents
-    Loop
+    ' 启用定时器
+    m_Timer.Enabled = True
+End Sub
+
+' cTimer 事件处理 - 定时器触发时自动调用
+Private Sub m_Timer_Timer()
+    ' 禁用定时器
+    m_Timer.Enabled = False
     
-    If m_IsShowing Then Hide
+    ' 隐藏Toast
+    If m_IsShowing Then
+        Hide
+    End If
 End Sub
 
 '--------------------- 快速使用静态方法 ---------------------

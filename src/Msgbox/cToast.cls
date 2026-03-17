@@ -38,6 +38,8 @@ Private Declare Function UpdateWindow Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA" (ByVal lpModuleName As String) As Long
 Private Declare Function GetCursorPos Lib "user32" (lpPoint As POINTAPI) As Long
 Private Declare Function KillTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long) As Long
+Private Declare Function GetForegroundWindow Lib "user32" () As Long
+Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As Long) As Long
 
 Private Const SM_CXSCREEN = 0
 Private Const SM_CYSCREEN = 1
@@ -46,6 +48,7 @@ Private Const SM_CYFULLSCREEN = 17
 
 Private Const WS_POPUP = &H80000000
 Private Const WS_VISIBLE = &H10000000
+Private Const WS_DISABLED = &H8000000
 Private Const WS_EX_LAYERED = &H80000
 Private Const WS_EX_TOOLWINDOW = &H80
 Private Const WS_EX_NOACTIVATE = &H8000000
@@ -637,6 +640,10 @@ End Sub
 '--------------------- 显示/隐藏 ---------------------
 Private Sub CreateToastWindow()
     Dim hInstance As Long
+    Dim hForeWnd As Long
+    
+    ' 保存当前焦点窗口
+    hForeWnd = GetForegroundWindow
     
     ' 销毁旧窗口
     If m_hwnd <> 0 Then
@@ -647,18 +654,28 @@ Private Sub CreateToastWindow()
     hInstance = GetModuleHandle(vbNullString)
     
     ' 创建分层窗口 - 使用系统已注册的类名 "Static"
+    ' 添加 WS_EX_NOACTIVATE 防止窗口获得焦点
+    ' 添加 WS_DISABLED 使窗口完全不可交互
     m_hwnd = CreateWindowEx(WS_EX_LAYERED Or WS_EX_TOOLWINDOW Or WS_EX_NOACTIVATE Or WS_EX_TRANSPARENT, _
-        "Static", "Toast", WS_POPUP Or WS_VISIBLE, _
+        "Static", "Toast", WS_POPUP Or WS_DISABLED, _
         m_X - m_ShadowBlur, m_Y - m_ShadowBlur, _
         m_Width + m_ShadowBlur * 2 + m_ShadowOffsetX, _
         m_Height + m_ShadowBlur * 2 + m_ShadowOffsetY, _
         0, 0, hInstance, ByVal 0)
     
-    ' 设置置顶
-    SetWindowPos m_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or SWP_SHOWWINDOW
+    ' 显示窗口但不激活
+    ShowWindow m_hwnd, SW_SHOWNOACTIVATE
+    
+    ' 设置置顶但不激活
+    SetWindowPos m_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
     
     ' 设置初始透明度
     SetLayeredWindowAttributes m_hwnd, 0, 0, LWA_ALPHA
+    
+    ' 恢复原来的焦点窗口
+    If hForeWnd <> 0 Then
+        SetForegroundWindow hForeWnd
+    End If
 End Sub
 
 ' 使用默认窗口过程 - 在类模块中不能使用 AddressOf，改用 0 表示使用默认处理

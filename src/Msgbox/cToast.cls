@@ -31,6 +31,7 @@ Private Declare Function CreateCompatibleBitmap Lib "gdi32" (ByVal hDC As Long, 
 Private Declare Function BitBlt Lib "gdi32" (ByVal hDestDC As Long, ByVal x As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As Long, ByVal xSrc As Long, ByVal ySrc As Long, ByVal dwRop As Long) As Long
 Private Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal uFlags As Long) As Long
 Private Declare Function SetLayeredWindowAttributes Lib "user32" (ByVal hWnd As Long, ByVal crKey As Long, ByVal bAlpha As Byte, ByVal dwFlags As Long) As Long
+Private Declare Function UpdateLayeredWindow Lib "user32" Alias "UpdateLayeredWindow" (ByVal hWnd As Long, ByVal hdcDst As Long, ByRef pptDst As Any, ByRef psize As Any, ByVal hdcSrc As Long, ByRef pptSrc As Any, ByVal crKey As Long, ByRef pblend As Any, ByVal dwFlags As Long) As Long
 Private Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
 Private Declare Function DestroyWindow Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function ShowWindow Lib "user32" (ByVal hWnd As Long, ByVal nCmdShow As Long) As Long
@@ -97,6 +98,18 @@ Private Type POINTF
     Y As Single
 End Type
 
+Private Type SIZE
+    cx As Long
+    cy As Long
+End Type
+
+Private Type BLENDFUNCTION
+    BlendOp As Byte
+    BlendFlags As Byte
+    SourceConstantAlpha As Byte
+    AlphaFormat As Byte
+End Type
+
 Private Type ColorMatrix
     M(0 To 4, 0 To 4) As Single
 End Type
@@ -159,6 +172,9 @@ Private Const StringAlignmentNear = 0
 Private Const StringAlignmentFar = 2
 Private Const PixelFormat32bppARGB = &H26200A
 Private Const WrapModeTile = 0
+Private Const AC_SRC_OVER = &H0
+Private Const AC_SRC_ALPHA = &H1
+Private Const ULW_ALPHA = &H2
 
 '--------------------- 常量 ---------------------
 Public Enum ToastPosition
@@ -616,7 +632,7 @@ Private Sub DrawToast()
     GdipDeleteGraphics Graphics
     
     ' 显示到屏幕
-    UpdateLayeredWindow memDC, m_ShadowBlur, m_ShadowBlur
+    UpdateLayeredWindowEx memDC, m_ShadowBlur, m_ShadowBlur
     
     ' 清理资源
     SelectObject memDC, oldBitmap
@@ -737,11 +753,31 @@ Private Sub DrawIcon(ByVal Graphics As Long, ByVal x As Single, ByVal Y As Singl
     GdipDeleteFontFamily FontFamily
 End Sub
 
-Private Sub UpdateLayeredWindow(ByVal hdcSource As Long, ByVal xSrc As Long, ByVal ySrc As Long)
-    ' 使用 UpdateLayeredWindow API 更新分层窗口
-    ' 这里简化处理，实际应该使用 UpdateLayeredWindow
+Private Sub UpdateLayeredWindowEx(ByVal hdcSource As Long, ByVal xSrc As Long, ByVal ySrc As Long)
+    Dim WindowPos As POINTAPI
+    Dim WindowSize As SIZE
+    Dim SourcePos As POINTAPI
+    Dim BlendFunc As BLENDFUNCTION
+    
+    ' 设置窗口位置和大小
+    WindowPos.x = m_X - m_ShadowBlur
+    WindowPos.Y = m_Y - m_ShadowBlur
+    WindowSize.cx = m_Width + m_ShadowBlur * 2 + m_ShadowOffsetX
+    WindowSize.cy = m_Height + m_ShadowBlur * 2 + m_ShadowOffsetY
+    
+    ' 源位置
+    SourcePos.x = 0
+    SourcePos.Y = 0
+    
+    ' 设置混合函数
+    BlendFunc.BlendOp = AC_SRC_OVER
+    BlendFunc.BlendFlags = 0
+    BlendFunc.SourceConstantAlpha = 255  ' 整体透明度
+    BlendFunc.AlphaFormat = AC_SRC_ALPHA   ' 使用源图像的Alpha通道
+    
+    ' 更新分层窗口
     If m_hwnd <> 0 Then
-        ' 已经由窗口消息处理
+        UpdateLayeredWindow m_hwnd, 0, WindowPos, WindowSize, hdcSource, SourcePos, 0, BlendFunc, ULW_ALPHA
     End If
 End Sub
 

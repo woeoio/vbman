@@ -10,12 +10,36 @@ Attribute VB_Name = "cToast"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Exposed = True
 Option Explicit
 
 ' ========== 事件声明 ==========
 Public Event OnToastCountChange(ByVal TagName As String, ByVal IsDelete As Boolean, ByVal CurrentCount As Long)
-Public Event OnCloseAll(ByVal ClosedCount As Long)
+Public Event OnCloseAll(ByVal closedCount As Long)
+
+Public Enum EnumPos
+    LeftTop = 10
+    LeftCenter = 12
+    LeftBottom = 14
+    CenterTop = 20
+    Center = 22
+    CenterBottom = 24
+    RightTop = 30
+    RightCenter = 32
+    RightBottom = 34
+End Enum
+
+Public Enum EnumTheme
+    Light = 1
+    Dark = 2
+End Enum
+
+Public Enum EnumState
+    Info = 1
+    Success = 2
+    Warning = 3
+    Danger = 4
+End Enum
 
 ' 私有成员
 Private m_Pos As EnumPos
@@ -130,7 +154,7 @@ Public Function Show(ByVal Content As String, Optional ByVal Delay As Long = 300
     ' 检查是否已存在同名实例
     On Error Resume Next
     m_AllKeys.Item TagName
-    If Err.Number = 0 Then
+    If ERR.Number = 0 Then
         ' 同名实例已存在，不创建新实例，直接退出
         On Error GoTo 0
         Exit Function

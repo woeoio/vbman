@@ -28,10 +28,12 @@ Private Declare Function DeleteDC Lib "gdi32" (ByVal hDC As Long) As Long
 Private Declare Function SelectObject Lib "gdi32" (ByVal hDC As Long, ByVal hObject As Long) As Long
 Private Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
 Private Declare Function CreateCompatibleBitmap Lib "gdi32" (ByVal hDC As Long, ByVal nWidth As Long, ByVal nHeight As Long) As Long
+Private Declare Function CreateDIBSection Lib "gdi32" (ByVal hDC As Long, pBitmapInfo As BITMAPINFO, ByVal un As Long, ByVal lplpVoid As Long, ByVal handle As Long, ByVal dw As Long) As Long
 Private Declare Function BitBlt Lib "gdi32" (ByVal hDestDC As Long, ByVal x As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As Long, ByVal xSrc As Long, ByVal ySrc As Long, ByVal dwRop As Long) As Long
+Private Declare Function GetObject Lib "gdi32" Alias "GetObjectA" (ByVal hObject As Long, ByVal nCount As Long, lpObject As Any) As Long
 Private Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal uFlags As Long) As Long
 Private Declare Function SetLayeredWindowAttributes Lib "user32" (ByVal hWnd As Long, ByVal crKey As Long, ByVal bAlpha As Byte, ByVal dwFlags As Long) As Long
-Private Declare Function UpdateLayeredWindow Lib "user32" Alias "UpdateLayeredWindow" (ByVal hWnd As Long, ByVal hdcDst As Long, ByRef pptDst As Any, ByRef psize As Any, ByVal hdcSrc As Long, ByRef pptSrc As Any, ByVal crKey As Long, ByRef pblend As Any, ByVal dwFlags As Long) As Long
+Private Declare Function UpdateLayeredWindow Lib "user32" (ByVal hWnd As Long, ByVal hdcDst As Long, ByRef pptDst As Any, ByRef psize As Any, ByVal hdcSrc As Long, ByRef pptSrc As Any, ByVal crKey As Long, ByRef pblend As Any, ByVal dwFlags As Long) As Long
 Private Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
 Private Declare Function DestroyWindow Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function ShowWindow Lib "user32" (ByVal hWnd As Long, ByVal nCmdShow As Long) As Long
@@ -98,7 +100,7 @@ Private Type POINTF
     Y As Single
 End Type
 
-Private Type SIZE
+Private Type Size
     cx As Long
     cy As Long
 End Type
@@ -117,6 +119,25 @@ End Type
 Private Type BlurParams
     Radius As Single
     ExpandEdge As Long
+End Type
+
+Private Type BITMAPINFOHEADER
+    biSize As Long
+    biWidth As Long
+    biHeight As Long
+    biPlanes As Integer
+    biBitCount As Integer
+    biCompression As Long
+    biSizeImage As Long
+    biXPelsPerMeter As Long
+    biYPelsPerMeter As Long
+    biClrUsed As Long
+    biClrImportant As Long
+End Type
+
+Private Type BITMAPINFO
+    bmiHeader As BITMAPINFOHEADER
+    bmiColors(0 To 3) As Byte
 End Type
 
 Private Declare Function GdiplusStartup Lib "gdiplus" (token As Long, inputbuf As GdiplusStartupInput, Optional ByVal outputbuf As Long = 0) As Long
@@ -389,12 +410,17 @@ Private Sub CalculateSize()
     Dim LayoutRect As RECTF
     Dim BoundingBox As RECTF
     Dim Style As Long
+    Dim Status As Long
     
     hDC = GetDC(0)
     GdipCreateFromHDC hDC, Graphics
     
     ' 创建字体
-    GdipCreateFontFamilyFromName StrPtr(m_FontName), 0, FontFamily
+    Status = GdipCreateFontFamilyFromName(StrPtr(m_FontName), 0, FontFamily)
+    If Status <> 0 Then
+        GdipCreateFontFamilyFromName StrPtr("Arial"), 0, FontFamily
+    End If
+    
     Style = IIf(m_FontBold, 1, 0)
     GdipCreateFont FontFamily, m_FontSize, Style, UnitPixel, Font
     
@@ -554,11 +580,32 @@ Private Sub DrawToast()
     Dim ShadowWidth As Long
     Dim ShadowHeight As Long
     Dim Style As Long
+    Dim bmi As BITMAPINFO
+    Dim Status As Long
     
     ' 创建内存DC
     hDC = GetDC(0)
     memDC = CreateCompatibleDC(hDC)
-    hBitmap = CreateCompatibleBitmap(hDC, m_Width + m_ShadowOffsetX + m_ShadowBlur * 2, m_Height + m_ShadowOffsetY + m_ShadowBlur * 2)
+    
+    ' 创建32位带Alpha通道的位图（用于分层窗口）
+    With bmi.bmiHeader
+        .biSize = Len(bmi.bmiHeader)
+        .biWidth = m_Width + m_ShadowOffsetX + m_ShadowBlur * 2
+        .biHeight = -(m_Height + m_ShadowOffsetY + m_ShadowBlur * 2)  ' 负值表示自顶向下
+        .biPlanes = 1
+        .biBitCount = 32
+        .biCompression = 0 ' BI_RGB
+        .biSizeImage = 0
+    End With
+    
+    hBitmap = CreateDIBSection(hDC, bmi, 0, 0, 0, 0)
+    
+    ' 检查位图是否创建成功
+    If hBitmap = 0 Then
+        ' 如果失败，回退到兼容位图（可能不支持透明）
+        hBitmap = CreateCompatibleBitmap(hDC, m_Width + m_ShadowOffsetX + m_ShadowBlur * 2, m_Height + m_ShadowOffsetY + m_ShadowBlur * 2)
+    End If
+    
     oldBitmap = SelectObject(memDC, hBitmap)
     
     ' 创建GDI+ Graphics
@@ -608,7 +655,13 @@ Private Sub DrawToast()
     End If
     
     ' 绘制文本
-    GdipCreateFontFamilyFromName StrPtr(m_FontName), 0, FontFamily
+    Status = GdipCreateFontFamilyFromName(StrPtr(m_FontName), 0, FontFamily)
+    
+    ' 如果字体创建失败，使用备用字体
+    If Status <> 0 Then
+        GdipCreateFontFamilyFromName StrPtr("Arial"), 0, FontFamily
+    End If
+    
     Style = IIf(m_FontBold, 1, 0)
     GdipCreateFont FontFamily, m_FontSize, Style, UnitPixel, Font
     GdipCreateStringFormat 0, 0, StringFormat
@@ -621,6 +674,12 @@ Private Sub DrawToast()
     LayoutRect.Top = m_ShadowBlur
     LayoutRect.Width = m_Width - IIf(m_Icon <> "", m_IconSize + 10, 0)
     LayoutRect.Height = m_Height
+    
+    ' 调试用：先绘制一个半透明的红色背景来测试文本区域
+    ' Dim DebugBrush As Long
+    ' GdipCreateSolidFill ARGB(128, 255, 0, 0), DebugBrush
+    ' GdipFillRectangle Graphics, DebugBrush, LayoutRect.Left, LayoutRect.Top, LayoutRect.Width, LayoutRect.Height
+    ' GdipDeleteBrush DebugBrush
     
     GdipDrawString Graphics, StrPtr(m_Text), Len(m_Text), Font, LayoutRect, StringFormat, TextBrush
     
@@ -669,13 +728,26 @@ Private Sub DrawShadow(ByVal Graphics As Long, ByVal Blur As Long, ByVal OffsetX
     Dim ShadowHeight As Long
     Dim Alpha As Byte
     Dim i As Long, j As Long
+    Dim bmi As BITMAPINFO
     
     ShadowWidth = m_Width + Blur * 2
     ShadowHeight = m_Height + Blur * 2
     
     ' 创建阴影DC
     ShadowDC = CreateCompatibleDC(0)
-    hShadowBitmap = CreateCompatibleBitmap(GetDC(0), ShadowWidth, ShadowHeight)
+    
+    ' 创建32位带Alpha通道的位图
+    With bmi.bmiHeader
+        .biSize = Len(bmi.bmiHeader)
+        .biWidth = ShadowWidth
+        .biHeight = -ShadowHeight  ' 负值表示自顶向下
+        .biPlanes = 1
+        .biBitCount = 32
+        .biCompression = 0 ' BI_RGB
+        .biSizeImage = 0
+    End With
+    
+    hShadowBitmap = CreateDIBSection(0, bmi, 0, 0, 0, 0)
     oldShadowBitmap = SelectObject(ShadowDC, hShadowBitmap)
     
     ' 绘制阴影形状
@@ -755,7 +827,7 @@ End Sub
 
 Private Sub UpdateLayeredWindowEx(ByVal hdcSource As Long, ByVal xSrc As Long, ByVal ySrc As Long)
     Dim WindowPos As POINTAPI
-    Dim WindowSize As SIZE
+    Dim WindowSize As Size
     Dim SourcePos As POINTAPI
     Dim BlendFunc As BLENDFUNCTION
     
@@ -1240,3 +1312,53 @@ Public Function Info(ByVal Message As String, Optional ByVal Position As ToastPo
     Set Info = New cToast
     Info.Style(ToastStyle_Info).Text(Message).Show
 End Function
+
+'--------------------- 调试用方法 ---------------------
+' 测试基本绘制（不使用分层窗口）
+Public Sub TestDraw(ByVal hDC As Long, ByVal x As Long, ByVal Y As Long)
+    Dim Graphics As Long
+    Dim FontFamily As Long
+    Dim Font As Long
+    Dim StringFormat As Long
+    Dim TextBrush As Long
+    Dim LayoutRect As RECTF
+    Dim Status As Long
+    
+    ' 创建GDI+ Graphics
+    GdipCreateFromHDC hDC, Graphics
+    GdipSetSmoothingMode Graphics, SmoothingModeAntiAlias
+    GdipSetTextRenderingHint Graphics, TextRenderingHintClearTypeGridFit
+    
+    ' 创建字体
+    Status = GdipCreateFontFamilyFromName(StrPtr(m_FontName), 0, FontFamily)
+    If Status <> 0 Then
+        GdipCreateFontFamilyFromName StrPtr("Arial"), 0, FontFamily
+    End If
+    
+    GdipCreateFont FontFamily, m_FontSize, 0, UnitPixel, Font
+    GdipCreateStringFormat 0, 0, StringFormat
+    GdipSetStringFormatAlign StringFormat, StringAlignmentCenter
+    GdipSetStringFormatLineAlign StringFormat, StringAlignmentCenter
+    
+    ' 绘制背景（用于测试）
+    GdipCreateSolidFill ColorToARGB(m_BackColor), TextBrush
+    GdipFillRectangle Graphics, TextBrush, x, Y, 200, 50
+    GdipDeleteBrush TextBrush
+    
+    ' 绘制文本
+    GdipCreateSolidFill ColorToARGB(m_TextColor), TextBrush
+    
+    LayoutRect.Left = x
+    LayoutRect.Top = Y
+    LayoutRect.Width = 200
+    LayoutRect.Height = 50
+    
+    GdipDrawString Graphics, StrPtr(m_Text), Len(m_Text), Font, LayoutRect, StringFormat, TextBrush
+    
+    ' 清理
+    GdipDeleteBrush TextBrush
+    GdipDeleteStringFormat StringFormat
+    GdipDeleteFont Font
+    GdipDeleteFontFamily FontFamily
+    GdipDeleteGraphics Graphics
+End Sub

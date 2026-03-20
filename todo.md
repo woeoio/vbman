@@ -1,3 +1,7 @@
+### 2026-03-20
+
+- httpclient对象解析cookies会丢失同名键值对。
+
 ### 2026-01-30
 
 - 增加 m_oServer.ClearCache 函数

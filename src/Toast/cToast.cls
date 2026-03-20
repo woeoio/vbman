@@ -219,15 +219,15 @@ Public Function CloseMe(ByVal Name As String) As Boolean
     ' 遍历所有集合查找
     For i = 1 To 9
         Select Case i
-            Case 1: Set Coll = CollCenter
-            Case 2: Set Coll = CollCenterTop
-            Case 3: Set Coll = CollCenterBottom
-            Case 4: Set Coll = CollLeftTop
-            Case 5: Set Coll = CollLeftBottom
-            Case 6: Set Coll = CollLeftCenter
-            Case 7: Set Coll = CollRightTop
-            Case 8: Set Coll = CollRightBottom
-            Case 9: Set Coll = CollRightCenter
+        Case 1: Set Coll = CollCenter
+        Case 2: Set Coll = CollCenterTop
+        Case 3: Set Coll = CollCenterBottom
+        Case 4: Set Coll = CollLeftTop
+        Case 5: Set Coll = CollLeftBottom
+        Case 6: Set Coll = CollLeftCenter
+        Case 7: Set Coll = CollRightTop
+        Case 8: Set Coll = CollRightBottom
+        Case 9: Set Coll = CollRightCenter
         End Select
         
         On Error Resume Next
@@ -237,9 +237,11 @@ Public Function CloseMe(ByVal Name As String) As Boolean
         
         If Not Inst Is Nothing Then
             Inst.CloseMe
+            On Error Resume Next
             Coll.Remove Name
             ' 同时从 Keys 集合中移除
             m_AllKeys.Remove Name
+            On Error GoTo 0
             ' 所有集合清理完毕后再触发事件，确保 Count 属性准确
             RaiseEvent OnToastCountChange(Name, True, m_AllKeys.Count)
             CloseMe = True

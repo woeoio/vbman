@@ -68,7 +68,7 @@ Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet 
 End Function
 Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String, Optional ByVal CharSet As String = "UTF-8") As Boolean
     Dim Dat As String, isInst As Boolean
-    If IsMissing(Data) Then
+    If Len(Data) = 0 Then
         If UseLine = True Then
             Dat = Txt.JoinLinesFromCollection(LineData)
         Else

@@ -29,7 +29,7 @@ Public HeadTitleWidthAuto As Boolean                                            
 Public HeadTitleWidthWord As Long                                               '单个双字节字符宽度
 Public IsFirstLineToHead As Boolean                                             '是否首行作为标题
 'tmp
-Dim x, Y, z, i As Long, ii As Long
+Dim x, y, z, i As Long, ii As Long
 
 Public Sub Reset(Optional OnlyData As Boolean)
     Data.RemoveAll
@@ -101,24 +101,24 @@ Public Function DeleteColumn(Optional ColumnNumber As Long) As Boolean
     DeleteColumn = True
 End Function
 Public Function NewColumn(ByVal Title As String, Optional Width As Long, Optional Content As String) As Boolean
-    Dim CN As Long, lN As Long, l, c As String
-    Dim f As Scripting.Dictionary
+    Dim CN As Long, lN As Long, L, C As String
+    Dim F As Scripting.Dictionary
     If IsMissing(Content) = True Or IsNull(Content) Or IsEmpty(Content) Then Content = ""
-    For Each l In Data.Keys()
+    For Each L In Data.Keys()
         lN = lN + 1
-        Set f = Data(l)
-        CN = f.Count + 1
+        Set F = Data(L)
+        CN = F.Count + 1
         GoSub AddColumn
     Next
     Exit Function
 AddColumn:
     If IsFirstLineToHead = True And lN = 1 Then
-        c = Title
+        C = Title
     Else
-        c = Content
+        C = Content
     End If
     If Width = 0 Then Width = HeadTitleWidthDefault
-    f.Add CN, c
+    F.Add CN, C
     'add width and title
     HeadTitle(CN) = Title
     HeadTitleWidth(CN) = Width
@@ -126,25 +126,25 @@ AddColumn:
 End Function
 Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
     Dim lN As Long: lN = Data.Count + 1
-    Dim f As New Scripting.Dictionary, d() As Variant: d = FieldsData
-    If UBound(d) = -1 Then ReDim d(0)
-    If TypeOf d(0) Is Scripting.Dictionary Then
-        Dim ff As Scripting.Dictionary: Set ff = d(0)
-        Set f = ToolsDic.DeepCopy(ff)
+    Dim F As New Scripting.Dictionary, D() As Variant: D = FieldsData
+    If UBound(D) = -1 Then ReDim D(0)
+    If TypeOf D(0) Is Scripting.Dictionary Then
+        Dim ff As Scripting.Dictionary: Set ff = D(0)
+        Set F = ToolsDic.DeepCopy(ff)
     Else
         Dim CN As Long, x
-        For Each x In d
+        For Each x In D
             CN = CN + 1
             If IsMissing(x) = True Or IsNull(x) Or IsEmpty(x) Then x = ""
-            f.Add CN, x
+            F.Add CN, x
         Next
     End If
-    SyncColumnLength f
-    Data.Add lN, f
+    SyncColumnLength F
+    Data.Add lN, F
     CurrentLineNumber = lN
-    Set CurrentLineDic = f
+    Set CurrentLineDic = F
     Call SyncColumnWidth
-    Set f = Nothing
+    Set F = Nothing
     NewLine = True
 End Function
 Private Sub SyncColumnLength(LineDic As Scripting.Dictionary)
@@ -327,10 +327,10 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
     On Error GoTo EH
     Dim Fso As New cToolsStream
     Fso.UseLine = True
-    Dim key As Variant, i As Long, LineFields() As String
+    Dim Key As Variant, i As Long, LineFields() As String
     Dim LineDic As Scripting.Dictionary
-    For Each key In Data.Keys
-        Set LineDic = Data(key)
+    For Each Key In Data.Keys
+        Set LineDic = Data(Key)
         ReDim LineFields(LineDic.Count - 1)
         For i = 1 To LineDic.Count
             LineFields(i - 1) = QuoteCsvField(LineDic(i))

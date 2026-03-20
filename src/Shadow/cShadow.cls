@@ -20,23 +20,23 @@ Option Explicit
 '-----------------------------------------------
 Private Declare Sub FillMemory Lib "kernel32.dll" Alias "RtlFillMemory" (ByRef Destination As Any, ByVal Length As Long, ByVal Fill As Byte)
 Private Declare Function GetSysColor Lib "user32.dll" (ByVal nIndex As Long) As Long
-Private Declare Function ShowWindow Lib "user32.dll" (ByVal hWnd As Long, ByVal nCmdShow As Long) As Long
-Private Declare Function UpdateLayeredWindow Lib "user32" (ByVal hWnd As Long, ByVal hdcDst As Long, pptDst As Any, psize As Any, ByVal hdcSrc As Long, pptSrc As Any, ByVal crKey As Long, ByRef pblend As BLENDFUNCTION, ByVal dwFlags As Long) As Long
-Private Declare Function GetWindowRgn Lib "user32.dll" (ByVal hWnd As Long, ByVal hRgn As Long) As Long
-Private Declare Function ScreenToClient Lib "user32.dll" (ByVal hWnd As Long, ByRef lpPoint As POINTAPI) As Long
-Private Declare Function ClientToScreen Lib "user32.dll" (ByVal hWnd As Long, ByRef lpPoint As POINTAPI) As Long
-Private Declare Function GetParent Lib "user32.dll" (ByVal hWnd As Long) As Long
+Private Declare Function ShowWindow Lib "user32.dll" (ByVal hwnd As Long, ByVal nCmdShow As Long) As Long
+Private Declare Function UpdateLayeredWindow Lib "user32" (ByVal hwnd As Long, ByVal hdcDst As Long, pptDst As Any, psize As Any, ByVal hdcSrc As Long, pptSrc As Any, ByVal crKey As Long, ByRef pblend As BLENDFUNCTION, ByVal dwFlags As Long) As Long
+Private Declare Function GetWindowRgn Lib "user32.dll" (ByVal hwnd As Long, ByVal hRgn As Long) As Long
+Private Declare Function ScreenToClient Lib "user32.dll" (ByVal hwnd As Long, ByRef lpPoint As POINTAPI) As Long
+Private Declare Function ClientToScreen Lib "user32.dll" (ByVal hwnd As Long, ByRef lpPoint As POINTAPI) As Long
+Private Declare Function GetParent Lib "user32.dll" (ByVal hwnd As Long) As Long
 Private Declare Function SetParent Lib "user32.dll" (ByVal hWndChild As Long, ByVal hWndNewParent As Long) As Long
-Private Declare Function RedrawWindow Lib "user32.dll" (ByVal hWnd As Long, ByRef lprcUpdate As Any, ByVal hrgnUpdate As Long, ByVal fuRedraw As Long) As Long
+Private Declare Function RedrawWindow Lib "user32.dll" (ByVal hwnd As Long, ByRef lprcUpdate As Any, ByVal hrgnUpdate As Long, ByVal fuRedraw As Long) As Long
 Private Declare Function FillRect Lib "user32.dll" (ByVal hdc As Long, ByRef lpRect As Rect, ByVal hBrush As Long) As Long
-Private Declare Function GetWindowRect Lib "user32.dll" (ByVal hWnd As Long, ByRef lpRect As Rect) As Long
-Private Declare Function SetWindowPos Lib "user32.dll" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
-Private Declare Function CreateWindowEx Lib "user32.dll" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, ByRef lpParam As Any) As Long
-Private Declare Function DestroyWindow Lib "user32.dll" (ByVal hWnd As Long) As Long
-Private Declare Function SetWindowLong Lib "user32.dll" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Private Declare Function GetWindowRect Lib "user32.dll" (ByVal hwnd As Long, ByRef lpRect As Rect) As Long
+Private Declare Function SetWindowPos Lib "user32.dll" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Private Declare Function CreateWindowEx Lib "user32.dll" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, ByRef lpParam As Any) As Long
+Private Declare Function DestroyWindow Lib "user32.dll" (ByVal hwnd As Long) As Long
+Private Declare Function SetWindowLong Lib "user32.dll" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
 Private Declare Function SetRect Lib "user32" (lpRect As Any, ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As Long
-Private Declare Function GetDC Lib "user32.dll" (ByVal hWnd As Long) As Long
-Private Declare Function ReleaseDC Lib "user32.dll" (ByVal hWnd As Long, ByVal hdc As Long) As Long
+Private Declare Function GetDC Lib "user32.dll" (ByVal hwnd As Long) As Long
+Private Declare Function ReleaseDC Lib "user32.dll" (ByVal hwnd As Long, ByVal hdc As Long) As Long
 Private Declare Function CreateDIBSection Lib "GDI32" (ByVal hdc As Long, pBitmapInfo As BITMAPINFO, ByVal un As Long, ByRef lplpVoid As Any, ByVal handle As Long, ByVal dw As Long) As Long
 Private Declare Function GetDeviceCaps Lib "GDI32" (ByVal hdc As Long, ByVal nIndex As Long) As Long
 Private Declare Function CreateCompatibleDC Lib "GDI32" (ByVal hdc As Long) As Long
@@ -44,8 +44,8 @@ Private Declare Function SelectObject Lib "GDI32" (ByVal hdc As Long, ByVal hObj
 Private Declare Function DeleteDC Lib "GDI32" (ByVal hdc As Long) As Long
 Private Declare Function DeleteObject Lib "gdi32.dll" (ByVal hObject As Long) As Long
 Private Declare Function CreateSolidBrush Lib "gdi32.dll" (ByVal crColor As Long) As Long
-Private Declare Function BitBlt Lib "gdi32.dll" (ByVal hDestDC As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As Long, ByVal xSrc As Long, ByVal ySrc As Long, ByVal dwRop As Long) As Long
-Private Declare Function OffsetRgn Lib "gdi32.dll" (ByVal hRgn As Long, ByVal X As Long, ByVal Y As Long) As Long
+Private Declare Function BitBlt Lib "gdi32.dll" (ByVal hDestDC As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As Long, ByVal xSrc As Long, ByVal ySrc As Long, ByVal dwRop As Long) As Long
+Private Declare Function OffsetRgn Lib "gdi32.dll" (ByVal hRgn As Long, ByVal x As Long, ByVal y As Long) As Long
 Private Declare Function CreateRectRgn Lib "gdi32.dll" (ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As Long
 Private Declare Function GetBkColor Lib "gdi32.dll" (ByVal hdc As Long) As Long
 Private Declare Sub GdiplusShutdown Lib "gdiplus" (ByVal Token As Long)
@@ -92,8 +92,8 @@ Private Type Rect
 End Type
 
 Private Type POINTAPI
-    X As Long
-    Y As Long
+    x As Long
+    y As Long
 End Type
 
 Private Type RECTL
@@ -207,8 +207,8 @@ Public Property Let ContainerBkColor(ByVal New_Value As Long)
     m_ContainerBkColor = New_Value
 End Property
 
-Public Property Get hWnd() As Long
-    hWnd = hWinShadow
+Public Property Get hwnd() As Long
+    hwnd = hWinShadow
 End Property
 
 Public Property Get Margin() As Integer
@@ -311,33 +311,33 @@ Public Property Let BorderRadius(ByVal New_Value As Long)
     bRecreateShadow = True
 End Property
 
-Public Sub DrawBitmap(hBmp As Long, hWnd As Long, Width As Long, Height As Long)
+Public Sub DrawBitmap(hBmp As Long, hwnd As Long, Width As Long, Height As Long)
     Dim tSize As Size
     Dim PT As POINTAPI
     Dim hGraphics As Long
     Dim hImage As Long
-    Dim X As Long, Y As Long
+    Dim x As Long, y As Long
     Dim hRgn As Long
     
-    X = (m_ShadowSize * 2 + m_BorderWidth) * DpiFactor
-    Y = (m_ShadowSize * 2 + m_BorderWidth) * DpiFactor
+    x = (m_ShadowSize * 2 + m_BorderWidth) * DpiFactor
+    y = (m_ShadowSize * 2 + m_BorderWidth) * DpiFactor
     
-    If m_ShadowOffsetX < 0 Then X = X - m_ShadowOffsetX * DpiFactor
-    If m_ShadowOffsetY < 0 Then Y = Y - m_ShadowOffsetY * DpiFactor
+    If m_ShadowOffsetX < 0 Then x = x - m_ShadowOffsetX * DpiFactor
+    If m_ShadowOffsetY < 0 Then y = y - m_ShadowOffsetY * DpiFactor
     
-    If X <= 0 Then X = 0
-    If Y < 0 Then Y = 0
+    If x <= 0 Then x = 0
+    If y < 0 Then y = 0
 
     hRgn = CreateRectRgn(0, 0, Width, Height)
-    GetWindowRgn hWnd, hRgn
-    OffsetRgn hRgn, X, Y
+    GetWindowRgn hwnd, hRgn
+    OffsetRgn hRgn, x, y
   
     GdipCreateFromHDC c_lhDC, hGraphics
 
     Call GdipSetClipHrgn(hGraphics, hRgn, CombineModeIntersect)
 
     GdipCreateBitmapFromHBITMAP hBmp, 0&, hImage
-    GdipDrawImageRectRectI hGraphics, hImage, X, Y, Width, Height, 0, 0, Width, Height, &H2, 0&, 0&, 0& 'TOP_LEFT
+    GdipDrawImageRectRectI hGraphics, hImage, x, y, Width, Height, 0, 0, Width, Height, &H2, 0&, 0&, 0& 'TOP_LEFT
     GdipDisposeImage hImage
     GdipDeleteGraphics hGraphics
     
@@ -353,22 +353,22 @@ Public Sub Refresh()
     If m_hwnd <> 0 Then ShowBorders m_hwnd, m_isWinChild
 End Sub
 
-Public Sub ShowBorders(ByVal hWnd As Long, isWinChild As Boolean)
+Public Sub ShowBorders(ByVal hwnd As Long, isWinChild As Boolean)
     Dim R As Rect, PT As POINTAPI
     Dim Left As Long, Top As Long
     Dim TotMargin As Long
     
     TotMargin = (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
     
-    GetWindowRect hWnd, R
+    GetWindowRect hwnd, R
     tWinSize.cx = R.Right - R.Left
     tWinSize.cy = R.Bottom - R.Top
     lWidth = tWinSize.cx + TotMargin * 2 + Abs(m_ShadowOffsetX) * DpiFactor     '+ m_BorderWidth
     lHeight = tWinSize.cy + TotMargin * 2 + Abs(m_ShadowOffsetY) * DpiFactor    '+ m_BorderWidth
     
     If m_hwnd = 0 Then
-        m_hwnd = hWnd
-        hParent = GetParent(hWnd)
+        m_hwnd = hwnd
+        hParent = GetParent(hwnd)
         Set cSubClass = New pvSubClass
         If isWinChild Then
             m_isWinChild = True
@@ -382,7 +382,7 @@ Public Sub ShowBorders(ByVal hWnd As Long, isWinChild As Boolean)
             
         Else
             hWinShadow = CreateWindowEx(WS_EX_TOOLWINDOW Or WS_EX_LAYERED, "static", vbNullString, WS_POPUP, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, 0&)
-            SetWindowLong hWnd, GWL_HWNDPARENT, hWinShadow
+            SetWindowLong hwnd, GWL_HWNDPARENT, hWinShadow
             cSubClass.ssc_Subclass m_hwnd, , , Me
             cSubClass.ssc_AddMsg m_hwnd, WM_MOVE, MSG_AFTER
         End If
@@ -390,9 +390,9 @@ Public Sub ShowBorders(ByVal hWnd As Long, isWinChild As Boolean)
     
     If isWinChild Then
         ScreenToClient hParent, PT
-        ClientToScreen hWnd, PT
-        R.Left = PT.X
-        R.Top = PT.Y
+        ClientToScreen hwnd, PT
+        R.Left = PT.x
+        R.Top = PT.y
     End If
     
     If bRecreateShadow Then
@@ -405,8 +405,8 @@ Public Sub ShowBorders(ByVal hWnd As Long, isWinChild As Boolean)
     If m_ShadowOffsetX < 0 Then Left = Left + m_ShadowOffsetX * DpiFactor
     If m_ShadowOffsetY < 0 Then Top = Top + m_ShadowOffsetY * DpiFactor
     
-    SetWindowPos hWinShadow, hWnd, Left, Top, lWidth, lHeight, SWP_NOACTIVATE Or SWP_SHOWWINDOW 'Or SWP_FRAMECHANGED
-    If Not isWinChild Then SetWindowLong hWnd, GWL_HWNDPARENT, hWinShadow
+    SetWindowPos hWinShadow, hwnd, Left, Top, lWidth, lHeight, SWP_NOACTIVATE Or SWP_SHOWWINDOW 'Or SWP_FRAMECHANGED
+    If Not isWinChild Then SetWindowLong hwnd, GWL_HWNDPARENT, hWinShadow
     
     Update
 End Sub
@@ -444,7 +444,7 @@ Public Sub Update()
     Dim hGraphics As Long
     Dim tSize As Size
     Dim PT As Size
-    Dim X As Long, Y As Long
+    Dim x As Long, y As Long
     Dim hRgn As Long
     Dim hPath As Long, hBrush As Long, hPen As Long
     Dim Rect As Rect
@@ -473,36 +473,36 @@ Public Sub Update()
     GdipCreateFromHDC c_lhDC, hGraphics
     GdipSetSmoothingMode hGraphics, SmoothingModeAntiAlias
 
-    X = (m_ShadowSize * 2 + m_BorderWidth / 2) * DpiFactor
-    Y = (m_ShadowSize * 2 + m_BorderWidth / 2) * DpiFactor
+    x = (m_ShadowSize * 2 + m_BorderWidth / 2) * DpiFactor
+    y = (m_ShadowSize * 2 + m_BorderWidth / 2) * DpiFactor
     
-    If m_ShadowOffsetX < 0 Then X = X - m_ShadowOffsetX * DpiFactor
-    If m_ShadowOffsetY < 0 Then Y = Y - m_ShadowOffsetY * DpiFactor
+    If m_ShadowOffsetX < 0 Then x = x - m_ShadowOffsetX * DpiFactor
+    If m_ShadowOffsetY < 0 Then y = y - m_ShadowOffsetY * DpiFactor
     
-    If X <= 0 Then X = 0
-    If Y < 0 Then Y = 0
+    If x <= 0 Then x = 0
+    If y < 0 Then y = 0
     
-    hPath = CreateRoundPath(X, Y, _
+    hPath = CreateRoundPath(x, y, _
         tWinSize.cx + (m_BorderWidth + m_Margin * 2) * DpiFactor, _
         tWinSize.cy + (m_BorderWidth + m_Margin * 2) * DpiFactor, m_BorderRadius * DpiFactor)
     
     GdipSetClipPath hGraphics, hPath, CombineModeXor
 
-    X = 0: Y = 0
-    If m_ShadowOffsetX > 0 Then X = m_ShadowOffsetX * DpiFactor
-    If m_ShadowOffsetY > 0 Then Y = m_ShadowOffsetY * DpiFactor
+    x = 0: y = 0
+    If m_ShadowOffsetX > 0 Then x = m_ShadowOffsetX * DpiFactor
+    If m_ShadowOffsetY > 0 Then y = m_ShadowOffsetY * DpiFactor
     
     If m_ShadowSize > 0 And m_ShadowOpacity > 0 Then
-        RenderStretchPlus hGraphics, X, Y, lWidth - Abs(m_ShadowOffsetX) * DpiFactor, lHeight - Abs(m_ShadowOffsetY) * DpiFactor, hImgShadow, 0, 0, nSize + m_ShadowSize * 2 * DpiFactor, nSize + m_ShadowSize * 2 * DpiFactor, (m_ShadowSize * 2 + m_BorderRadius) * DpiFactor
+        RenderStretchPlus hGraphics, x, y, lWidth - Abs(m_ShadowOffsetX) * DpiFactor, lHeight - Abs(m_ShadowOffsetY) * DpiFactor, hImgShadow, 0, 0, nSize + m_ShadowSize * 2 * DpiFactor, nSize + m_ShadowSize * 2 * DpiFactor, (m_ShadowSize * 2 + m_BorderRadius) * DpiFactor
     End If
     GdipResetClip hGraphics
     
-    X = (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
-    Y = (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
+    x = (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
+    y = (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
 
     hRgn = CreateRectRgn(0, 0, tWinSize.cx, tWinSize.cy)
     Call GetWindowRgn(m_hwnd, hRgn)
-    OffsetRgn hRgn, X, Y
+    OffsetRgn hRgn, x, y
     GdipSetClipHrgn hGraphics, hRgn, CombineModeXor
     DeleteObject hRgn
 
@@ -633,7 +633,7 @@ Private Function CreateBlurShadowImage(ByVal hImage As Long, ByVal Color As Long
                                         Optional ByVal Width As Long, Optional ByVal Height As Long) As Long
                                         
     Dim REC As RECTL
-    Dim X As Long, Y As Long
+    Dim x As Long, y As Long
     Dim hImgShadow As Long
     Dim bmpData1 As BitmapData
     Dim bmpData2 As BitmapData
@@ -690,17 +690,17 @@ Private Function CreateBlurShadowImage(ByVal hImage As Long, ByVal Color As Long
     
     ReDim vTally(0 To t2xBlur)              ' number of blur columns per pixel
     
-    For Y = 0 To Height + t2xBlur - 1     ' loop thru shadow dib
+    For y = 0 To Height + t2xBlur - 1     ' loop thru shadow dib
     
         FillMemory vTally(0), (t2xBlur + 1) * 4, 0  ' reset column totals
         
-        If Y < t2xBlur Then         ' y does not exist in source
+        If y < t2xBlur Then         ' y does not exist in source
             initYstart = 0          ' use 1st row
         Else
-            initYstart = Y - t2xBlur ' start n blur rows above y
+            initYstart = y - t2xBlur ' start n blur rows above y
         End If
         ' how may source rows can we use for blurring?
-        If Y < Height Then initYstop = Y Else initYstop = Height - 1
+        If y < Height Then initYstop = y Else initYstop = Height - 1
         
         tAlpha = 0  ' reset alpha sum
         tColumn = 0    ' reset column counter
@@ -713,29 +713,29 @@ Private Function CreateBlurShadowImage(ByVal hImage As Long, ByVal Color As Long
         ' assign the right column value
         vTally(t2xBlur) = tAlpha
         
-        For X = 3 To (Width - 2) * 4 - 1 Step 4
+        For x = 3 To (Width - 2) * 4 - 1 Step 4
             ' loop thru each source pixel's alpha
             
             ' set shadow alpha using blur average
-            dBytes(X, Y) = tAlpha \ tAvg
+            dBytes(x, y) = tAlpha \ tAvg
             ' and set shadow color
-            Select Case dBytes(X, Y)
+            Select Case dBytes(x, y)
             Case 255
-                dBytes(X - 1, Y) = R
-                dBytes(X - 2, Y) = G
-                dBytes(X - 3, Y) = B
+                dBytes(x - 1, y) = R
+                dBytes(x - 2, y) = G
+                dBytes(x - 3, y) = B
             Case 0
             Case Else
-                dBytes(X - 1, Y) = R * dBytes(X, Y) \ 255
-                dBytes(X - 2, Y) = G * dBytes(X, Y) \ 255
-                dBytes(X - 3, Y) = B * dBytes(X, Y) \ 255
+                dBytes(x - 1, y) = R * dBytes(x, y) \ 255
+                dBytes(x - 2, y) = G * dBytes(x, y) \ 255
+                dBytes(x - 3, y) = B * dBytes(x, y) \ 255
             End Select
             ' remove the furthest left column's alpha sum
             tAlpha = tAlpha - vTally(tColumn)
             ' count the next column of alphas
             vTally(tColumn) = 0&
             For initY = initYstart To initYstop
-                vTally(tColumn) = vTally(tColumn) + srcBytes(X + 4, initY)
+                vTally(tColumn) = vTally(tColumn) + srcBytes(x + 4, initY)
             Next
             ' add the new column's sum to the overall sum
             tAlpha = tAlpha + vTally(tColumn)
@@ -744,18 +744,18 @@ Private Function CreateBlurShadowImage(ByVal hImage As Long, ByVal Color As Long
         Next
         
         ' now to finish blurring from right edge of source
-        For X = X To (Width + t2xBlur - 1) * 4 - 1 Step 4
-            dBytes(X, Y) = tAlpha \ tAvg
-            Select Case dBytes(X, Y)
+        For x = x To (Width + t2xBlur - 1) * 4 - 1 Step 4
+            dBytes(x, y) = tAlpha \ tAvg
+            Select Case dBytes(x, y)
             Case 255
-                dBytes(X - 1, Y) = R
-                dBytes(X - 2, Y) = G
-                dBytes(X - 3, Y) = B
+                dBytes(x - 1, y) = R
+                dBytes(x - 2, y) = G
+                dBytes(x - 3, y) = B
             Case 0
             Case Else
-                dBytes(X - 1, Y) = R * dBytes(X, Y) \ 255
-                dBytes(X - 2, Y) = G * dBytes(X, Y) \ 255
-                dBytes(X - 3, Y) = B * dBytes(X, Y) \ 255
+                dBytes(x - 1, y) = R * dBytes(x, y) \ 255
+                dBytes(x - 2, y) = G * dBytes(x, y) \ 255
+                dBytes(x - 3, y) = B * dBytes(x, y) \ 255
             End Select
             ' remove this column's alpha sum
             tAlpha = tAlpha - vTally(tColumn)
@@ -772,21 +772,21 @@ End Function
 
 Private Sub RenderStretchPlus(ByVal hGraphics As Long, _
             ByVal DestX As Long, ByVal DestY As Long, ByVal DestW As Long, ByVal DestH As Long, ByVal hImage As Long, _
-            ByVal X As Long, ByVal Y As Long, ByVal Width As Long, ByVal Height As Long, ByVal Size As Long)
+            ByVal x As Long, ByVal y As Long, ByVal Width As Long, ByVal Height As Long, ByVal Size As Long)
 
     Dim Sx2 As Long
   
     Sx2 = Size * 2
 
-    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY, Size, Size, X, Y, Size, Size, &H2, 0&, 0&, 0& 'TOP_LEFT
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY, DestW - Sx2, Size, X + Size, Y, Width - Sx2, Size, &H2, 0&, 0&, 0& 'TOP_CENTER
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY, Size, Size, X + Width - Size, Y, Size, Size, &H2, 0&, 0&, 0& 'TOP_RIGHT
-    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY + Size, Size, DestH - Sx2, X, Y + Size, Size, Height - Sx2, &H2, 0&, 0&, 0& 'MID_LEFT
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY + Size, DestW - Sx2, DestH - Sx2, X + Size, Y + Size, Width - Sx2, Height - Sx2, &H2, 0&, 0&, 0& 'MID_CENTER
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY + Size, Size, DestH - Sx2, X + Width - Size, Y + Size, Size, Height - Sx2, &H2, 0&, 0&, 0& 'MID_RIGHT
-    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY + DestH - Size, Size, Size, X, Y + Height - Size, Size, Size, &H2, 0&, 0&, 0& 'BOTTOM_LEFT
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY + DestH - Size, DestW - Sx2, Size, X + Size, Y + Height - Size, Width - Sx2, Size, &H2, 0&, 0&, 0& 'BOTTOM_CENTER
-    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY + DestH - Size, Size, Size, X + Width - Size, Y + Height - Size, Size, Size, &H2, 0&, 0&, 0& 'BOTTOM_RIGHT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY, Size, Size, x, y, Size, Size, &H2, 0&, 0&, 0& 'TOP_LEFT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY, DestW - Sx2, Size, x + Size, y, Width - Sx2, Size, &H2, 0&, 0&, 0& 'TOP_CENTER
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY, Size, Size, x + Width - Size, y, Size, Size, &H2, 0&, 0&, 0& 'TOP_RIGHT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY + Size, Size, DestH - Sx2, x, y + Size, Size, Height - Sx2, &H2, 0&, 0&, 0& 'MID_LEFT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY + Size, DestW - Sx2, DestH - Sx2, x + Size, y + Size, Width - Sx2, Height - Sx2, &H2, 0&, 0&, 0& 'MID_CENTER
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY + Size, Size, DestH - Sx2, x + Width - Size, y + Size, Size, Height - Sx2, &H2, 0&, 0&, 0& 'MID_RIGHT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX, DestY + DestH - Size, Size, Size, x, y + Height - Size, Size, Size, &H2, 0&, 0&, 0& 'BOTTOM_LEFT
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + Size, DestY + DestH - Size, DestW - Sx2, Size, x + Size, y + Height - Size, Width - Sx2, Size, &H2, 0&, 0&, 0& 'BOTTOM_CENTER
+    GdipDrawImageRectRectI hGraphics, hImage, DestX + DestW - Size, DestY + DestH - Size, Size, Size, x + Width - Size, y + Height - Size, Size, Size, &H2, 0&, 0&, 0& 'BOTTOM_RIGHT
 End Sub
 
 Private Function HiWord(dw As Long) As Integer
@@ -808,7 +808,7 @@ End Function
 Private Sub WndProc(ByVal bBefore As Boolean, _
    ByRef bHandled As Boolean, _
    ByRef lReturn As Long, _
-   ByVal hWnd As Long, _
+   ByVal hwnd As Long, _
    ByVal uMsg As Long, _
    ByVal wParam As Long, _
    ByVal lParam As Long, _
@@ -819,14 +819,14 @@ Private Sub WndProc(ByVal bBefore As Boolean, _
     ElseIf uMsg = WM_DESTROY Then
         cSubClass.ssc_UnSubclass hWinShadow
     ElseIf uMsg = WM_MOVE Then 'PARENT WINDOWS
-        Dim X As Long, Y As Long
+        Dim x As Long, y As Long
 
-        X = LoWord(lParam) - (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
-        Y = HiWord(lParam) - (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
-        If m_ShadowOffsetX < 0 Then X = X + m_ShadowOffsetX * DpiFactor
-        If m_ShadowOffsetY < 0 Then Y = Y + m_ShadowOffsetY * DpiFactor
+        x = LoWord(lParam) - (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
+        y = HiWord(lParam) - (m_ShadowSize * 2 + m_BorderWidth + m_Margin) * DpiFactor
+        If m_ShadowOffsetX < 0 Then x = x + m_ShadowOffsetX * DpiFactor
+        If m_ShadowOffsetY < 0 Then y = y + m_ShadowOffsetY * DpiFactor
 
-        SetWindowPos hWinShadow, 0, X, Y, 0, 0, SWP_NOSIZE Or SWP_NOACTIVATE
+        SetWindowPos hWinShadow, 0, x, y, 0, 0, SWP_NOSIZE Or SWP_NOACTIVATE
     End If
 End Sub
 

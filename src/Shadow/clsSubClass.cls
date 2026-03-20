@@ -198,14 +198,14 @@ Public Function ssc_Subclass(ByVal lng_hWnd As Long, _
             nAddr = SetWindowLongA(lng_hWnd, GWL_WNDPROC, z_ScMem + WNDPROC_OFF)    'Set the new WndProc, return the address of the original WndProc
         End If
         If nAddr = 0 Then                                                           'Ensure the new WndProc was set correctly
-            zError SUB_NAME, "SetWindowLong failed, error #" & ERR.LastDllError
+            zError SUB_NAME, "SetWindowLong failed, error #" & Err.LastDllError
             GoTo ReleaseMemory
         End If
         'Store the original WndProc address in the thunk data
         RtlMoveMemory z_ScMem + IDX_WNDPROC * 4, VarPtr(nAddr), 4&              ' z_Sc(IDX_WNDPROC) = nAddr
         ssc_Subclass = True                                                     'Indicate success
     Else
-        zError SUB_NAME, "VirtualAlloc failed, error: " & ERR.LastDllError
+        zError SUB_NAME, "VirtualAlloc failed, error: " & Err.LastDllError
     End If
 
     Exit Function                                                             'Exit ssc_Subclass
@@ -388,7 +388,7 @@ Private Function scb_SetCallbackAddr(ByVal nParamCount As Long, _
     Else
         On Error Resume Next                    'Catch already initialized?
         z_ScMem = z_cbFunk.Item("h" & nOrdinal) 'Test it
-        If ERR = 0 Then
+        If Err = 0 Then
             scb_SetCallbackAddr = z_ScMem + 16  'we had this one, just reference it
             Exit Function
         End If
@@ -409,7 +409,7 @@ Private Function scb_SetCallbackAddr(ByVal nParamCount As Long, _
     z_ScMem = VirtualAlloc(0, MEM_LEN, MEM_COMMIT, PAGE_RWX) 'Allocate executable memory
         
     If z_ScMem = 0& Then
-        zError SUB_NAME, "VirtualAlloc failed, error: " & ERR.LastDllError  ' oops
+        zError SUB_NAME, "VirtualAlloc failed, error: " & Err.LastDllError  ' oops
         Exit Function
     End If
     z_cbFunk.Add z_ScMem, "h" & nOrdinal                  'Add the callback/thunk-address to the collection

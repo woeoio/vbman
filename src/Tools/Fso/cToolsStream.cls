@@ -78,7 +78,9 @@ Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String
         Dat = Data
     End If
     With Inst
-        If .State = adStateClosed Then .Open
+        If .State <> adStateClosed Then .Close
+        .Type = adTypeText
+        .Open
         .CharSet = CharSet
         If isInst = False Then .WriteText Dat
         .SaveToFile FileName, adSaveCreateOverWrite

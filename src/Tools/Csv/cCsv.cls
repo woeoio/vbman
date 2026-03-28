@@ -266,6 +266,63 @@ EH:
     LastError = ERR.Number & "#" & ERR.Description & "：" & FilePath
 End Function
 
+Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Boolean = True) As cCsv
+    '从数据库记录集载入数据
+'rs:ADODB.Recordset 对象
+'IsFirstHead: 是否将字段名作为标题行
+    On Error GoTo EH
+    Set LoadFromRecordSet = Me
+    
+    If Rs Is Nothing Then LastError = "Recordset对象为空": Exit Function
+    If Rs.State <> 1 Then LastError = "Recordset状态不正确": Exit Function      ' adStateOpen = 1
+    
+    Dim Dict As New Dictionary
+    Set Data = Dict
+    
+    Dim FieldCount As Long
+    FieldCount = Rs.fields.Count
+    
+    Dim RowCount As Long
+    RowCount = 0
+    
+    '如果IsFirstHead=True，先添加标题行
+    If IsFirstHead = True And FieldCount > 0 Then
+        Dim TitleDic As New Scripting.Dictionary
+        Dim i As Long
+        For i = 0 To FieldCount - 1
+            TitleDic.Add i + 1, Rs.fields(i).Name
+        Next
+        SyncColumnLength TitleDic
+        Dict.Add 1, TitleDic
+        RowCount = 1
+    End If
+    
+    '遍历记录集
+    If Not (Rs.EOF And Rs.BOF) Then
+        Rs.MoveFirst
+        Do While Not Rs.EOF
+            RowCount = RowCount + 1
+            Dim LineDic As New Scripting.Dictionary
+            Dim J As Long
+            For J = 0 To FieldCount - 1
+                Dim FieldValue As Variant
+                FieldValue = Rs.fields(J).Value
+                If IsNull(FieldValue) Then FieldValue = ""
+                LineDic.Add J + 1, FieldValue
+            Next
+            SyncColumnLength LineDic
+            Dict.Add RowCount, LineDic
+            Set LineDic = Nothing
+            Rs.MoveNext
+        Loop
+    End If
+    
+    Call SyncColumnWidth
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
 Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scripting.Dictionary) As Boolean
     If Trim(Content) = "" Then LastError = "内容为空": Exit Function
     LineDic.RemoveAll
@@ -343,6 +400,69 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As String, Optional IncludeFieldNames As Boolean = True) As Boolean
+    '从ADODB.RecordSet记录集直接保存到CSV文件（高效版）
+'rs:ADODB.Recordset对象
+'SaveToFilePath: 保存到的文件路径
+'IncludeFieldNames: 是否包含字段名作为第一行
+    On Error GoTo EH
+    
+    If Rs Is Nothing Then LastError = "Recordset对象为空": Exit Function
+    If Rs.State <> 1 Then LastError = "Recordset状态不正确": Exit Function      ' adStateOpen = 1
+    If SaveToFilePath = "" Then LastError = "保存路径为空": Exit Function
+    
+    Dim FieldCount As Long
+    FieldCount = Rs.fields.Count
+    If FieldCount = 0 Then LastError = "Recordset字段数为0": Exit Function
+    
+    '创建文件流对象
+    Dim Fso As New cToolsStream
+    Fso.UseLine = True
+    
+    Dim i As Long
+    Dim LineFields() As String
+    
+    '写入字段名行（如果需要）
+    If IncludeFieldNames = True Then
+        ReDim LineFields(FieldCount - 1)
+        For i = 0 To FieldCount - 1
+            LineFields(i) = QuoteCsvField(Rs.fields(i).Name)
+        Next
+        Fso.WriteLine Join(LineFields, Delimiter)
+    End If
+    
+    '遍历记录集，直接写入文件
+    If Not (Rs.EOF And Rs.BOF) Then
+        Rs.MoveFirst
+        Do While Not Rs.EOF
+            ReDim LineFields(FieldCount - 1)
+            
+            For i = 0 To FieldCount - 1
+                Dim FieldValue As Variant
+                FieldValue = Rs.fields(i).Value
+                If IsNull(FieldValue) Then
+                    LineFields(i) = ""
+                Else
+                    LineFields(i) = QuoteCsvField(CStr(FieldValue))
+                End If
+            Next
+            
+            Fso.WriteLine Join(LineFields, Delimiter)
+            Rs.MoveNext
+        Loop
+    End If
+    
+    '保存文件
+    Fso.SaveFileAsText SaveToFilePath, , "UTF-8"
+    Fso.Inst.Close
+    
+    SaveFromRecordSet = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+    Debug.Print LastError
 End Function
 
 Private Function QuoteCsvField(ByVal Field As String) As String

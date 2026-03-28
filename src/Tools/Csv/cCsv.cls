@@ -41,6 +41,10 @@ Public HeadTitleWidthMax As Long                                                
 Public HeadTitleWidthAuto As Boolean                                            '是否自动宽度
 Public HeadTitleWidthWord As Long                                               '单个双字节字符宽度
 Public IsFirstLineToHead As Boolean                                             '是否首行作为标题
+
+'循环中断标志
+'只有外部引用了 Progress 事件，并在事件中有执行 DoEvents 才能响应 StopLoop 函数
+Private StopLoopFlag As Boolean
 'tmp
 Dim x, y, z, i As Long, ii As Long
 
@@ -51,6 +55,11 @@ Public Sub Reset(Optional OnlyData As Boolean)
     HeadTitleWidth.RemoveAll
     CurrentLineNumber = 0
     If OnlyData = False Then Call Class_Initialize
+End Sub
+
+Public Sub StopLoop()
+    '设置中断标志，用于在循环中中断操作
+    StopLoopFlag = True
 End Sub
 
 Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boolean
@@ -259,8 +268,15 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
     Dim TotalLines As Long
     TotalLines = fo.LineData.Count
     
+    StopLoopFlag = False
     Dim i As Long
     For i = 1 To TotalLines
+        If StopLoopFlag Then
+            StopLoopFlag = False
+            LastError = "用户中断"
+            RaiseEvent Complete(OperationLoadFrom, i - 1, False)
+            Exit Function
+        End If
         Dim LineDic As New Scripting.Dictionary
         lineText = fo.ReadLine
         If lineText = "" Then
@@ -338,7 +354,14 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
     
     '遍历记录集
     If Not (Rs.EOF And Rs.BOF) Then
+        StopLoopFlag = False
         Do While Not Rs.EOF
+            If StopLoopFlag Then
+                StopLoopFlag = False
+                LastError = "用户中断"
+                RaiseEvent Complete(OperationLoadFromRecordSet, RowCount - 1, False)
+                Exit Function
+            End If
             RowCount = RowCount + 1
             Dim LineDic As New Scripting.Dictionary
             Dim J As Long
@@ -435,7 +458,14 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
     
     TotalRows = Data.Count
     
+    StopLoopFlag = False
     For Each Key In Data.Keys
+        If StopLoopFlag Then
+            StopLoopFlag = False
+            LastError = "用户中断"
+            RaiseEvent Complete(OperationSaveTo, CurrentRow - 1, False)
+            Exit Function
+        End If
         CurrentRow = CurrentRow + 1
         Set LineDic = Data(Key)
         ReDim LineFields(LineDic.Count - 1)
@@ -504,7 +534,14 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
     
     '遍历记录集，直接写入文件
     If Not (Rs.EOF And Rs.BOF) Then
+        StopLoopFlag = False
         Do While Not Rs.EOF
+            If StopLoopFlag Then
+                StopLoopFlag = False
+                LastError = "用户中断"
+                RaiseEvent Complete(OperationSaveFromRecordSet, CurrentRow - 1, False)
+                Exit Function
+            End If
             CurrentRow = CurrentRow + 1
             ReDim LineFields(FieldCount - 1)
             

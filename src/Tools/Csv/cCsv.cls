@@ -44,7 +44,9 @@ Public IsFirstLineToHead As Boolean                                             
 
 '循环中断标志
 '只有外部引用了 Progress 事件，并在事件中有执行 DoEvents 才能响应 StopLoop 函数
+'或者先调用 CanStop() 开启循环中的 DoEvents ，再调用 load /save 函数
 Private StopLoopFlag As Boolean
+Private EnableDoEvents As Boolean
 'tmp
 Dim x, y, z, i As Long, ii As Long
 
@@ -54,6 +56,7 @@ Public Sub Reset(Optional OnlyData As Boolean)
     CurrentLineDic.RemoveAll
     HeadTitleWidth.RemoveAll
     CurrentLineNumber = 0
+    EnableDoEvents = False
     If OnlyData = False Then Call Class_Initialize
 End Sub
 
@@ -61,6 +64,12 @@ Public Sub StopLoop()
     '设置中断标志，用于在循环中中断操作
     StopLoopFlag = True
 End Sub
+
+Public Function CanStop() As cCsv
+    '启用循环中的 DoEvents，使 StopLoop 能够响应
+    EnableDoEvents = True
+    Set CanStop = Me
+End Function
 
 Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boolean
     On Error GoTo EH
@@ -271,6 +280,7 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
     StopLoopFlag = False
     Dim i As Long
     For i = 1 To TotalLines
+        If EnableDoEvents Then DoEvents
         If StopLoopFlag Then
             StopLoopFlag = False
             LastError = "用户中断"
@@ -356,6 +366,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
     If Not (Rs.EOF And Rs.BOF) Then
         StopLoopFlag = False
         Do While Not Rs.EOF
+            If EnableDoEvents Then DoEvents
             If StopLoopFlag Then
                 StopLoopFlag = False
                 LastError = "用户中断"
@@ -460,6 +471,7 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
     
     StopLoopFlag = False
     For Each Key In Data.Keys
+        If EnableDoEvents Then DoEvents
         If StopLoopFlag Then
             StopLoopFlag = False
             LastError = "用户中断"
@@ -536,6 +548,7 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
     If Not (Rs.EOF And Rs.BOF) Then
         StopLoopFlag = False
         Do While Not Rs.EOF
+            If EnableDoEvents Then DoEvents
             If StopLoopFlag Then
                 StopLoopFlag = False
                 LastError = "用户中断"

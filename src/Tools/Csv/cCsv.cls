@@ -13,9 +13,18 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
+'操作类型枚举
+Public Enum CsvOperationType
+    OperationNone = 0
+    OperationLoadFrom = 1
+    OperationLoadFromRecordSet = 2
+    OperationSaveTo = 3
+    OperationSaveFromRecordSet = 4
+End Enum
+
 '事件声明
-Public Event Progress(ByVal Operation As String, ByVal CurrentLine As Long, ByVal TotalLines As Long, ByVal Percent As String)
-Public Event Complete(ByVal Operation As String, ByVal TotalLines As Long, ByVal Success As Boolean)
+Public Event Progress(ByVal Operation As CsvOperationType, ByVal CurrentLine As Long, ByVal TotalLines As Long, ByVal Percent As String)
+Public Event Complete(ByVal Operation As CsvOperationType, ByVal TotalLines As Long, ByVal Success As Boolean)
 
 'todo 需要改为文件流的处理方式，解决自动识别文件编码问题，以及字段内回车问题
 Public Data As New Scripting.Dictionary
@@ -256,7 +265,7 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
         lineText = fo.ReadLine
         If lineText = "" Then
             Dim Percent1 As Long: Percent1 = (i / TotalLines) * 100
-            RaiseEvent Progress("LoadFrom", i, TotalLines, Percent1 & "%")
+            RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent1 & "%")
             GoTo CT
         End If
         If ParseCsvLine(lineText, LineDic) = True Then
@@ -266,7 +275,7 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
             ' RaiseEvent RowLoaded(fo.LineNumber - 1, LineDic)
         End If
         Dim Percent2 As Long: Percent2 = (i / TotalLines) * 100
-        RaiseEvent Progress("LoadFrom", i, TotalLines, Percent2 & "%")
+        RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent2 & "%")
         Set LineDic = Nothing
 CT:
     Next
@@ -274,11 +283,11 @@ CT:
     fo.Inst.Close
     
     Call SyncColumnWidth
-    RaiseEvent Complete("LoadFrom", TotalLines, True)
+    RaiseEvent Complete(OperationLoadFrom, TotalLines, True)
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description & "：" & FilePath
-    RaiseEvent Complete("LoadFrom", 0, False)
+    RaiseEvent Complete(OperationLoadFrom, 0, False)
 End Function
 
 Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Boolean = True) As cCsv
@@ -321,7 +330,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
         RowCount = 1
         ' RaiseEvent RowLoaded(1, TitleDic)
         Dim Percent3 As Long: Percent3 = (RowCount / TotalRows) * 100
-        RaiseEvent Progress("LoadFromRecordSet", RowCount, TotalRows, Percent3 & "%")
+        RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent3 & "%")
     End If
     
     '遍历记录集
@@ -340,18 +349,18 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
             Dict.Add RowCount, LineDic
             ' RaiseEvent RowLoaded(RowCount, LineDic)
             Dim Percent4 As Long: Percent4 = (RowCount / TotalRows) * 100
-            RaiseEvent Progress("LoadFromRecordSet", RowCount, TotalRows, Percent4 & "%")
+            RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent4 & "%")
             Set LineDic = Nothing
             Rs.MoveNext
         Loop
     End If
     
     Call SyncColumnWidth
-    RaiseEvent Complete("LoadFromRecordSet", RowCount, True)
+    RaiseEvent Complete(OperationLoadFromRecordSet, RowCount, True)
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description
-    RaiseEvent Complete("LoadFromRecordSet", 0, False)
+    RaiseEvent Complete(OperationLoadFromRecordSet, 0, False)
 End Function
 
 Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scripting.Dictionary) As Boolean
@@ -432,16 +441,16 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
         Fso.WriteLine Join(LineFields, Delimiter)
         ' RaiseEvent RowSaved(CurrentRow, LineDic)
         Dim Percent5 As Long: Percent5 = (CurrentRow / TotalRows) * 100
-        RaiseEvent Progress("SaveTo", CurrentRow, TotalRows, Percent5 & "%")
+        RaiseEvent Progress(OperationSaveTo, CurrentRow, TotalRows, Percent5 & "%")
     Next
     Fso.SaveFileAsText FilePath, , CharSet
     Fso.Inst.Close
-    RaiseEvent Complete("SaveTo", TotalRows, True)
+    RaiseEvent Complete(OperationSaveTo, TotalRows, True)
     SaveTo = True
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description
-    RaiseEvent Complete("SaveTo", 0, False)
+    RaiseEvent Complete(OperationSaveTo, 0, False)
 End Function
 
 Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As String, Optional IncludeFieldNames As Boolean = True) As Boolean
@@ -485,7 +494,7 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
         Fso.WriteLine Join(LineFields, Delimiter)
         CurrentRow = 1
         Dim Percent6 As Long: Percent6 = (CurrentRow / TotalRows) * 100
-        RaiseEvent Progress("SaveFromRecordSet", CurrentRow, TotalRows, Percent6 & "%")
+        RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent6 & "%")
     End If
     
     '遍历记录集，直接写入文件
@@ -506,7 +515,7 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
             
             Fso.WriteLine Join(LineFields, Delimiter)
             Dim Percent7 As Long: Percent7 = (CurrentRow / TotalRows) * 100
-            RaiseEvent Progress("SaveFromRecordSet", CurrentRow, TotalRows, Percent7 & "%")
+            RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent7 & "%")
             Rs.MoveNext
         Loop
     End If
@@ -515,12 +524,12 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
     Fso.SaveFileAsText SaveToFilePath, , "UTF-8"
     Fso.Inst.Close
     
-    RaiseEvent Complete("SaveFromRecordSet", CurrentRow, True)
+    RaiseEvent Complete(OperationSaveFromRecordSet, CurrentRow, True)
     SaveFromRecordSet = True
     Exit Function
 EH:
     LastError = ERR.Number & "#" & ERR.Description
-    RaiseEvent Complete("SaveFromRecordSet", 0, False)
+    RaiseEvent Complete(OperationSaveFromRecordSet, 0, False)
 End Function
 
 Private Function QuoteCsvField(ByVal Field As String) As String

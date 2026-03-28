@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-'æ“ä½œç±»å‹æšä¸¾
+'²Ù×÷ÀàĞÍÃ¶¾Ù
 Public Enum CsvOperationType
     OperationNone = 0
     OperationLoadFrom = 1
@@ -22,25 +22,25 @@ Public Enum CsvOperationType
     OperationSaveFromRecordSet = 4
 End Enum
 
-'äº‹ä»¶å£°æ˜
-Public Event Progress(ByVal Operation As CsvOperationType, ByVal CurrentLine As Long, ByVal TotalLines As Long, ByVal Percent As String)
+'ÊÂ¼şÉùÃ÷
+Public Event Progress(ByVal Operation As CsvOperationType, ByVal CurrentLine As Long, ByVal TotalLines As Long, ByVal Percent As String, LineDataArray As Variant)
 Public Event Complete(ByVal Operation As CsvOperationType, ByVal TotalLines As Long, ByVal Success As Boolean)
 
-'todo éœ€è¦æ”¹ä¸ºæ–‡ä»¶æµçš„å¤„ç†æ–¹å¼ï¼Œè§£å†³è‡ªåŠ¨è¯†åˆ«æ–‡ä»¶ç¼–ç é—®é¢˜ï¼Œä»¥åŠå­—æ®µå†…å›è½¦é—®é¢˜
+'todo ĞèÒª¸ÄÎªÎÄ¼şÁ÷µÄ´¦Àí·½Ê½£¬½â¾ö×Ô¶¯Ê¶±ğÎÄ¼ş±àÂëÎÊÌâ£¬ÒÔ¼°×Ö¶ÎÄÚ»Ø³µÎÊÌâ
 Public Data As New Scripting.Dictionary
 Public CurrentLineDic As New Scripting.Dictionary
 Public CurrentLineNumber As Long
 Public Delimiter As String
 Public LastError As String
-'ç”¨äºåˆ—è¡¨æ§ä»¶æ¸²æŸ“
+'ÓÃÓÚÁĞ±í¿Ø¼şäÖÈ¾
 Public HasHeadTitle As Boolean
 Public HeadTitle As New Scripting.Dictionary
 Public HeadTitleWidth As New Scripting.Dictionary
-Public HeadTitleWidthDefault As Long                                            'é»˜è®¤å®½åº¦1500
-Public HeadTitleWidthMax As Long                                                'æœ€å¤§å®½åº¦8000
-Public HeadTitleWidthAuto As Boolean                                            'æ˜¯å¦è‡ªåŠ¨å®½åº¦
-Public HeadTitleWidthWord As Long                                               'å•ä¸ªåŒå­—èŠ‚å­—ç¬¦å®½åº¦
-Public IsFirstLineToHead As Boolean                                             'æ˜¯å¦é¦–è¡Œä½œä¸ºæ ‡é¢˜
+Public HeadTitleWidthDefault As Long                                            'Ä¬ÈÏ¿í¶È1500
+Public HeadTitleWidthMax As Long                                                '×î´ó¿í¶È8000
+Public HeadTitleWidthAuto As Boolean                                            'ÊÇ·ñ×Ô¶¯¿í¶È
+Public HeadTitleWidthWord As Long                                               'µ¥¸öË«×Ö½Ú×Ö·û¿í¶È
+Public IsFirstLineToHead As Boolean                                             'ÊÇ·ñÊ×ĞĞ×÷Îª±êÌâ
 'tmp
 Dim x, y, z, i As Long, ii As Long
 
@@ -55,14 +55,14 @@ End Sub
 
 Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boolean
     On Error GoTo EH
-    ' åˆå§‹åŒ–ListViewæ§ä»¶
+    ' ³õÊ¼»¯ListView¿Ø¼ş
     With Lv
         .ColumnHeaders.Clear
         .ListItems.Clear
-        .View = 3                                                               ' lvwReport                                                       ' è®¾ç½®ä¸ºæŠ¥å‘Šè§†å›¾
-        .FullRowSelect = True                                                   ' å…è®¸é€‰æ‹©æ•´è¡Œ
-        .GridLines = True                                                       ' æ˜¾ç¤ºç½‘æ ¼çº¿
-        .LabelEdit = 1                                                          ' lvwManual                                                  'ç¦æ­¢ç¼–è¾‘è¡Œå·
+        .View = 3                                                               ' lvwReport                                                       ' ÉèÖÃÎª±¨¸æÊÓÍ¼
+        .FullRowSelect = True                                                   ' ÔÊĞíÑ¡ÔñÕûĞĞ
+        .GridLines = True                                                       ' ÏÔÊ¾Íø¸ñÏß
+        .LabelEdit = 1                                                          ' lvwManual                                                  '½ûÖ¹±à¼­ĞĞºÅ
         Dim Row As Scripting.Dictionary
         'Dim Col As Scripting.Dictionary
         Dim itm As Object
@@ -73,12 +73,12 @@ Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boo
             If i > 1 Then Set itm = .ListItems.Add(, , i - 1)
             For ii = 1 To Row.Count
                 If i = 1 Then
-                    ' æ·»åŠ åˆ—æ ‡é¢˜
+                    ' Ìí¼ÓÁĞ±êÌâ
                     Dim hh As String: hh = ii & "#" & Row(ii)
-                    If ii = 1 Then .ColumnHeaders.Add , , "è¡Œå·", DefaultWidth
+                    If ii = 1 Then .ColumnHeaders.Add , , "ĞĞºÅ", DefaultWidth
                     .ColumnHeaders.Add , , hh, HeadTitleWidth(ii)
                 Else
-                    ' æ·»åŠ æ•°æ®åˆ°ListView
+                    ' Ìí¼ÓÊı¾İµ½ListView
                     itm.SubItems(ii) = Row(ii)
                 End If
             Next
@@ -96,7 +96,7 @@ Public Function SetHeadTitleWidthByDic(ByVal Dic As Scripting.Dictionary) As Boo
     Next
 End Function
 Public Function SetHeadTitleWidth(ByVal ColumnNumber As Long, ByVal ColumnWidth As Long) As Boolean
-    If HeadTitleWidth.Exists(ColumnNumber) = False Then LastError = "åˆ—å·ä¸å­˜åœ¨": Exit Function
+    If HeadTitleWidth.Exists(ColumnNumber) = False Then LastError = "ÁĞºÅ²»´æÔÚ": Exit Function
     If ColumnWidth > HeadTitleWidthMax Then ColumnWidth = HeadTitleWidthMax
     HeadTitleWidth(ColumnNumber) = ColumnWidth
     SetHeadTitleWidth = True
@@ -104,7 +104,7 @@ End Function
 Public Function DeleteColumn(Optional ColumnNumber As Long) As Boolean
     If GetLine(1) = False Then Exit Function
     If ColumnNumber = 0 Then ColumnNumber = CurrentLineDic.Count
-    '20240828 å¾…å®Œå–„ï¼Œç›®å‰åªåˆ é™¤æœ€åä¸€åˆ—
+    '20240828 ´ıÍêÉÆ£¬Ä¿Ç°Ö»É¾³ı×îºóÒ»ÁĞ
     For Each x In Data.Keys()
         Data(x).Remove ColumnNumber
         If HeadTitle.Exists(ColumnNumber) = True Then HeadTitle.Remove ColumnNumber
@@ -176,7 +176,7 @@ Private Sub SyncColumnLength(LineDic As Scripting.Dictionary)
     End If
 End Sub
 Private Sub SyncColumnWidth()
-    'åŒæ­¥å®½åº¦
+    'Í¬²½¿í¶È
     Dim dn As Long: dn = Data.Count
     If dn > 0 Then
         Dim d0n As Long: d0n = Data(1).Count
@@ -189,27 +189,27 @@ Private Sub SyncColumnWidth()
                 End If
             Loop
         End With
-        'åŒæ­¥æ ‡é¢˜
+        'Í¬²½±êÌâ
         With HeadTitle
             Do Until .Count = d0n
                 If .Count > d0n Then
                     .Remove .Count
                 Else
-                    .Add .Count + 1, "(æ— æ ‡é¢˜)"
+                    .Add .Count + 1, "(ÎŞ±êÌâ)"
                 End If
             Loop
         End With
     End If
 End Sub
 Public Function GetLine(ByVal LineNumber As Long, Optional ByRef LineDic As Scripting.Dictionary) As Boolean
-    If Data.Exists(LineNumber) = False Then LastError = "è¡Œå·ä¸å­˜åœ¨": Exit Function
+    If Data.Exists(LineNumber) = False Then LastError = "ĞĞºÅ²»´æÔÚ": Exit Function
     Set CurrentLineDic = Data(LineNumber)
     CurrentLineNumber = LineNumber
     If IsMissing(LineDic) = False Then Set LineDic = CurrentLineDic
     GetLine = True
 End Function
 Public Function SetLine(ByVal LineNumber As Long, ByRef LineDic As Scripting.Dictionary) As Boolean
-    If Data.Exists(LineNumber) = False Then LastError = "è¡Œå·ä¸å­˜åœ¨": Exit Function
+    If Data.Exists(LineNumber) = False Then LastError = "ĞĞºÅ²»´æÔÚ": Exit Function
     Set CurrentLineDic = LineDic
     SyncColumnLength CurrentLineDic
     Set Data(LineNumber) = CurrentLineDic
@@ -224,29 +224,29 @@ Public Property Get CountColumn() As Long
 End Property
 Public Property Get Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long) As Variant
     Value = vbNull
-    If Data.Exists(LineNumber) = False Then LastError = "è¡Œå·ä¸å­˜åœ¨": Exit Property
-    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "åˆ—å·ä¸å­˜åœ¨": Exit Property
+    If Data.Exists(LineNumber) = False Then LastError = "ĞĞºÅ²»´æÔÚ": Exit Property
+    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "ÁĞºÅ²»´æÔÚ": Exit Property
     Value = Data(LineNumber)(ColumnNumber)
 End Property
 Public Property Set Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long, ByVal Dat As Variant)
-    If Data.Exists(LineNumber) = False Then LastError = "è¡Œå·ä¸å­˜åœ¨": Exit Property
-    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "åˆ—å·ä¸å­˜åœ¨": Exit Property
+    If Data.Exists(LineNumber) = False Then LastError = "ĞĞºÅ²»´æÔÚ": Exit Property
+    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "ÁĞºÅ²»´æÔÚ": Exit Property
     Set Data(LineNumber)(ColumnNumber) = Dat
 End Property
 Public Property Let Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long, ByVal Dat As Variant)
-    If Data.Exists(LineNumber) = False Then LastError = "è¡Œå·ä¸å­˜åœ¨": Exit Property
-    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "åˆ—å·ä¸å­˜åœ¨": Exit Property
+    If Data.Exists(LineNumber) = False Then LastError = "ĞĞºÅ²»´æÔÚ": Exit Property
+    If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "ÁĞºÅ²»´æÔÚ": Exit Property
     Data(LineNumber)(ColumnNumber) = Dat
 End Property
 Public Function SetCurrentLineData(ByVal ColumnNumber As Long, ByVal Dat As Variant, Optional ByRef LineDic As Scripting.Dictionary) As Boolean
     If IsMissing(LineDic) = True Then Set LineDic = CurrentLineDic
-    If CurrentLineDic.Exists(ColumnNumber) = False Then LastError = "åˆ—å·ä¸å­˜åœ¨": Exit Function
+    If CurrentLineDic.Exists(ColumnNumber) = False Then LastError = "ÁĞºÅ²»´æÔÚ": Exit Function
     CurrentLineDic(ColumnNumber) = Dat
     SetCurrentLineData = True
 End Function
 
 Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boolean = True, Optional CharSet As String = "UTF-8") As cCsv
-    '20240828 å¯èƒ½éœ€è¦åŒæ­¥å¤„ç† headtitle å’Œ headwidth'
+    '20240828 ¿ÉÄÜĞèÒªÍ¬²½´¦Àí headtitle ºÍ headwidth'
     On Error GoTo EH
     Set LoadFrom = Me
     Dim Dict As New Dictionary
@@ -265,17 +265,19 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
         lineText = fo.ReadLine
         If lineText = "" Then
             Dim Percent1 As Long: Percent1 = (i / TotalLines) * 100
-            RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent1 & "%")
+            Dim EmptyData() As Variant
+            RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent1 & "%", EmptyData)
             GoTo CT
         End If
         If ParseCsvLine(lineText, LineDic) = True Then
-            'todo æ­¤å¤„ä¹Ÿåº”è¯¥åšé¦–è¡Œå¯¹é½ï¼Œé¿å…ç”¨æˆ·çš„csvæ–‡ä»¶ä¸è§„èŒƒ
+            'todo ´Ë´¦Ò²Ó¦¸Ã×öÊ×ĞĞ¶ÔÆë£¬±ÜÃâÓÃ»§µÄcsvÎÄ¼ş²»¹æ·¶
             SyncColumnLength LineDic
             Dict.Add fo.LineNumber - 1, LineDic
             ' RaiseEvent RowLoaded(fo.LineNumber - 1, LineDic)
         End If
         Dim Percent2 As Long: Percent2 = (i / TotalLines) * 100
-        RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent2 & "%")
+        Dim LineData1() As Variant: LineData1 = LineDic.Items()
+        RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent2 & "%", LineData1)
         Set LineDic = Nothing
 CT:
     Next
@@ -286,19 +288,19 @@ CT:
     RaiseEvent Complete(OperationLoadFrom, TotalLines, True)
     Exit Function
 EH:
-    LastError = ERR.Number & "#" & ERR.Description & "ï¼š" & FilePath
+    LastError = ERR.Number & "#" & ERR.Description & "£º" & FilePath
     RaiseEvent Complete(OperationLoadFrom, 0, False)
 End Function
 
 Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Boolean = True) As cCsv
-    'ä»æ•°æ®åº“è®°å½•é›†è½½å…¥æ•°æ®
-'rs:ADODB.Recordset å¯¹è±¡
-'IsFirstHead: æ˜¯å¦å°†å­—æ®µåä½œä¸ºæ ‡é¢˜è¡Œ
+    '´ÓÊı¾İ¿â¼ÇÂ¼¼¯ÔØÈëÊı¾İ
+'rs:ADODB.Recordset ¶ÔÏó
+'IsFirstHead: ÊÇ·ñ½«×Ö¶ÎÃû×÷Îª±êÌâĞĞ
     On Error GoTo EH
     Set LoadFromRecordSet = Me
     
-    If Rs Is Nothing Then LastError = "Recordsetå¯¹è±¡ä¸ºç©º": Exit Function
-    If Rs.State <> 1 Then LastError = "RecordsetçŠ¶æ€ä¸æ­£ç¡®": Exit Function      ' adStateOpen = 1
+    If Rs Is Nothing Then LastError = "Recordset¶ÔÏóÎª¿Õ": Exit Function
+    If Rs.State <> 1 Then LastError = "Recordset×´Ì¬²»ÕıÈ·": Exit Function      ' adStateOpen = 1
     
     Dim Dict As New Dictionary
     Set Data = Dict
@@ -309,7 +311,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
     Dim RowCount As Long
     RowCount = 0
     
-    'è®¡ç®—æ€»è¡Œæ•°ç”¨äºè¿›åº¦äº‹ä»¶
+    '¼ÆËã×ÜĞĞÊıÓÃÓÚ½ø¶ÈÊÂ¼ş
     Dim TotalRows As Long
     If Not (Rs.EOF And Rs.BOF) Then
         Rs.MoveLast
@@ -318,7 +320,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
         Rs.MoveFirst
     End If
     
-    'å¦‚æœIsFirstHead=Trueï¼Œå…ˆæ·»åŠ æ ‡é¢˜è¡Œ
+    'Èç¹ûIsFirstHead=True£¬ÏÈÌí¼Ó±êÌâĞĞ
     If IsFirstHead = True And FieldCount > 0 Then
         Dim TitleDic As New Scripting.Dictionary
         Dim i As Long
@@ -330,10 +332,11 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
         RowCount = 1
         ' RaiseEvent RowLoaded(1, TitleDic)
         Dim Percent3 As Long: Percent3 = (RowCount / TotalRows) * 100
-        RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent3 & "%")
+        Dim LineData3() As Variant: LineData3 = TitleDic.Items()
+        RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent3 & "%", LineData3)
     End If
     
-    'éå†è®°å½•é›†
+    '±éÀú¼ÇÂ¼¼¯
     If Not (Rs.EOF And Rs.BOF) Then
         Do While Not Rs.EOF
             RowCount = RowCount + 1
@@ -345,11 +348,12 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
                 If IsNull(FieldValue) Then FieldValue = ""
                 LineDic.Add J + 1, FieldValue
             Next
-            SyncColumnLength LineDic
+            SyncColumnLength LineDic.Items()
             Dict.Add RowCount, LineDic
             ' RaiseEvent RowLoaded(RowCount, LineDic)
             Dim Percent4 As Long: Percent4 = (RowCount / TotalRows) * 100
-            RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent4 & "%")
+            Dim LineData4() As Variant: LineData4 = LineDic.Items()
+            RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent4 & "%", LineData4)
             Set LineDic = Nothing
             Rs.MoveNext
         Loop
@@ -364,7 +368,7 @@ EH:
 End Function
 
 Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scripting.Dictionary) As Boolean
-    If Trim(Content) = "" Then LastError = "å†…å®¹ä¸ºç©º": Exit Function
+    If Trim(Content) = "" Then LastError = "ÄÚÈİÎª¿Õ": Exit Function
     LineDic.RemoveAll
     Dim inQuotes As Boolean
     inQuotes = False
@@ -385,18 +389,18 @@ Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scriptin
         Select Case currentChar
         Case """"
             If inQuotes And Mid(Content, i + 1, 1) = """" Then
-                ' åŒå¼•å·å†…çš„åŒå¼•å·ï¼Œè§†ä¸ºè½¬ä¹‰åŒå¼•å·ï¼ŒåŠ å…¥å­—æ®µ
+                ' Ë«ÒıºÅÄÚµÄË«ÒıºÅ£¬ÊÓÎª×ªÒåË«ÒıºÅ£¬¼ÓÈë×Ö¶Î
                 currentField = currentField & """"
-                i = i + 1                                                       ' è·³è¿‡ä¸‹ä¸€ä¸ªå¼•å·
+                i = i + 1                                                       ' Ìø¹ıÏÂÒ»¸öÒıºÅ
             Else
-                inQuotes = Not inQuotes                                         ' åˆ‡æ¢å¼•å·çŠ¶æ€
+                inQuotes = Not inQuotes                                         ' ÇĞ»»ÒıºÅ×´Ì¬
             End If
         Case Delimiter
             If inQuotes Then
-                ' å¼•å·å†…çš„é€—å·ï¼ŒåŠ å…¥å­—æ®µ
+                ' ÒıºÅÄÚµÄ¶ººÅ£¬¼ÓÈë×Ö¶Î
                 currentField = currentField & currentChar
             Else
-                ' å¼•å·å¤–çš„é€—å·ï¼Œä½œä¸ºå­—æ®µåˆ†éš”ç¬¦
+                ' ÒıºÅÍâµÄ¶ººÅ£¬×÷Îª×Ö¶Î·Ö¸ô·û
                 fields(fieldIndex) = Trim(currentField)
                 fieldIndex = fieldIndex + 1
                 ReDim Preserve fields(fieldIndex)
@@ -407,10 +411,10 @@ Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scriptin
         End Select
     Next i
     
-    ' æœ€åä¸€ä¸ªå­—æ®µ
+    ' ×îºóÒ»¸ö×Ö¶Î
     fields(fieldIndex) = Trim(currentField)
     
-    ' è½¬å­˜åˆ°å­—å…¸
+    ' ×ª´æµ½×Öµä
     For i = 0 To fieldIndex
         LineDic.Add i + 1, fields(i)
     Next
@@ -441,7 +445,8 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
         Fso.WriteLine Join(LineFields, Delimiter)
         ' RaiseEvent RowSaved(CurrentRow, LineDic)
         Dim Percent5 As Long: Percent5 = (CurrentRow / TotalRows) * 100
-        RaiseEvent Progress(OperationSaveTo, CurrentRow, TotalRows, Percent5 & "%")
+        Dim LineData5() As Variant: LineData5 = LineDic.Items()
+        RaiseEvent Progress(OperationSaveTo, CurrentRow, TotalRows, Percent5 & "%", LineData5)
     Next
     Fso.SaveFileAsText FilePath, , CharSet
     Fso.Inst.Close
@@ -454,21 +459,21 @@ EH:
 End Function
 
 Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As String, Optional IncludeFieldNames As Boolean = True) As Boolean
-    'ä»ADODB.RecordSetè®°å½•é›†ç›´æ¥ä¿å­˜åˆ°CSVæ–‡ä»¶ï¼ˆé«˜æ•ˆç‰ˆï¼‰
-'rs:ADODB.Recordsetå¯¹è±¡
-'SaveToFilePath: ä¿å­˜åˆ°çš„æ–‡ä»¶è·¯å¾„
-'IncludeFieldNames: æ˜¯å¦åŒ…å«å­—æ®µåä½œä¸ºç¬¬ä¸€è¡Œ
+    '´ÓADODB.RecordSet¼ÇÂ¼¼¯Ö±½Ó±£´æµ½CSVÎÄ¼ş£¨¸ßĞ§°æ£©
+'rs:ADODB.Recordset¶ÔÏó
+'SaveToFilePath: ±£´æµ½µÄÎÄ¼şÂ·¾¶
+'IncludeFieldNames: ÊÇ·ñ°üº¬×Ö¶ÎÃû×÷ÎªµÚÒ»ĞĞ
     On Error GoTo EH
     
-    If Rs Is Nothing Then LastError = "Recordsetå¯¹è±¡ä¸ºç©º": Exit Function
-    If Rs.State <> 1 Then LastError = "RecordsetçŠ¶æ€ä¸æ­£ç¡®": Exit Function      ' adStateOpen = 1
-    If SaveToFilePath = "" Then LastError = "ä¿å­˜è·¯å¾„ä¸ºç©º": Exit Function
+    If Rs Is Nothing Then LastError = "Recordset¶ÔÏóÎª¿Õ": Exit Function
+    If Rs.State <> 1 Then LastError = "Recordset×´Ì¬²»ÕıÈ·": Exit Function      ' adStateOpen = 1
+    If SaveToFilePath = "" Then LastError = "±£´æÂ·¾¶Îª¿Õ": Exit Function
     
     Dim FieldCount As Long
     FieldCount = Rs.fields.Count
-    If FieldCount = 0 Then LastError = "Recordsetå­—æ®µæ•°ä¸º0": Exit Function
+    If FieldCount = 0 Then LastError = "Recordset×Ö¶ÎÊıÎª0": Exit Function
     
-    'åˆ›å»ºæ–‡ä»¶æµå¯¹è±¡
+    '´´½¨ÎÄ¼şÁ÷¶ÔÏó
     Dim Fso As New cToolsStream
     Fso.UseLine = True
     
@@ -477,7 +482,7 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
     Dim CurrentRow As Long
     Dim TotalRows As Long
     
-    'è®¡ç®—æ€»è¡Œæ•°ç”¨äºè¿›åº¦äº‹ä»¶
+    '¼ÆËã×ÜĞĞÊıÓÃÓÚ½ø¶ÈÊÂ¼ş
     If Not (Rs.EOF And Rs.BOF) Then
         Rs.MoveLast
         TotalRows = Rs.RecordCount
@@ -485,7 +490,7 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
         Rs.MoveFirst
     End If
     
-    'å†™å…¥å­—æ®µåè¡Œï¼ˆå¦‚æœéœ€è¦ï¼‰
+    'Ğ´Èë×Ö¶ÎÃûĞĞ£¨Èç¹ûĞèÒª£©
     If IncludeFieldNames = True Then
         ReDim LineFields(FieldCount - 1)
         For i = 0 To FieldCount - 1
@@ -494,10 +499,10 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
         Fso.WriteLine Join(LineFields, Delimiter)
         CurrentRow = 1
         Dim Percent6 As Long: Percent6 = (CurrentRow / TotalRows) * 100
-        RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent6 & "%")
+        RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent6 & "%", LineFields)
     End If
     
-    'éå†è®°å½•é›†ï¼Œç›´æ¥å†™å…¥æ–‡ä»¶
+    '±éÀú¼ÇÂ¼¼¯£¬Ö±½ÓĞ´ÈëÎÄ¼ş
     If Not (Rs.EOF And Rs.BOF) Then
         Do While Not Rs.EOF
             CurrentRow = CurrentRow + 1
@@ -515,12 +520,12 @@ Public Function SaveFromRecordSet(ByVal Rs As Object, ByVal SaveToFilePath As St
             
             Fso.WriteLine Join(LineFields, Delimiter)
             Dim Percent7 As Long: Percent7 = (CurrentRow / TotalRows) * 100
-            RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent7 & "%")
+            RaiseEvent Progress(OperationSaveFromRecordSet, CurrentRow, TotalRows, Percent7 & "%", LineFields)
             Rs.MoveNext
         Loop
     End If
     
-    'ä¿å­˜æ–‡ä»¶
+    '±£´æÎÄ¼ş
     Fso.SaveFileAsText SaveToFilePath, , "UTF-8"
     Fso.Inst.Close
     
@@ -533,11 +538,11 @@ EH:
 End Function
 
 Private Function QuoteCsvField(ByVal Field As String) As String
-    ' æ£€æŸ¥å­—æ®µæ˜¯å¦åŒ…å«é€—å·æˆ–åŒå¼•å·
+    ' ¼ì²é×Ö¶ÎÊÇ·ñ°üº¬¶ººÅ»òË«ÒıºÅ
     If InStr(Field, Delimiter) > 0 Or InStr(Field, """") > 0 Then
-        ' åŒå¼•å·è½¬ä¹‰ï¼Œå°†å•ä¸ªåŒå¼•å·å˜æˆä¸¤ä¸ªåŒå¼•å·
+        ' Ë«ÒıºÅ×ªÒå£¬½«µ¥¸öË«ÒıºÅ±ä³ÉÁ½¸öË«ÒıºÅ
         Field = Replace(Field, """", """""")
-        ' ç”¨åŒå¼•å·åŒ…è£¹å­—æ®µ
+        ' ÓÃË«ÒıºÅ°ü¹ü×Ö¶Î
         QuoteCsvField = """" & Field & """"
     Else
         QuoteCsvField = Field

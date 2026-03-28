@@ -314,6 +314,17 @@ Sub Pip()
     End With
 End Sub
 
+Sub CsvFormDB()
+    Dim Db As New cDataBase, Csv As New cCsv
+    With Db
+        .Connect Access, "D:\code\vi\bsman\dist\aspman\wwwroot\rtxdb.mdb"
+        .Sql("select top 9 * from SYS_User").Query
+    End With
+    
+    Csv.SaveFromRecordSet Db.Rs, "d:\a\myNew2.Csv"
+    
+End Sub
+
 Sub CsvTest()
     With New cCsv
         .LoadFrom "D:\code\vb6\csv-data\data\test¾ù·Ö.csv"

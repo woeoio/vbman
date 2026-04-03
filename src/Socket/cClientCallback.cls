@@ -23,6 +23,10 @@ Public WithEvents Socket    As cTlsReMaster
 Attribute Socket.VB_VarHelpID = -1
 Public IsSSE As Boolean
 
+' 接收缓冲区，用于解决 TCP 粘包问题
+Public recvBuffer() As Byte
+Public recvBufferLen As Long
+
 Private Sub Socket_DataArrival(ByVal bytesTotal As Long)
     dataTotal = bytesTotal
     Parent.OnDataArrival Index

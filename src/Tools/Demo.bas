@@ -3,6 +3,15 @@ Attribute VB_Name = "Demo"
 Option Explicit
 
 
+Public HttpSvr As New cHttpServer
+
+Public Sub HttpSvrStart()
+    With HttpSvr
+        
+    End With
+End Sub
+
+
 Public Sub TestUrlEncode()
     Dim ToolsHttp As New cToolsHttp
     Debug.Print "UrlEncodeUtf8≤‚ ‘:"

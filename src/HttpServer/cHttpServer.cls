@@ -143,30 +143,50 @@ End Sub
 Friend Sub OnDataArrival(Index As Long)
     
     On Error GoTo EH
-    '写入对象到上下文
-    Dim Request As New cHttpServerRequest
-    Dim response As New cHttpServerResponse
-    Dim oCallback           As cClientCallback
+    Dim oCallback As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
-    '传入Client给输出对象
-    Set response.fClient = oCallback
-    Dim vRequest As Variant
-    Dim sRequestHead            As String
-    Dim sRequestBody            As String
-    Dim aReq() As Byte
-    Dim aReqHead() As Byte
-    Dim aReqBody() As Byte
-    Dim sessionFile As String
-    Dim sessionTable As String
-    oCallback.Socket.GetData aReq, vbArray + vbByte
-    '分割请求头和请求体
-    vRequest = ToolsArray.SplitByteArrayByKeyword(aReq, vbCrLf & vbCrLf, 1)
-    aReqHead = vRequest(0)
-    '请求头转为字符串
-    sRequestHead = ToolsUtf8.Decode(aReqHead)
     
-    '解析请求头
-    If Request.ParseHeader(sRequestHead) = False Then ERR.Raise 500, "REQUEST", Request.LastError
+    ' 1. 获取新数据并追加到接收缓冲区（解决粘包问题）
+    Dim newData() As Byte
+    oCallback.Socket.GetData newData, vbArray + vbByte
+    
+    ' 如果缓冲区为空，直接赋值；否则追加
+    If oCallback.recvBufferLen = 0 Then
+        oCallback.recvBuffer = newData
+        oCallback.recvBufferLen = UBound(newData) + 1
+    Else
+        Dim totalLen As Long
+        totalLen = oCallback.recvBufferLen + UBound(newData) + 1
+        
+        ' 扩展缓冲区
+        If UBound(oCallback.recvBuffer) + 1 < totalLen Then
+            ReDim Preserve oCallback.recvBuffer(0 To totalLen - 1)
+        End If
+        
+        ' 复制新数据到缓冲区末尾
+        CopyMemory oCallback.recvBuffer(oCallback.recvBufferLen), newData(0), UBound(newData) + 1
+        oCallback.recvBufferLen = totalLen
+    End If
+    
+    ' 2. 循环处理缓冲区中的完整请求（解决粘包问题）
+    Do While ContainsCompleteRequest(oCallback)
+        ' 3. 提取一个完整的 HTTP 请求
+        Dim completeRequest As Variant
+        completeRequest = ExtractOneRequest(oCallback)
+        
+        ' 4. 处理该请求
+        ProcessHttpRequest Index, completeRequest
+        
+        ' 5. 从缓冲区移除已处理的数据
+        RemoveProcessedData oCallback, completeRequest
+    Loop
+    Exit Sub
+EH:
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "OnDataArrival: " & ErrInfo)
+    ' 发生错误时清空缓冲区，避免一直累积错误数据
+    oCallback.recvBufferLen = 0
+End Sub
     '开始 sse 流程
     If Request.HeaderAccept = "text/event-stream" Then
         oCallback.IsSSE = True
@@ -267,6 +287,314 @@ EH:
     response.State500 ErrInfo
 End Sub
 
+' 判断是否包含完整的 HTTP 请求（用于解决粘包问题）
+Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolean
+    ' 如果缓冲区为空，直接返回 False
+    If oCallback.recvBufferLen = 0 Then
+        ContainsCompleteRequest = False
+        Exit Function
+    End If
+    
+    ' 查找请求头结束标记 CRLFCRLF
+    Dim headerEnd As Long
+    headerEnd = FindCRLFCRLF(oCallback.recvBuffer, oCallback.recvBufferLen)
+    
+    If headerEnd = 0 Then
+        ' 未找到完整的请求头
+        ContainsCompleteRequest = False
+        Exit Function
+    End If
+    
+    ' 将请求头部分转换为字符串
+    Dim headerBytes() As Byte
+    ReDim headerBytes(0 To headerEnd - 1)
+    CopyMemory headerBytes(0), oCallback.recvBuffer(0), headerEnd
+    
+    Dim headerStr As String
+    headerStr = ToolsUtf8.Decode(headerBytes)
+    
+    ' 解析 Content-Length
+    Dim contentLength As Long
+    contentLength = ParseContentLengthFromHeader(headerStr)
+    
+    ' 计算已接收的体部长度
+    Dim bodyStart As Long
+    bodyStart = headerEnd + 4  ' \r\n\r\n 的长度（4个字节）
+    
+    ' 如果是 GET、HEAD、OPTIONS 等没有 body 的请求，contentLength 为 0
+    If contentLength = 0 Then
+        ' 检查是否是这些没有 body 的请求方法
+        If IsMethodWithoutBody(headerStr) Then
+            ContainsCompleteRequest = True
+            Exit Function
+        End If
+    End If
+    
+    ' 判断缓冲区是否包含完整的请求（头部 + 体部）
+    Dim totalRequired As Long
+    totalRequired = bodyStart + contentLength
+    
+    ContainsCompleteRequest = (oCallback.recvBufferLen >= totalRequired)
+End Function
+
+' 查找 CRLFCRLF 标记
+Private Function FindCRLFCRLF(buffer() As Byte, bufLen As Long) As Long
+    Dim i As Long
+    For i = 0 To bufLen - 4
+        If buffer(i) = 13 And buffer(i + 1) = 10 And _
+           buffer(i + 2) = 13 And buffer(i + 3) = 10 Then
+            FindCRLFCRLF = i
+            Exit Function
+        End If
+    Next
+    FindCRLFCRLF = 0
+End Function
+
+' 从请求头字符串中解析 Content-Length
+Private Function ParseContentLengthFromHeader(headerStr As String) As Long
+    On Error GoTo EH
+    Dim lines As Variant
+    lines = Split(headerStr, vbCrLf)
+    
+    Dim i As Long
+    For i = 0 To UBound(lines)
+        Dim line As String
+        line = lines(i)
+        
+        ' 查找 Content-Length 头（不区分大小写）
+        If InStr(1, line, "Content-Length:", vbTextCompare) > 0 Then
+            Dim parts As Variant
+            parts = Split(line, ":", 2)
+            If UBound(parts) >= 1 Then
+                ParseContentLengthFromHeader = CLng(Trim(parts(1)))
+                Exit Function
+            End If
+        End If
+    Next
+    
+    ' 如果没有找到 Content-Length，返回 0
+    ParseContentLengthFromHeader = 0
+    Exit Function
+EH:
+    ParseContentLengthFromHeader = 0
+End Function
+
+' 判断请求方法是否没有 Body
+Private Function IsMethodWithoutBody(headerStr As String) As Boolean
+    On Error GoTo EH
+    ' 获取第一行
+    Dim firstLine As String
+    Dim lines As Variant
+    lines = Split(headerStr, vbCrLf)
+    If UBound(lines) >= 0 Then
+        firstLine = lines(0)
+        
+        ' 检查请求方法
+        If InStr(1, firstLine, "GET ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "HEAD ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "OPTIONS ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "DELETE ", vbTextCompare) = 1 Then
+            IsMethodWithoutBody = True
+            Exit Function
+        End If
+    End If
+    IsMethodWithoutBody = False
+    Exit Function
+EH:
+    IsMethodWithoutBody = False
+End Function
+
+' 提取一个完整的请求
+Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
+    ' 返回 Variant 数组：Array(headerBytes, bodyBytes, totalLength)
+    Dim result(2) As Variant
+    
+    ' 查找请求头结束位置
+    Dim headerEnd As Long
+    headerEnd = FindCRLFCRLF(oCallback.recvBuffer, oCallback.recvBufferLen)
+    
+    ' 提取请求头
+    Dim headerBytes() As Byte
+    ReDim headerBytes(0 To headerEnd - 1)
+    CopyMemory headerBytes(0), oCallback.recvBuffer(0), headerEnd
+    result(0) = headerBytes
+    
+    ' 将请求头转换为字符串以解析 Content-Length
+    Dim headerStr As String
+    headerStr = ToolsUtf8.Decode(headerBytes)
+    Dim contentLength As Long
+    contentLength = ParseContentLengthFromHeader(headerStr)
+    
+    ' 提取请求体
+    Dim bodyStart As Long
+    bodyStart = headerEnd + 4
+    
+    If contentLength > 0 Then
+        Dim bodyBytes() As Byte
+        ReDim bodyBytes(0 To contentLength - 1)
+        CopyMemory bodyBytes(0), oCallback.recvBuffer(bodyStart), contentLength
+        result(1) = bodyBytes
+    Else
+        ' 没有 body
+        result(1) = vbNullString
+    End If
+    
+    ' 返回总长度
+    result(2) = bodyStart + contentLength
+    
+    ExtractOneRequest = result
+End Function
+
+' 从缓冲区移除已处理的数据
+Private Sub RemoveProcessedData(oCallback As cClientCallback, extractedRequest As Variant)
+    Dim processedLen As Long
+    processedLen = extractedRequest(2)
+    
+    If processedLen >= oCallback.recvBufferLen Then
+        ' 所有数据都已处理
+        oCallback.recvBufferLen = 0
+    Else
+        ' 移动剩余数据到缓冲区开头
+        Dim remainingLen As Long
+        remainingLen = oCallback.recvBufferLen - processedLen
+        
+        CopyMemory oCallback.recvBuffer(0), oCallback.recvBuffer(processedLen), remainingLen
+        oCallback.recvBufferLen = remainingLen
+    End If
+End Sub
+
+' 处理一个完整的 HTTP 请求
+Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
+    On Error GoTo EH
+    
+    Dim oCallback As cClientCallback
+    Set oCallback = m_cConnPool.Item(Index)
+    
+    Dim Request As New cHttpServerRequest
+    Dim response As New cHttpServerResponse
+    
+    ' 传入Client给输出对象
+    Set response.fClient = oCallback
+    
+    Dim aReqHead() As Byte
+    Dim aReqBody() As Byte
+    Dim sRequestHead As String
+    
+    aReqHead = completeRequest(0)
+    aReqBody = completeRequest(1)
+    
+    ' 请求头转为字符串
+    sRequestHead = ToolsUtf8.Decode(aReqHead)
+    
+    ' 解析请求头
+    If Request.ParseHeader(sRequestHead) = False Then
+        ERR.Raise 500, "REQUEST", Request.LastError
+    End If
+    
+    ' 开始 sse 流程
+    If Request.HeaderAccept = "text/event-stream" Then
+        oCallback.IsSSE = True
+        Set oCallback.Context.Request = Request
+        Call SSE.Entry(oCallback)
+        Exit Sub
+    End If
+    
+    ' 是否 options 查询
+    If Request.Method = ReqOptions Then
+        If CrossDomain.Enable = True Then
+            response.Text ""
+        Else
+            response.State403
+        End If
+        Exit Sub
+    End If
+    
+    ' 开始 http 流程
+    Dim Session As New cHttpServerSession
+    Dim Cookies As New cHttpServerCookies
+    
+    ' 从请求头解析 Cookie
+    If Request.Header.Exists("Cookie") = True Then
+        Cookies.Decode Request.Header("Cookie")
+    End If
+    
+    ' 从 Cookie 读取 SessionID 并加载 Session
+    Dim sessionID As String
+    Dim sessionCookieName As String
+    sessionCookieName = IIf(Me.SessionCookieName = "", "VBMAN_SESSIONID", Me.SessionCookieName)
+    
+    If Cookies.Exists(sessionCookieName) Then
+        sessionID = Cookies.Cookie(sessionCookieName).Value
+        If sessionID <> "" Then
+            Session.SessionID = sessionID
+            ' 根据配置加载 Session
+            If SessionStorageType = SessionStorageFileSystem Then
+                ' 文件系统
+                If SessionStoragePath = "" Then
+                    sessionFile = Environ("TEMP") & "\vbman\sessions\" & sessionID & ".json"
+                Else
+                    sessionFile = SessionStoragePath & "\" & sessionID & ".json"
+                End If
+                Session.LoadFromFile sessionFile
+            ElseIf SessionStorageType = SessionStorageDatabase Then
+                ' 数据库
+                sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+                Session.LoadFromDatabase Database, sessionID, sessionTable
+            End If
+        End If
+    End If
+    
+    With oCallback.Context
+        Set .Request = Request
+        Set .response = response
+        Set .Session = Session
+        Set .Cookies = Cookies
+        Set .Db = oCallback.Parent.Database
+        Set .SSE.flsSSEInst = SSE
+    End With
+    
+    ' 解析请求体
+    If Request.ParseBody(aReqBody) = False Then
+        ERR.Raise 500, "REQUEST", Request.LastError
+    End If
+    
+    ' 开始路由
+    Call Router.Entry(oCallback)
+    
+    ' 保存 Session 到持久化存储
+    If Session.SessionID <> "" Then
+        ' 将 SessionID 写入 Cookie
+        With Cookies.Cookie(sessionCookieName)
+            .Value = Session.SessionID
+            .Path = "/"
+            .HttpOnly = True
+            If Session.Timeout > 0 Then
+                .Expires = DateAdd("n", Session.Timeout, Now)
+            End If
+        End With
+        
+        ' 根据配置保存 Session
+        If SessionStorageType = SessionStorageFileSystem Then
+            ' 文件系统
+            If SessionStoragePath = "" Then
+                sessionFile = Environ("TEMP") & "\vbman\sessions\" & Session.SessionID & ".json"
+            Else
+                sessionFile = SessionStoragePath & "\" & Session.SessionID & ".json"
+            End If
+            Session.SaveToFile sessionFile
+        ElseIf SessionStorageType = SessionStorageDatabase Then
+            ' 数据库
+            sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+            Session.SaveToDatabase Database, sessionTable
+        End If
+    End If
+    Exit Sub
+EH:
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "ProcessHttpRequest: " & ErrInfo)
+    response.State500 ErrInfo
+End Sub
+
 Friend Sub OnCloseSck(Index As Long)
     'todo 这里可能有内存泄漏
     Dim oCallback           As cClientCallback
@@ -274,6 +602,10 @@ Friend Sub OnCloseSck(Index As Long)
     If oCallback.IsSSE = True Then
         SSE.CloseClient oCallback.hSocket
     End If
+    
+    ' 清理接收缓冲区
+    oCallback.recvBufferLen = 0
+    
     Set oCallback = Nothing
     '    Set m_cConnPool.Item(Index) = Nothing
     m_cConnPool.Remove Index

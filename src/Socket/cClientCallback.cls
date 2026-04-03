@@ -13,6 +13,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+
 Public Index                As Long
 Public hSocket                As Long
 Public dataTotal                As Long
@@ -24,8 +26,55 @@ Attribute Socket.VB_VarHelpID = -1
 Public IsSSE As Boolean
 
 ' 接收缓冲区，用于解决 TCP 粘包问题
-Public recvBuffer() As Byte
-Public recvBufferLen As Long
+Private recvBuffer() As Byte
+Private recvBufferLen As Long
+
+' 缓冲区访问方法
+Friend Property Get GetRecvBuffer() As Byte()
+    GetRecvBuffer = recvBuffer
+End Property
+
+Friend Property Let GetRecvBuffer(data() As Byte)
+    recvBuffer = data
+End Property
+
+Friend Property Get GetRecvBufferLen() As Long
+    GetRecvBufferLen = recvBufferLen
+End Property
+
+Friend Property Let GetRecvBufferLen(ByVal value As Long)
+    recvBufferLen = value
+End Property
+
+' 追加数据到缓冲区（解决粘包）
+Friend Sub AppendToBuffer(data() As Byte)
+    If recvBufferLen = 0 Then
+        recvBuffer = data
+        recvBufferLen = UBound(data) + 1
+    Else
+        Dim totalLen As Long
+        totalLen = recvBufferLen + UBound(data) + 1
+        
+        If UBound(recvBuffer) + 1 < totalLen Then
+            ReDim Preserve recvBuffer(0 To totalLen - 1)
+        End If
+        
+        CopyMemory recvBuffer(recvBufferLen), data(0), UBound(data) + 1
+        recvBufferLen = totalLen
+    End If
+End Sub
+
+' 从缓冲区移除已处理的数据
+Friend Sub RemoveFromBuffer(processedLen As Long)
+    If processedLen >= recvBufferLen Then
+        recvBufferLen = 0
+    Else
+        Dim remainingLen As Long
+        remainingLen = recvBufferLen - processedLen
+        CopyMemory recvBuffer(0), recvBuffer(processedLen), remainingLen
+        recvBufferLen = remainingLen
+    End If
+End Sub
 
 Private Sub Socket_DataArrival(ByVal bytesTotal As Long)
     dataTotal = bytesTotal

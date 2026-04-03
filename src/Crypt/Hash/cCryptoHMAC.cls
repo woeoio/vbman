@@ -12,20 +12,20 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 
-    '=========================================================================
-    '
-    ' cCryptoHMAC - HMAC (Hash-based Message Authentication Code) Implementation
-    '
-    ' Purpose: Provides HMAC computation using standard hash algorithms
-    '          - Support for HMAC-SHA1, HMAC-SHA256
-    '          - String and byte array input
-    '          - Hex string and Base64 output
-    '          - Chain call support (fluent API)
-    '
-    ' Author: Auto
-    ' Date: 2026-02-08
-    '
-    '=========================================================================
+'=========================================================================
+'
+' cCryptoHMAC - HMAC (Hash-based Message Authentication Code) Implementation
+'
+' Purpose: Provides HMAC computation using standard hash algorithms
+'          - Support for HMAC-SHA1, HMAC-SHA256
+'          - String and byte array input
+'          - Hex string and Base64 output
+'          - Chain call support (fluent API)
+'
+' Author: Auto
+' Date: 2026-02-08
+'
+'=========================================================================
 
 Option Explicit
 
@@ -632,14 +632,14 @@ End Function
 Private Function HexToBytes(ByVal HexString As String) As Byte()
     Dim i As Long
     Dim ByteLen As Long
-    Dim Result() As Byte
+    Dim result() As Byte
     
     ' Remove spaces and validate
     HexString = Replace(HexString, " ", "")
     HexString = Replace(HexString, "-", "")
     
     If Len(HexString) = 0 Then
-        HexToBytes = Result
+        HexToBytes = result
         Exit Function
     End If
     
@@ -649,32 +649,32 @@ Private Function HexToBytes(ByVal HexString As String) As Byte()
     End If
     
     ByteLen = Len(HexString) \ 2
-    ReDim Result(ByteLen - 1)
+    ReDim result(ByteLen - 1)
     
     On Error Resume Next
     For i = 0 To ByteLen - 1
-        Result(i) = CByte("&H" & Mid$(HexString, i * 2 + 1, 2))
+        result(i) = CByte("&H" & Mid$(HexString, i * 2 + 1, 2))
     Next i
     On Error GoTo 0
     
-    HexToBytes = Result
+    HexToBytes = result
 End Function
 
 'Convert Base64 string to bytes
 Private Function Base64ToBytes(ByVal Base64String As String) As Byte()
     Dim oXML As Object
     Dim oNode As Object
-    Dim Result() As Byte
+    Dim result() As Byte
     
     On Error Resume Next
     Set oXML = CreateObject("MSXML2.DOMDocument")
     Set oNode = oXML.createElement("b64")
     oNode.DataType = "bin.base64"
     oNode.Text = Base64String
-    Result = oNode.nodeTypedValue
+    result = oNode.nodeTypedValue
     On Error GoTo 0
     
-    Base64ToBytes = Result
+    Base64ToBytes = result
 End Function
 
 'Simple memory copy with optional offset support

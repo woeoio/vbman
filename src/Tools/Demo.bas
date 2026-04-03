@@ -7,7 +7,9 @@ Public HttpSvr As New cHttpServer
 
 Public Sub HttpSvrStart()
     With HttpSvr
-        
+        .Router.Reg "Test", New dHttpSvr
+        .Router.AutoRoute = True
+        .Start
     End With
 End Sub
 

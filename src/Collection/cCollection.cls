@@ -81,7 +81,7 @@ End Function
 ' 检查键是否存在
 Public Function Exists(ByVal Key As String) As Boolean
     On Error GoTo ErrorHandler
-    
+    ' todo 这里有个bug，如果值是对象，也会返回false，应该获取keys 然后比对才行
     Dim v As Variant
     v = m_col.Item(Key)
     Exists = True
@@ -336,76 +336,76 @@ End Function
 
 ' 快速排序（按 Key 字典序升序）
 Private Sub QuickSortByKey(ByRef Keys() As String, ByRef Values() As Variant, ByVal Low As Long, ByVal High As Long)
-    Dim i As Long, j As Long
+    Dim i As Long, J As Long
     Dim Pivot As String
     Dim TempKey As String
     Dim TempValue As Variant
     
     If Low < High Then
         i = Low
-        j = High
+        J = High
         Pivot = Keys((Low + High) \ 2)
         
-        Do While i <= j
+        Do While i <= J
             Do While Keys(i) < Pivot And i < High
                 i = i + 1
             Loop
-            Do While Keys(j) > Pivot And j > Low
-                j = j - 1
+            Do While Keys(J) > Pivot And J > Low
+                J = J - 1
             Loop
-            If i <= j Then
+            If i <= J Then
                 ' 交换 Keys
                 TempKey = Keys(i)
-                Keys(i) = Keys(j)
-                Keys(j) = TempKey
+                Keys(i) = Keys(J)
+                Keys(J) = TempKey
                 ' 交换 Values
                 TempValue = Values(i)
-                Values(i) = Values(j)
-                Values(j) = TempValue
+                Values(i) = Values(J)
+                Values(J) = TempValue
                 i = i + 1
-                j = j - 1
+                J = J - 1
             End If
         Loop
         
-        If Low < j Then QuickSortByKey Keys, Values, Low, j
+        If Low < J Then QuickSortByKey Keys, Values, Low, J
         If i < High Then QuickSortByKey Keys, Values, i, High
     End If
 End Sub
 
 ' 快速排序（按 Value 字典序升序，仅适用于字符串值）
 Private Sub QuickSortByValue(ByRef Keys() As String, ByRef Values() As Variant, ByVal Low As Long, ByVal High As Long)
-    Dim i As Long, j As Long
+    Dim i As Long, J As Long
     Dim Pivot As String
     Dim TempKey As String
     Dim TempValue As Variant
     
     If Low < High Then
         i = Low
-        j = High
+        J = High
         Pivot = CStr(Values((Low + High) \ 2))
         
-        Do While i <= j
+        Do While i <= J
             Do While CStr(Values(i)) < Pivot And i < High
                 i = i + 1
             Loop
-            Do While CStr(Values(j)) > Pivot And j > Low
-                j = j - 1
+            Do While CStr(Values(J)) > Pivot And J > Low
+                J = J - 1
             Loop
-            If i <= j Then
+            If i <= J Then
                 ' 交换 Keys
                 TempKey = Keys(i)
-                Keys(i) = Keys(j)
-                Keys(j) = TempKey
+                Keys(i) = Keys(J)
+                Keys(J) = TempKey
                 ' 交换 Values
                 TempValue = Values(i)
-                Values(i) = Values(j)
-                Values(j) = TempValue
+                Values(i) = Values(J)
+                Values(J) = TempValue
                 i = i + 1
-                j = j - 1
+                J = J - 1
             End If
         Loop
         
-        If Low < j Then QuickSortByValue Keys, Values, Low, j
+        If Low < J Then QuickSortByValue Keys, Values, Low, J
         If i < High Then QuickSortByValue Keys, Values, i, High
     End If
 End Sub

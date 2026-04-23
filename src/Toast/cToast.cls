@@ -137,7 +137,7 @@ Public Function Tag(ByVal Name As String) As cToast
     m_Tag = Name
 End Function
 
-Public Function Show(ByVal Content As String, Optional ByVal Delay As Long = 3000, Optional ByVal Title As String = "提示") As cToast
+Public Function Show(ByVal Content As String, Optional ByVal Delay As Long = 3000, Optional ByVal Title As String) As cToast
     Dim Inst As Object
     Dim Coll As Collection
     Dim TagName As String
@@ -176,7 +176,7 @@ Public Function Show(ByVal Content As String, Optional ByVal Delay As Long = 300
     If IsCenter(m_Pos) Then
         Set Inst = New FToastCenter
         With Inst
-            .Init Me, TagName  ' 传入Parent和TagName
+            .Init Me, TagName                                                   ' 传入Parent和TagName
             .Pos m_Pos
             .State m_State
             .Theme m_Theme
@@ -185,8 +185,9 @@ Public Function Show(ByVal Content As String, Optional ByVal Delay As Long = 300
         End With
     Else
         Set Inst = New FToastDrawer
+        If Title = "" Then Title = "提示"
         With Inst
-            .Init Me, TagName  ' 传入Parent和TagName
+            .Init Me, TagName                                                   ' 传入Parent和TagName
             .Pos m_Pos
             .State m_State
             .Theme m_Theme

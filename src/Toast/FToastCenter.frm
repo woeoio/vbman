@@ -153,7 +153,7 @@ Public Function InstIndex(ByVal i As Long) As FToastCenter
     If PosVal = Center Then Exit Function
     
     Dim ItemHeight As Long
-    ItemHeight = Me.Height + 200 ' 每项高度 + 间距
+    ItemHeight = Me.Height + 200                                                ' 每项高度 + 间距
     
     If PosVal = CenterTop Then
         ' 从上往下排列：i=0 在最上面（y 最小）

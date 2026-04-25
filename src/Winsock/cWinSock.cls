@@ -335,8 +335,8 @@ Public Sub BindUser(ByVal User As Variant, Client As cWinsock)
 End Sub
 
 ' Check if a user is bound
-Public Function UserExists(ByVal User As Variant) As Boolean
-    UserExists = m_Users.Exists(User)
+Public Function ExistsUser(ByVal User As Variant) As Boolean
+    ExistsUser = m_Users.Exists(User)
 End Function
 
 ' Unbind a user
@@ -401,8 +401,8 @@ Public Sub BindGroup(ByVal GroupName As String, Client As cWinsock)
 End Sub
 
 ' Check if a group exists
-Public Function GroupExists(ByVal GroupName As String) As Boolean
-    GroupExists = m_Groups.Exists(GroupName)
+Public Function ExistsGroup(ByVal GroupName As String) As Boolean
+    ExistsGroup = m_Groups.Exists(GroupName)
 End Function
 
 ' Unbind a user from a group

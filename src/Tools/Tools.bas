@@ -16,3 +16,4 @@ Public ToolsDateTime As New cToolsDateTime
 
 Public InstJson As New cJson
 
+Public Toast As New cToast

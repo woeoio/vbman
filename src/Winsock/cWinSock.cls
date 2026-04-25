@@ -145,10 +145,10 @@ Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
 
 Private m_Users As New Dictionary
-Private m_Groups As New Dictionary                      ' GroupName -> Dictionary(UserName -> True)
+Private m_Groups As New Dictionary                                              ' GroupName -> Dictionary(UserName -> True)
 
 Public CurrentUser As Variant
-Public CurrentGroups As New Dictionary                  ' GroupName -> True
+Public CurrentGroups As New Dictionary                                          ' GroupName -> True
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -708,33 +708,38 @@ EH:
     pvRaiseError ERR.Number, ERR.Description
 End Sub
 
+Public Function GetDataToString(Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp) As String
+    Dim vData As Variant
+    GetData vData, vbString, maxLen, CodePage
+    GetDataToString = vData
+End Function
 ' Receive data from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
+Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     Dim baBuffer() As Byte
     Dim lIdx As Long
     Dim oSocket As cAsyncSocket
-
+    
     On Error GoTo EH
-
+    
     If VarType_ = 0 Then
         VarType_ = varType(Data)
     End If
-
+    
     ' First check internal buffer
     If UBound(m_baRecvBuffer) >= 0 Then
-        If MaxLen < 0 Or MaxLen >= UBound(m_baRecvBuffer) + 1 Then
+        If maxLen < 0 Or maxLen >= UBound(m_baRecvBuffer) + 1 Then
             baBuffer = m_baRecvBuffer
             m_baRecvBuffer = vbNullString
         Else
-            ReDim baBuffer(0 To MaxLen - 1) As Byte
-            CopyMemory baBuffer(0), m_baRecvBuffer(0), MaxLen
-            lIdx = UBound(m_baRecvBuffer) + 1 - MaxLen
+            ReDim baBuffer(0 To maxLen - 1) As Byte
+            CopyMemory baBuffer(0), m_baRecvBuffer(0), maxLen
+            lIdx = UBound(m_baRecvBuffer) + 1 - maxLen
             If lIdx > 0 Then
                 Dim baTemp() As Byte
                 ReDim baTemp(0 To lIdx - 1) As Byte
-                CopyMemory baTemp(0), m_baRecvBuffer(MaxLen), lIdx
+                CopyMemory baTemp(0), m_baRecvBuffer(maxLen), lIdx
                 m_baRecvBuffer = baTemp
             Else
                 m_baRecvBuffer = vbNullString
@@ -744,15 +749,15 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
         ' Read from socket
         If m_oSocket.ReceiveArray(baBuffer) Then
             ' If MaxLen is specified and data exceeds it, truncate and save remainder
-            If MaxLen >= 0 And UBound(baBuffer) >= 0 And UBound(baBuffer) + 1 > MaxLen Then
+            If maxLen >= 0 And UBound(baBuffer) >= 0 And UBound(baBuffer) + 1 > maxLen Then
                 ' Save remainder to internal buffer
                 Dim baRemainder() As Byte
-                ReDim baRemainder(0 To UBound(baBuffer) - MaxLen) As Byte
-                CopyMemory baRemainder(0), baBuffer(MaxLen), UBound(baBuffer) - MaxLen + 1
+                ReDim baRemainder(0 To UBound(baBuffer) - maxLen) As Byte
+                CopyMemory baRemainder(0), baBuffer(maxLen), UBound(baBuffer) - maxLen + 1
                 m_baRecvBuffer = baRemainder
                 
                 ' Truncate baBuffer to MaxLen
-                ReDim Preserve baBuffer(0 To MaxLen - 1) As Byte
+                ReDim Preserve baBuffer(0 To maxLen - 1) As Byte
             End If
         Else
             baBuffer = vbNullString
@@ -763,16 +768,16 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
         ' Clear UserData after reading
         m_vUserData = Empty
         ' If MaxLen is specified, truncate
-        If MaxLen >= 0 And UBound(baBuffer) >= 0 And UBound(baBuffer) + 1 > MaxLen Then
+        If maxLen >= 0 And UBound(baBuffer) >= 0 And UBound(baBuffer) + 1 > maxLen Then
             Dim baTruncated() As Byte
-            ReDim baTruncated(0 To MaxLen - 1) As Byte
-            CopyMemory baTruncated(0), baBuffer(0), MaxLen
+            ReDim baTruncated(0 To maxLen - 1) As Byte
+            CopyMemory baTruncated(0), baBuffer(0), maxLen
             baBuffer = baTruncated
         End If
     Else
         baBuffer = vbNullString
     End If
-
+    
     ' Convert to requested type
     Select Case VarType_
     Case vbString
@@ -795,7 +800,7 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
     Case Else
         Data = baBuffer
     End Select
-
+    
     Exit Sub
 EH:
     pvRaiseError ERR.Number, ERR.Description
@@ -804,7 +809,7 @@ End Sub
 ' Peek data without removing from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
-Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal MaxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
+Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     Dim baBuffer() As Byte
 
     On Error GoTo EH
@@ -815,11 +820,11 @@ Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional B
 
     ' Copy from internal buffer
     If UBound(m_baRecvBuffer) >= 0 Then
-        If MaxLen < 0 Or MaxLen >= UBound(m_baRecvBuffer) + 1 Then
+        If maxLen < 0 Or maxLen >= UBound(m_baRecvBuffer) + 1 Then
             baBuffer = m_baRecvBuffer
         Else
-            ReDim baBuffer(0 To MaxLen - 1) As Byte
-            CopyMemory baBuffer(0), m_baRecvBuffer(0), MaxLen
+            ReDim baBuffer(0 To maxLen - 1) As Byte
+            CopyMemory baBuffer(0), m_baRecvBuffer(0), maxLen
         End If
     End If
 
@@ -1302,7 +1307,7 @@ End Function
 ' Synchronous receive to buffer pointer with timeout
 Public Function SyncReceive( _
     ByVal BufPtr As Long, _
-    ByVal BufLen As Long, _
+    ByVal bufLen As Long, _
     ByRef Received As Long, _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
@@ -1315,7 +1320,7 @@ Public Function SyncReceive( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceive = m_oSocket.SyncReceive(BufPtr, BufLen, Received, Timeout, HostAddress, HostPort, Flags)
+    SyncReceive = m_oSocket.SyncReceive(BufPtr, bufLen, Received, Timeout, HostAddress, HostPort, Flags)
 
     Exit Function
 EH:
@@ -1367,7 +1372,7 @@ End Function
 ' Synchronous send from buffer pointer with timeout
 Public Function SyncSend( _
     ByVal BufPtr As Long, _
-    ByVal BufLen As Long, _
+    ByVal bufLen As Long, _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
     Optional ByVal HostPort As Long, _
@@ -1379,7 +1384,7 @@ Public Function SyncSend( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSend = m_oSocket.SyncSend(BufPtr, BufLen, Timeout, HostAddress, HostPort, Flags)
+    SyncSend = m_oSocket.SyncSend(BufPtr, bufLen, Timeout, HostAddress, HostPort, Flags)
 
     Exit Function
 EH:

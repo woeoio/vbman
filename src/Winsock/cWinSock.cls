@@ -145,9 +145,10 @@ Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
 
 Private m_Users As New Dictionary
-Private m_Groups As New Dictionary                      ' GroupName -> Collection of UserNames
+Private m_Groups As New Dictionary                      ' GroupName -> Dictionary(UserName -> True)
 
 Public CurrentUser As Variant
+Public CurrentGroups As New Dictionary                  ' GroupName -> True
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -375,19 +376,28 @@ Public Sub BindGroup(ByVal GroupName As String, Client As cWinsock)
         Exit Sub
     End If
     
-    Dim cMembers As Collection
+    Dim dMembers As Dictionary
+    Dim sUserName As String
+    sUserName = CStr(Client.CurrentUser)
     
+    ' Create group if not exists
     If Not m_Groups.Exists(GroupName) Then
-        Set cMembers = New Collection
-        m_Groups.Add GroupName, cMembers
+        Set dMembers = New Dictionary
+        dMembers.CompareMode = TextCompare
+        m_Groups.Add GroupName, dMembers
     Else
-        Set cMembers = m_Groups(GroupName)
+        Set dMembers = m_Groups(GroupName)
     End If
     
     ' Add user to group if not already in
-    On Error Resume Next
-    cMembers.Add CStr(Client.CurrentUser), CStr(Client.CurrentUser)
-    On Error GoTo 0
+    If Not dMembers.Exists(sUserName) Then
+        dMembers.Add sUserName, True
+    End If
+    
+    ' Sync client's CurrentGroups
+    If Not Client.CurrentGroups.Exists(GroupName) Then
+        Client.CurrentGroups.Add GroupName, True
+    End If
 End Sub
 
 ' Check if a group exists
@@ -405,15 +415,39 @@ Public Sub UnbindGroup(ByVal GroupName As String, ByVal User As Variant)
             m_Groups.Remove GroupName
         End If
     End If
+    
+    ' Sync client's CurrentGroups
+    If m_Users.Exists(User) Then
+        Dim oClient As cWinsock
+        Set oClient = m_Users(User)
+        If oClient.CurrentGroups.Exists(GroupName) Then
+            oClient.CurrentGroups.Remove GroupName
+        End If
+    End If
 End Sub
 
 ' Unbind a user from all groups (called internally when user disconnects)
 Friend Sub UnbindUserFromAllGroups(ByVal User As Variant)
     Dim sGroup As Variant
+    Dim oClient As cWinsock
+    
+    ' Get client instance to sync CurrentGroups
+    If m_Users.Exists(User) Then
+        Set oClient = m_Users(User)
+    End If
+    
     For Each sGroup In m_Groups.Keys
         On Error Resume Next
         m_Groups(sGroup).Remove CStr(User)
         On Error GoTo 0
+        
+        ' Sync client's CurrentGroups
+        If Not oClient Is Nothing Then
+            If oClient.CurrentGroups.Exists(sGroup) Then
+                oClient.CurrentGroups.Remove sGroup
+            End If
+        End If
+        
         ' Remove empty groups
         If m_Groups.Exists(sGroup) And m_Groups(sGroup).Count = 0 Then
             m_Groups.Remove sGroup
@@ -422,18 +456,18 @@ Friend Sub UnbindUserFromAllGroups(ByVal User As Variant)
 End Sub
 
 ' Get members of a group (returns array of user names)
-Public Function GetGroupMembers(ByVal GroupName As String) As Variant()
+Public Function GetGroupMembers(ByVal GroupName As String) As String()
     Dim aResult() As String
-    Dim cMembers As Collection
+    Dim dMembers As Dictionary
     Dim vMember As Variant
     Dim lIdx As Long
     
     If m_Groups.Exists(GroupName) Then
-        Set cMembers = m_Groups(GroupName)
-        If cMembers.Count > 0 Then
-            ReDim aResult(0 To cMembers.Count - 1)
+        Set dMembers = m_Groups(GroupName)
+        If dMembers.Count > 0 Then
+            ReDim aResult(0 To dMembers.Count - 1)
             lIdx = 0
-            For Each vMember In cMembers
+            For Each vMember In dMembers.Keys
                 aResult(lIdx) = CStr(vMember)
                 lIdx = lIdx + 1
             Next
@@ -447,14 +481,14 @@ End Function
 
 ' Send data to all members in a group
 Public Sub SendToGroup(ByVal GroupName As String, Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
-    Dim cMembers As Collection
+    Dim dMembers As Dictionary
     Dim vMember As Variant
     Dim oClient As cWinsock
     
     If Not m_Groups.Exists(GroupName) Then Exit Sub
     
-    Set cMembers = m_Groups(GroupName)
-    For Each vMember In cMembers
+    Set dMembers = m_Groups(GroupName)
+    For Each vMember In dMembers.Keys
         If m_Users.Exists(vMember) Then
             Set oClient = m_Users(vMember)
             oClient.SendData Data, CodePage
@@ -463,25 +497,72 @@ Public Sub SendToGroup(ByVal GroupName As String, Data As Variant, Optional ByVa
 End Sub
 
 ' Get all groups a user belongs to
-Public Function GetUserGroups(ByVal User As Variant) As Variant()
+Public Function GetUserGroups(ByVal User As Variant) As String()
     Dim aResult() As String
     Dim sGroup As Variant
     Dim lIdx As Long
     
-    For Each sGroup In m_Groups.Keys
-        On Error Resume Next
-        Dim v As String
-        v = m_Groups(sGroup)(CStr(User))
-        If ERR.Number = 0 Then
-            lIdx = lIdx + 1
-            ReDim Preserve aResult(0 To lIdx - 1)
-            aResult(lIdx - 1) = CStr(sGroup)
+    ' Fast path: use client's CurrentGroups if user is online
+    If m_Users.Exists(User) Then
+        Dim oClient As cWinsock
+        Set oClient = m_Users(User)
+        If oClient.CurrentGroups.Count > 0 Then
+            ReDim aResult(0 To oClient.CurrentGroups.Count - 1)
+            lIdx = 0
+            For Each sGroup In oClient.CurrentGroups.Keys
+                aResult(lIdx) = CStr(sGroup)
+                lIdx = lIdx + 1
+            Next
+            GetUserGroups = aResult
+            Exit Function
         End If
-        ERR.Clear
+    End If
+    
+    ' Fallback: scan all groups (for offline users)
+    For Each sGroup In m_Groups.Keys
+        If m_Groups(sGroup).Exists(CStr(User)) Then
+            ReDim Preserve aResult(0 To lIdx)
+            aResult(lIdx) = CStr(sGroup)
+            lIdx = lIdx + 1
+        End If
     Next
     
     GetUserGroups = aResult
 End Function
+
+' Delete a group (disband)
+Public Sub DeleteGroup(ByVal GroupName As String)
+    If Not m_Groups.Exists(GroupName) Then Exit Sub
+    
+    Dim dMembers As Dictionary
+    Dim vUser As Variant
+    Dim oClient As cWinsock
+    
+    Set dMembers = m_Groups(GroupName)
+    
+    ' Sync remove group from each member's CurrentGroups
+    For Each vUser In dMembers.Keys
+        If m_Users.Exists(vUser) Then
+            Set oClient = m_Users(vUser)
+            If oClient.CurrentGroups.Exists(GroupName) Then
+                oClient.CurrentGroups.Remove GroupName
+            End If
+        End If
+    Next
+    
+    ' Remove the group
+    m_Groups.Remove GroupName
+End Sub
+
+' Close a specific user's client connection
+Public Sub CloseUser(ByVal User As Variant)
+    On Error Resume Next
+    If m_Users.Exists(User) Then
+        Dim oClient As cWinsock
+        Set oClient = m_Users(User)
+        oClient.Close_
+    End If
+End Sub
 
 
 ' Connect to remote host
@@ -1343,19 +1424,21 @@ Private Sub Class_Initialize()
     m_baRecvBuffer = vbNullString
     m_Users.CompareMode = TextCompare
     m_Groups.CompareMode = TextCompare
-    m_Users.CompareMode = TextCompare
+    CurrentGroups.CompareMode = TextCompare
 End Sub
 
 Private Sub Class_Terminate()
     ' Unbind user if this client was bound
-    If LenB(CStr(m_CurrentUser)) <> 0 Then
+    If LenB(CStr(CurrentUser)) <> 0 Then
         If Not m_oParentServer Is Nothing Then
-            m_oParentServer.UnbindUserFromAllGroups m_CurrentUser
-            m_oParentServer.UnbindUser m_CurrentUser
+            m_oParentServer.UnbindUserFromAllGroups CurrentUser
+            m_oParentServer.UnbindUser CurrentUser
         End If
     End If
     
-    Toast.Show "¿Í»§¶ËÎö¹¹"
+    ' Clear CurrentGroups
+    Set CurrentGroups = New Dictionary
+    CurrentGroups.CompareMode = TextCompare
     
     Close_
     ' Raise ClientCountChange event for new connection

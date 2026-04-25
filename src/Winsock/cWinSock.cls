@@ -144,6 +144,9 @@ Private m_cClients                  As Collection
 Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
 
+Private m_Users As New Dictionary
+
+Public CurrentUser As Variant
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -324,15 +327,52 @@ End Property
 ' Public Methods
 '=========================================================================
 
+Public Sub BindUser(ByVal User As Variant, Client As cWinsock)
+    Set m_Users(User) = Client
+    Client.CurrentUser = User
+End Sub
+
+' Check if a user is bound
+Public Function UserExists(ByVal User As Variant) As Boolean
+    UserExists = m_Users.Exists(User)
+End Function
+
+' Unbind a user
+Public Sub UnbindUser(ByVal User As Variant)
+    On Error Resume Next
+    m_Users.Remove User
+End Sub
+
+' Send data to a bound user
+Public Sub SendToUser(ByVal User As Variant, Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
+    On Error GoTo EH
+    
+    ' Check if user exists
+    If Not m_Users.Exists(User) Then
+        ERR.Raise vbObjectError, MODULE_NAME, "User not bound: " & CStr(User)
+        Exit Sub
+    End If
+    
+    Dim oClient As cWinsock
+    Set oClient = m_Users(User)
+    
+    oClient.SendData Data, CodePage
+    
+    Exit Sub
+EH:
+    pvRaiseError ERR.Number, ERR.Description
+End Sub
+
+
 ' Connect to remote host
 Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As Long)
     Dim eSocketType As UcsAsyncSocketTypeEnum
-
+    
     On Error GoTo EH
-
+    
     ' Close existing connection
     Close_
-
+    
     ' Update remote host/port if provided
     If LenB(RemoteHost) <> 0 Then
         m_sRemoteHost = RemoteHost
@@ -340,7 +380,7 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
     If RemotePort <> 0 Then
         m_lRemotePort = RemotePort
     End If
-
+    
     ' Validate parameters
     If LenB(m_sRemoteHost) = 0 Then
         ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost not specified"
@@ -348,25 +388,25 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
     If m_lRemotePort = 0 Then
         ERR.Raise vbObjectError, MODULE_NAME, "RemotePort not specified"
     End If
-
+    
     ' Determine socket type
     eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
-
+    
     ' Create socket
     Set m_oSocket = New cAsyncSocket
     If Not m_oSocket.Create(SocketType:=eSocketType) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
     End If
-
+    
     m_eState = sckResolvingHost
-
+    
     ' Connect
     If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
     End If
-
+    
     Exit Sub
 EH:
     pvRaiseError ERR.Number, ERR.Description
@@ -613,7 +653,7 @@ End Sub
 ' Close socket
 Public Sub Close_()
     On Error Resume Next
-
+    
     ' Close all client connections for server socket
     If m_bIsServer And Not m_cClients Is Nothing Then
         Dim oClient As cWinsock
@@ -622,13 +662,13 @@ Public Sub Close_()
         Next
         Set m_cClients = Nothing
     End If
-
+    
     ' Close socket
     If Not m_oSocket Is Nothing Then
         m_oSocket.Close_
         Set m_oSocket = Nothing
     End If
-
+    
     m_eState = sckClosed
     m_bIsServer = False
     m_bIsAcceptedClient = False
@@ -905,6 +945,10 @@ Friend Sub RemoveClient(oClient As cWinsock)
     On Error Resume Next
     If Not m_cClients Is Nothing Then
         m_cClients.Remove oClient.Tag
+        ' Unbind user if client was bound
+        If LenB(CStr(oClient.CurrentUser)) <> 0 Then
+            m_Users.Remove oClient.CurrentUser
+        End If
         ' Raise ClientCountChange event for disconnection
         RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientDisconnected)
     End If
@@ -1176,9 +1220,20 @@ Private Sub Class_Initialize()
     m_lLocalPort = DEF_LOCALPORT
     m_lRemotePort = DEF_REMOTEPORT
     m_baRecvBuffer = vbNullString
+    '
+    m_Users.CompareMode = TextCompare
 End Sub
 
 Private Sub Class_Terminate()
+    ' Unbind user if this client was bound
+    If LenB(CStr(CurrentUser)) <> 0 Then
+        If Not m_oParentServer Is Nothing Then
+            m_oParentServer.UnbindUser CurrentUser
+        End If
+    End If
+    
+    Toast.Show "¿Í»§¶ËÎö¹¹"
+    
     Close_
     ' Raise ClientCountChange event for new connection
     RaiseEvent ClientCountChange(Nothing, 0, wskServerStoped)

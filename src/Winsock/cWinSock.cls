@@ -145,6 +145,7 @@ Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
 
 Private m_Users As New Dictionary
+Private m_Groups As New Dictionary                      ' GroupName -> Collection of UserNames
 
 Public CurrentUser As Variant
 '=========================================================================
@@ -362,6 +363,125 @@ Public Sub SendToUser(ByVal User As Variant, Data As Variant, Optional ByVal Cod
 EH:
     pvRaiseError ERR.Number, ERR.Description
 End Sub
+
+'=========================================================================
+' Group Management
+'=========================================================================
+
+' Bind client to a group (client must be bound to a user first)
+Public Sub BindGroup(ByVal GroupName As String, Client As cWinsock)
+    If LenB(CStr(Client.CurrentUser)) = 0 Then
+        ERR.Raise vbObjectError, MODULE_NAME, "Client must be bound to a user first"
+        Exit Sub
+    End If
+    
+    Dim cMembers As Collection
+    
+    If Not m_Groups.Exists(GroupName) Then
+        Set cMembers = New Collection
+        m_Groups.Add GroupName, cMembers
+    Else
+        Set cMembers = m_Groups(GroupName)
+    End If
+    
+    ' Add user to group if not already in
+    On Error Resume Next
+    cMembers.Add CStr(Client.CurrentUser), CStr(Client.CurrentUser)
+    On Error GoTo 0
+End Sub
+
+' Check if a group exists
+Public Function GroupExists(ByVal GroupName As String) As Boolean
+    GroupExists = m_Groups.Exists(GroupName)
+End Function
+
+' Unbind a user from a group
+Public Sub UnbindGroup(ByVal GroupName As String, ByVal User As Variant)
+    On Error Resume Next
+    If m_Groups.Exists(GroupName) Then
+        m_Groups(GroupName).Remove CStr(User)
+        ' Remove empty group
+        If m_Groups(GroupName).Count = 0 Then
+            m_Groups.Remove GroupName
+        End If
+    End If
+End Sub
+
+' Unbind a user from all groups (called internally when user disconnects)
+Friend Sub UnbindUserFromAllGroups(ByVal User As Variant)
+    Dim sGroup As Variant
+    For Each sGroup In m_Groups.Keys
+        On Error Resume Next
+        m_Groups(sGroup).Remove CStr(User)
+        On Error GoTo 0
+        ' Remove empty groups
+        If m_Groups.Exists(sGroup) And m_Groups(sGroup).Count = 0 Then
+            m_Groups.Remove sGroup
+        End If
+    Next
+End Sub
+
+' Get members of a group (returns array of user names)
+Public Function GetGroupMembers(ByVal GroupName As String) As Variant()
+    Dim aResult() As String
+    Dim cMembers As Collection
+    Dim vMember As Variant
+    Dim lIdx As Long
+    
+    If m_Groups.Exists(GroupName) Then
+        Set cMembers = m_Groups(GroupName)
+        If cMembers.Count > 0 Then
+            ReDim aResult(0 To cMembers.Count - 1)
+            lIdx = 0
+            For Each vMember In cMembers
+                aResult(lIdx) = CStr(vMember)
+                lIdx = lIdx + 1
+            Next
+            GetGroupMembers = aResult
+            Exit Function
+        End If
+    End If
+    
+    GetGroupMembers = aResult
+End Function
+
+' Send data to all members in a group
+Public Sub SendToGroup(ByVal GroupName As String, Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
+    Dim cMembers As Collection
+    Dim vMember As Variant
+    Dim oClient As cWinsock
+    
+    If Not m_Groups.Exists(GroupName) Then Exit Sub
+    
+    Set cMembers = m_Groups(GroupName)
+    For Each vMember In cMembers
+        If m_Users.Exists(vMember) Then
+            Set oClient = m_Users(vMember)
+            oClient.SendData Data, CodePage
+        End If
+    Next
+End Sub
+
+' Get all groups a user belongs to
+Public Function GetUserGroups(ByVal User As Variant) As Variant()
+    Dim aResult() As String
+    Dim sGroup As Variant
+    Dim lIdx As Long
+    
+    For Each sGroup In m_Groups.Keys
+        On Error Resume Next
+        Dim v As String
+        v = m_Groups(sGroup)(CStr(User))
+        If ERR.Number = 0 Then
+            lIdx = lIdx + 1
+            ReDim Preserve aResult(0 To lIdx - 1)
+            aResult(lIdx - 1) = CStr(sGroup)
+        End If
+        ERR.Clear
+    Next
+    
+    GetUserGroups = aResult
+End Function
 
 
 ' Connect to remote host
@@ -945,8 +1065,9 @@ Friend Sub RemoveClient(oClient As cWinsock)
     On Error Resume Next
     If Not m_cClients Is Nothing Then
         m_cClients.Remove oClient.Tag
-        ' Unbind user if client was bound
+        ' Unbind user if client was bound (including from groups)
         If LenB(CStr(oClient.CurrentUser)) <> 0 Then
+            UnbindUserFromAllGroups oClient.CurrentUser
             m_Users.Remove oClient.CurrentUser
         End If
         ' Raise ClientCountChange event for disconnection
@@ -1220,15 +1341,17 @@ Private Sub Class_Initialize()
     m_lLocalPort = DEF_LOCALPORT
     m_lRemotePort = DEF_REMOTEPORT
     m_baRecvBuffer = vbNullString
-    '
+    m_Users.CompareMode = TextCompare
+    m_Groups.CompareMode = TextCompare
     m_Users.CompareMode = TextCompare
 End Sub
 
 Private Sub Class_Terminate()
     ' Unbind user if this client was bound
-    If LenB(CStr(CurrentUser)) <> 0 Then
+    If LenB(CStr(m_CurrentUser)) <> 0 Then
         If Not m_oParentServer Is Nothing Then
-            m_oParentServer.UnbindUser CurrentUser
+            m_oParentServer.UnbindUserFromAllGroups m_CurrentUser
+            m_oParentServer.UnbindUser m_CurrentUser
         End If
     End If
     

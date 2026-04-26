@@ -147,6 +147,7 @@ Private m_bCloseEventRaised         As Boolean                                  
 Private m_Users As New Dictionary
 Private m_Groups As New Dictionary                                              ' GroupName -> Dictionary(UserName -> True)
 
+'For Client of tcp server
 Public CurrentUser As Variant
 Public CurrentGroups As New Dictionary                                          ' GroupName -> True
 '=========================================================================
@@ -344,6 +345,13 @@ Public Sub UnbindUser(ByVal User As Variant)
     On Error Resume Next
     m_Users.Remove User
 End Sub
+
+Public Function GetClientByUser(ByVal User As Variant) As cWinsock
+    Set GetClientByUser = m_Users(User)
+End Function
+'Public Function GetClientByIndex(ByVal Index As Long) As cWinsock
+'    '    Set GetClientByUser = m_Users(User)
+'End Function
 
 ' Send data to a bound user
 Public Sub SendToUser(ByVal User As Variant, Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)

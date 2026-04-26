@@ -53,7 +53,7 @@ Public Enum enumDbType
     Mysql = 2
     MsSql = 3
     Csv = 4
-    CUSTOM = 5
+    Custom = 5
 End Enum
 Public DatabaseType As enumDbType
 
@@ -153,7 +153,7 @@ Public Function Connect( _
     '设置连接字符串ConnectionString属性
     If Conn.ConnectionString = "" Then
         Select Case DbType
-        Case CUSTOM
+        Case Custom
             Conn.ConnectionString = DbAddress
         Case Access
             DbAddress = ToolsFso.AutoCompleteFullPath(DbAddress, True)
@@ -262,7 +262,7 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
     Cmd.CommandText = pvRawSqlString
     Cmd.CommandType = adCmdText
     
-    Dim P As ADODB.Parameter
+    Dim p As ADODB.Parameter
     Dim lSize As Long
     '根据参数类型设置大小
     Select Case ParamType
@@ -283,8 +283,8 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
         If lSize = 0 Then lSize = 255
     End Select
     
-    Set P = Cmd.CreateParameter(ParamName, ParamType, adParamInput, lSize, ParamValue)
-    Cmd.Parameters.Append P
+    Set p = Cmd.CreateParameter(ParamName, ParamType, adParamInput, lSize, ParamValue)
+    Cmd.Parameters.Append p
 End Function
 
 '执行参数化查询
@@ -408,6 +408,8 @@ End Function
 
 Private Sub Class_Initialize()
     Set Conn = New ADODB.Connection
+    Connections.CompareMode = TextCompare
+    Row.CompareMode = TextCompare
 End Sub
 
 Private Sub Class_Terminate()
@@ -550,22 +552,22 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
     Call TransBegin
     
     Dim i As Long
-    Dim Row As Scripting.Dictionary
+    Dim bRow As Scripting.Dictionary
     Dim fields As String, Values As String
     Dim SqlString As String
     
     For i = 1 To Data.Count
-        Set Row = Data(i)
+        Set bRow = Data(i)
         fields = ""
         Values = ""
         
         Dim Key As Variant
-        For Each Key In Row.Keys
+        For Each Key In bRow.Keys
             If fields <> "" Then fields = fields & ", ": Values = Values & ", "
             fields = fields & Key
             '处理值，转义单引号
             Dim Val As String
-            Val = CStr(Row(Key))
+            Val = CStr(bRow(Key))
             Val = Replace(Val, "'", "''")
             Values = Values & "'" & Val & "'"
         Next

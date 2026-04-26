@@ -6,14 +6,17 @@ Option Explicit
 Public HttpSvr As New cHttpServer
 
 Public Sub HttpSvrStart()
+    
     With HttpSvr
+        ' 注册控制器
         .Router.Reg "Test", New dHttpSvr
+        ' 禁用自动路由，使用手动路由配置
         .Router.AutoRoute = True
+        
         .Start
         
-        Debug.Print "正在运行 HttpServer 单元测试..."
-        '        Test_HttpServerStickPackage.RunAllTests
-        Debug.Print "单元测试完成"
+        Debug.Print "HttpServer 已启动，端口: 80 "
+        Debug.Print "测试命令: python start.py --host localhost --port 80" & " --test all"
     End With
 End Sub
 
@@ -422,15 +425,25 @@ Sub jsonbig()
 End Sub
 '
 
-
-Sub Db()
+Sub Db2()
+    Dim Users As New cJson
     With New cDataBase
-        If .Connect(Mysql, "127.0.0.1,3306", "root", "root", "mysql") = False Then MsgBox .LastErr: Exit Sub
-        With .Sql("select * from users")
-            .Fetch
-            Debug.Print .Async
-        End With
+        .Connect Access, "D:\code\vi\vbmanlib\vbman-case\cs-auther\src-server\data.mdb"
+        .Sql("select * from users").Query
+        '        MsgBox .Rs.RecordCount
+        Users.Decode .Rs
+        MsgBox Users.RootItems.Count
     End With
+End Sub
+        
+        Sub Db()
+        With New cDataBase
+            If .Connect(Mysql, "127.0.0.1,3306", "root", "root", "mysql") = False Then MsgBox .LastErr: Exit Sub
+            With .Sql("select * from users")
+                .Fetch
+                Debug.Print .Async
+            End With
+        End With
 End Sub
 
 
@@ -468,12 +481,12 @@ End Sub
 Public Sub Tlogs()
     With New cLogs
         .ShowLogsViewer = True
-        .data "ghj"
+        .Data "ghj"
     End With
 End Sub
 
 
-Public Sub test()
+Public Sub Test()
     With New cJson
         Debug.Print .Decode("sdhg({""a"":1});").Encode()
         With .NewItems("v")

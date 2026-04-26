@@ -156,14 +156,41 @@ ret:
     End If
 End Function
 
-Public Function Decode(ByRef Text As String) As cJson
+Public Function Decode(ByRef Source As Variant) As cJson
     ' [using]: ToolsJsonVba.ParseJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     Set Decode = Me
     On Error GoTo EH
     LastError = ""
-    RootText = ToolsStr.TrimEx(Text)
+    
+    ' 支持多种类型转换（类似 Encode）
+    If IsObject(Source) = True Then
+        If TypeOf Source Is ADODB.Recordset Then
+            Set RootItems = ToolsList.RsToCollection(Source).RawCollection
+            Exit Function
+        ElseIf TypeOf Source Is cCollection Then
+            If TypeOf Source.RawCollection Is Collection Then
+                Set RootItems = Source.RawCollection
+            Else
+                Set RootItem = Source.RawCollection
+            End If
+            Exit Function
+        ElseIf TypeOf Source Is cJson Then
+            Set RootItem = Source.RootItem
+            Set RootItems = Source.RootItems
+            RootText = Source.RootText
+            Exit Function
+        ElseIf TypeOf Source Is Collection Then
+            Set RootItems = Source
+            Exit Function
+        ElseIf TypeOf Source Is Scripting.Dictionary Then
+            Set RootItem = Source
+            Exit Function
+        End If
+    End If
+    
+    RootText = ToolsStr.TrimEx(CStr(Source))
 Start:
     If RootText = "" Then ERR.Raise 1, "", "No JSON data."
     If Left(RootText, 1) = "[" Then
@@ -197,7 +224,7 @@ CheckVar:
     End If
     Return
 EH:
-    ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & Text
+    ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & CStr(Source)
 End Function
 
 

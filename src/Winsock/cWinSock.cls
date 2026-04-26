@@ -149,6 +149,8 @@ Private m_Groups As New Dictionary                                              
 
 'For Client of tcp server
 Public CurrentUser As Variant
+Public CurrentUserToken As String
+Public CurrentUserInfo As New cJson
 Public CurrentGroups As New Dictionary                                          ' GroupName -> True
 '=========================================================================
 ' Properties
@@ -330,9 +332,11 @@ End Property
 ' Public Methods
 '=========================================================================
 
-Public Sub BindUser(ByVal User As Variant, Client As cWinsock)
+Public Sub BindUser(ByVal User As Variant, Client As cWinsock, Optional ByVal Token As String, Optional Info As cJson)
     Set m_Users(User) = Client
     Client.CurrentUser = User
+    If Token <> "" Then CurrentUserToken = Token
+    If Not Info Is Nothing Then Set CurrentUserInfo = Info: Set Info = Nothing
 End Sub
 
 ' Check if a user is bound
@@ -344,6 +348,9 @@ End Function
 Public Sub UnbindUser(ByVal User As Variant)
     On Error Resume Next
     m_Users.Remove User
+    CurrentUser = vbNull
+    CurrentUserToken = ""
+    CurrentUserInfo.Clear
 End Sub
 
 Public Function GetClientByUser(ByVal User As Variant) As cWinsock

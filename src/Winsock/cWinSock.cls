@@ -568,6 +568,7 @@ Public Sub CloseUser(ByVal User As Variant)
     If m_Users.Exists(User) Then
         Dim oClient As cWinsock
         Set oClient = m_Users(User)
+        RemoveClient oClient
         oClient.Close_
     End If
 End Sub
@@ -871,9 +872,11 @@ Public Sub Close_()
     ' Close all client connections for server socket
     If m_bIsServer And Not m_cClients Is Nothing Then
         Dim oClient As cWinsock
-        For Each oClient In m_cClients
+        Do While m_cClients.Count > 0
+            Set oClient = m_cClients(1)
+            RemoveClient oClient
             oClient.Close_
-        Next
+        Loop
         Set m_cClients = Nothing
     End If
     
@@ -1158,14 +1161,17 @@ End Sub
 Friend Sub RemoveClient(oClient As cWinsock)
     On Error Resume Next
     If Not m_cClients Is Nothing Then
-        m_cClients.Remove oClient.Tag
-        ' Unbind user if client was bound (including from groups)
-        If LenB(CStr(oClient.CurrentUser)) <> 0 Then
-            UnbindUserFromAllGroups oClient.CurrentUser
-            m_Users.Remove oClient.CurrentUser
+        ' Only process if client is still in collection to avoid duplicate events
+        If m_cClients.Exists(oClient.Tag) Then
+            m_cClients.Remove oClient.Tag
+            ' Unbind user if client was bound (including from groups)
+            If LenB(CStr(oClient.CurrentUser)) <> 0 Then
+                UnbindUserFromAllGroups oClient.CurrentUser
+                m_Users.Remove oClient.CurrentUser
+            End If
+            ' Raise ClientCountChange event for disconnection
+            RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientDisconnected)
         End If
-        ' Raise ClientCountChange event for disconnection
-        RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientDisconnected)
     End If
 End Sub
 

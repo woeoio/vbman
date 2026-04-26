@@ -506,7 +506,7 @@ Public Function ToHex(InputData As Variant, Optional CharSet As String = "UTF-8"
 End Function
 
 Public Function GetGUID(Optional isFull As Boolean) As String
-    Static TypeLib As Object
+    Dim TypeLib As Object
     If TypeLib Is Nothing Then Set TypeLib = CreateObject("Scriptlet.TypeLib")
     GetGUID = IIf(isFull = True, Left(TypeLib.Guid, 38), Mid(TypeLib.Guid, 2, 36))
 End Function

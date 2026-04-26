@@ -28,7 +28,7 @@ Public LastErrDescription As String
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
 Public Rows As cCollection
-Public Row As Scripting.Dictionary
+Public Row As New Scripting.Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection
 Attribute Conn.VB_VarHelpID = -1
@@ -379,7 +379,11 @@ Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     Fetch = Query(CurType, LockType, Options)
     If Fetch = True Then
         Set Rows = ToolsList.RsToCollection(Rs)
-        If Rows.Count > 0 Then Set Row = Rows(1)
+        If Rows.Count > 0 Then
+            Set Row = Rows(1)
+        Else
+            Set Row = New Scripting.Dictionary
+        End If
     End If
 End Function
 Public Function Query(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic, Optional Options As Long = -1) As Boolean

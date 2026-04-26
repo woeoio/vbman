@@ -25,6 +25,8 @@ Public Function RsToCollection(Obj As Variant) As cCollection
     '克隆的对象记录集指针居然是初始位置
     Dim p As Long: p = IIf(Obj.AbsolutePage < 1, 1, Obj.AbsolutePage)
     Rs.Filter = Obj.Filter                                                      '过滤器要咋欧阳分页器
+    '
+    If Rs.EOF = True Then GoTo QH
     Rs.AbsolutePage = p
     '    rs.RecordCount = cnt
     '    rs.AbsolutePosition = Obj.AbsolutePosition
@@ -42,6 +44,7 @@ Public Function RsToCollection(Obj As Variant) As cCollection
         '
         Rs.MoveNext
     Loop
+QH:
     Set RsToCollection = RsArr
 End Function
 

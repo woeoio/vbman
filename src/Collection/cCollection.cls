@@ -79,12 +79,27 @@ ErrorHandler:
 End Function
 
 ' 检查键是否存在
-Public Function Exists(ByVal Key As String) As Boolean
+Public Function Exists(ByVal Key As String, Optional CompareCase As Boolean) As Boolean
     On Error GoTo ErrorHandler
     ' todo 这里有个bug，如果值是对象，也会返回false，应该获取keys 然后比对才行
-    Dim v As Variant
-    v = m_col.Item(Key)
-    Exists = True
+    '    Dim v As Variant
+    '    v = m_col.Item(Key)
+    ' fix:
+    Dim i As Long, nKey As String
+    Dim N As Long: N = m_Keys.Count
+    If CompareCase = False Then
+        nKey = UCase(Key)
+    Else
+        nKey = Key
+    End If
+    For i = 1 To N
+        If CompareCase = True Then
+            Exists = m_Keys(i) = nKey
+        Else
+            Exists = UCase(m_Keys(i)) = nKey
+        End If
+        If Exists = True Then Exit Function
+    Next i
     Exit Function
     
 ErrorHandler:

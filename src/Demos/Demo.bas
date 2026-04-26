@@ -5,6 +5,15 @@ Option Explicit
 
 Public HttpSvr As New cHttpServer
 
+Public Sub cColl()
+    Dim a As New cCollection
+    a.Add 1, "a"
+    a.Add 1, "b"
+    a.Add 1, "c"
+    Dim b() As String: b = a.Keys()
+    MsgBox a.Exists("A")
+End Sub
+
 Public Sub HttpSvrStart()
     
     With HttpSvr
@@ -316,9 +325,9 @@ End Sub
 
 Sub Reg()
     With New cRegedit
-        Dim A() As TypeRegData
-        A = .FindItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "")
-        If A(0).HasName = False Then MsgBox A(0).RegValue
+        Dim a() As TypeRegData
+        a = .FindItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "")
+        If a(0).HasName = False Then MsgBox a(0).RegValue
         
         If .SaveItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2", "c:\abc.exe", Array(-1, -2, -3)) = False Then MsgBox .LastError
         If .DeleteItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2123") = False Then MsgBox .LastError
@@ -402,18 +411,18 @@ End Sub
 
 
 Sub ArrayFor()
-    Dim A: A = Array(1, 2, 3)
+    Dim a: a = Array(1, 2, 3)
     Dim x
-    For Each x In A
+    For Each x In a
         Debug.Print x
     Next
 End Sub
 
 
 Sub JsonStr()
-    Const A As String = "130405089908358152"
+    Const a As String = "130405089908358152"
     With New cJson
-        .Item("a") = A
+        .Item("a") = a
         Debug.Print .Encode()
     End With
 End Sub
@@ -446,6 +455,11 @@ End Sub
         End With
 End Sub
 
+Public Sub Tcp()
+    Dim a As cWinsock
+    Set a = New cWinsock
+    
+End Sub
 
 Public Function JsonVar()
     With New cJson

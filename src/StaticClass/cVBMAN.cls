@@ -28,6 +28,7 @@ Public Collection As New cCollection
 Public Regedit As New cRegedit
 Public StartUp As New cStartUp
 Public Toast As New cToast
+Public Password As New cPassword
 
 'µÚÈý·½
 Public Baidu As New cBaidu

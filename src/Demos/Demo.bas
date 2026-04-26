@@ -5,12 +5,17 @@ Option Explicit
 
 Public HttpSvr As New cHttpServer
 
+Public Sub Passwd()
+    Dim a As New cPassword
+    Debug.Print a.Create("admin")
+    MsgBox a.Verify("admin", "21232F297A57A5A743894A0E4A801FC3")
+End Sub
 Public Sub cColl()
     Dim a As New cCollection
     a.Add 1, "a"
     a.Add 1, "b"
     a.Add 1, "c"
-    Dim b() As String: b = a.Keys()
+    Dim B() As String: B = a.Keys()
     MsgBox a.Exists("A")
 End Sub
 

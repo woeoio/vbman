@@ -335,8 +335,8 @@ End Property
 Public Sub BindUser(ByVal User As Variant, Client As cWinsock, Optional ByVal Token As String, Optional Info As cJson)
     Set m_Users(User) = Client
     Client.CurrentUser = User
-    If Token <> "" Then CurrentUserToken = Token
-    If Not Info Is Nothing Then Set CurrentUserInfo = Info: Set Info = Nothing
+    If Token <> "" Then Client.CurrentUserToken = Token
+    If Not Info Is Nothing Then Set Client.CurrentUserInfo = Info: Set Info = Nothing
 End Sub
 
 ' Check if a user is bound
@@ -508,6 +508,19 @@ Public Sub SendToGroup(ByVal GroupName As String, Data As Variant, Optional ByVa
             Set oClient = m_Users(vMember)
             oClient.SendData Data, CodePage
         End If
+    Next
+End Sub
+
+' Send data to all connected clients
+Public Sub SendToAll(Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
+    Dim oClient As cWinsock
+    Dim vKey As Variant
+    
+    If m_cClients Is Nothing Then Exit Sub
+    
+    For Each vKey In m_cClients
+        Set oClient = vKey
+        oClient.SendData Data, CodePage
     Next
 End Sub
 

@@ -40,15 +40,15 @@ Public Property Let MultiLineText(ByVal SectionName As String, ByVal KeyName As 
     Root(SectionName)(KeyName) = Replace(Text, vbCrLf, "\r\n")
 End Property
 
-Public Property Get Section(ByVal Key As String) As Scripting.Dictionary
-    If RootDic.Exists(Key) = False Then
-        RootDic.Add Key, New Scripting.Dictionary
+Public Property Get Section(ByVal key As String) As Scripting.Dictionary
+    If RootDic.Exists(key) = False Then
+        RootDic.Add key, New Scripting.Dictionary
     End If
     '这里今天遇到一个奇怪的问题，遇到这个函数居然报错，刚才才发现就是因为字典的特性引起的：只要读取过一个键值，如果字典不存在该项目，也会创建一个空项目，这就导致好多地方会出现诡异的事情
-    If IsObject(RootDic(Key)) = False Then                                      '所以这里得先判断是否对象，不是就new 一下，同样的问题出现在 save 函数
-        Set RootDic(Key) = New Scripting.Dictionary
+    If IsObject(RootDic(key)) = False Then                                      '所以这里得先判断是否对象，不是就new 一下，同样的问题出现在 save 函数
+        Set RootDic(key) = New Scripting.Dictionary
     End If
-    Set Section = RootDic(Key)
+    Set Section = RootDic(key)
 End Property
 
 Private Sub FixFileExtName(Path As String)
@@ -66,20 +66,20 @@ Public Function SaveTo(Optional ByVal Path As String, Optional CharSet As String
     '把字段对象转为 ini 节点数据文本并写入 path 路径的文本文件
     On Error GoTo EH
     Dim Text As String, Value As String
-    Dim Section As Variant, Key As Variant, Node As Object
+    Dim Section As Variant, key As Variant, Node As Object
     Dim Dic As Scripting.Dictionary: Set Dic = RootDic
-    If Dic.count = 0 Then LastError = "没有需要写入的数据": Exit Function
     If Path = "" Then Path = pvPath
     If Path = "" Then LastError = "文件路径不能为空": Exit Function
     '    FixFileExtName Path
     ToolsFso.AutoMakeDir Path, True
+    '    If Dic.count = 0 Then LastError = "没有需要写入的数据": Exit Function
     For Each Section In Dic.Keys
         '这里要先判断是否对象，，问题同样出现在 Section函数
         If IsObject(Dic(Section)) = False Then GoTo CT
         Text = Text & "[" & Section & "]" & vbCrLf
-        For Each Key In Dic(Section).Keys
-            Value = Dic(Section)(Key)
-            Text = Text & Key & "=" & Value & vbCrLf
+        For Each key In Dic(Section).Keys
+            Value = Dic(Section)(key)
+            Text = Text & key & "=" & Value & vbCrLf
         Next
         Text = Text & vbCrLf
 CT:
@@ -103,6 +103,8 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
     Dim Dic As Scripting.Dictionary: Set Dic = RootDic
     Call Dic.RemoveAll
     '    FixFileExtName Path
+    '  如果是 loadForm 读取的ini文件，saveto 方法可以省略路径自动保存
+    pvPath = Path
     FileStream.UseLine = True
     Call FileStream.LoadFileAsText(Path, CharSet)
     For i = 1 To FileStream.LineData.count
@@ -115,11 +117,11 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
             Else
                 ' 解析键值对
                 Dim Pos As Long
-                Dim Key As String
+                Dim key As String
                 Dim Value As String
                 Pos = InStr(TextLine, "=")
                 If Pos > 0 Then
-                    Key = Trim(Left(TextLine, Pos - 1))
+                    key = Trim(Left(TextLine, Pos - 1))
                     Value = Trim(Mid(TextLine, Pos + 1))
                     
                     ' 去除开头的双引号
@@ -135,14 +137,13 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
                     If Not Dic.Exists(Section) Then
                         Dic.Add Section, New Scripting.Dictionary
                     End If
-                    Dic(Section)(Key) = Value
+                    Dic(Section)(key) = Value
                 End If
             End If
         End If
     Next
     FileStream.Inst.Close
     LastError = ""
-    pvPath = Path
     Exit Function
 EH:
     LastError = "【iniTools.LoadFrom错误】" & ERR.Number & "#" & ERR.Description & ": " & Path

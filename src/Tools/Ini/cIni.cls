@@ -33,6 +33,13 @@ Attribute Root.VB_UserMemId = 0
     Set Root = RootDic
 End Property
 
+Public Property Get MultiLineText(ByVal SectionName As String, ByVal KeyName As String) As String
+    MultiLineText = Replace(Root(SectionName)(KeyName), "\r\n", vbCrLf)
+End Property
+Public Property Let MultiLineText(ByVal SectionName As String, ByVal KeyName As String, ByVal Text As String)
+    Root(SectionName)(KeyName) = Replace(Text, vbCrLf, "\r\n")
+End Property
+
 Public Property Get Section(ByVal Key As String) As Scripting.Dictionary
     If RootDic.Exists(Key) = False Then
         RootDic.Add Key, New Scripting.Dictionary
@@ -61,7 +68,7 @@ Public Function SaveTo(Optional ByVal Path As String, Optional CharSet As String
     Dim Text As String, Value As String
     Dim Section As Variant, Key As Variant, Node As Object
     Dim Dic As Scripting.Dictionary: Set Dic = RootDic
-    If Dic.Count = 0 Then LastError = "没有需要写入的数据": Exit Function
+    If Dic.count = 0 Then LastError = "没有需要写入的数据": Exit Function
     If Path = "" Then Path = pvPath
     If Path = "" Then LastError = "文件路径不能为空": Exit Function
     '    FixFileExtName Path
@@ -98,7 +105,7 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
     '    FixFileExtName Path
     FileStream.UseLine = True
     Call FileStream.LoadFileAsText(Path, CharSet)
-    For i = 1 To FileStream.LineData.Count
+    For i = 1 To FileStream.LineData.count
         TextLine = Trim(FileStream.ReadLine())
         ' 忽略注释和空行
         If TextLine <> "" And Left(TextLine, 1) <> ";" Then

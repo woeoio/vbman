@@ -5,18 +5,34 @@ Option Explicit
 
 Public HttpSvr As New cHttpServer
 
+
+
+
+Public Sub PostGet()
+    Dim Http As New cHttpClient
+    
+    With Http.RequestDataQuery
+            .Item("rollNo") = "ROLL202506012"
+    End With
+    
+    With Http.SendGet("http://219.139.32.67:8092/DryCoatingInspect/getByRollNoByUrl").ReturnJson()
+        MsgBox .Root("data")("coatingWeight")
+    End With
+    
+End Sub
+
 Public Sub Passwd()
-    Dim a As New cPassword
-    Debug.Print a.Create("admin")
-    MsgBox a.Verify("admin", "21232F297A57A5A743894A0E4A801FC3")
+    Dim A As New cPassword
+    Debug.Print A.Create("admin")
+    MsgBox A.Verify("admin", "21232F297A57A5A743894A0E4A801FC3")
 End Sub
 Public Sub cColl()
-    Dim a As New cCollection
-    a.Add 1, "a"
-    a.Add 1, "b"
-    a.Add 1, "c"
-    Dim B() As String: B = a.Keys()
-    MsgBox a.Exists("A")
+    Dim A As New cCollection
+    A.Add 1, "a"
+    A.Add 1, "b"
+    A.Add 1, "c"
+    Dim B() As String: B = A.Keys()
+    MsgBox A.Exists("A")
 End Sub
 
 Public Sub HttpSvrStart()
@@ -330,9 +346,9 @@ End Sub
 
 Sub Reg()
     With New cRegedit
-        Dim a() As TypeRegData
-        a = .FindItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "")
-        If a(0).HasName = False Then MsgBox a(0).RegValue
+        Dim A() As TypeRegData
+        A = .FindItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "")
+        If A(0).HasName = False Then MsgBox A(0).RegValue
         
         If .SaveItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2", "c:\abc.exe", Array(-1, -2, -3)) = False Then MsgBox .LastError
         If .DeleteItem("HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "vbman2123") = False Then MsgBox .LastError
@@ -416,18 +432,18 @@ End Sub
 
 
 Sub ArrayFor()
-    Dim a: a = Array(1, 2, 3)
+    Dim A: A = Array(1, 2, 3)
     Dim x
-    For Each x In a
+    For Each x In A
         Debug.Print x
     Next
 End Sub
 
 
 Sub JsonStr()
-    Const a As String = "130405089908358152"
+    Const A As String = "130405089908358152"
     With New cJson
-        .Item("a") = a
+        .Item("a") = A
         Debug.Print .Encode()
     End With
 End Sub
@@ -446,7 +462,7 @@ Sub Db2()
         .Sql("select * from users").Fetch
         '        MsgBox .Rs.RecordCount
         Users.Decode .Rs
-        MsgBox Users.RootItems.Count
+        MsgBox Users.RootItems.count
     End With
 End Sub
         
@@ -461,8 +477,8 @@ End Sub
 End Sub
 
 Public Sub Tcp()
-    Dim a As cWinsock
-    Set a = New cWinsock
+    Dim A As cWinsock
+    Set A = New cWinsock
     
 End Sub
 

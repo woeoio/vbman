@@ -64,7 +64,11 @@ End Property
 
 ' 当前缓冲区字节数
 Public Property Get BufferSize() As Long
-    BufferSize = UBound(m_Buffer) + 1
+    If Not IsBufferValid Then
+        BufferSize = 0
+    Else
+        BufferSize = UBound(m_Buffer) - LBound(m_Buffer) + 1
+    End If
 End Property
 
 ' ============================================================
@@ -229,7 +233,7 @@ End Function
 
 ' 返回文本，CharSet 默认 UTF-8
 Public Function ReturnText(Optional ByVal CharSet As String = "UTF-8") As String
-    If UBound(m_Buffer) < 0 Then
+    If Not IsBufferValid Then
         ReturnText = ""
         Exit Function
     End If
@@ -238,12 +242,35 @@ End Function
 
 ' 返回字节数组（副本）
 Public Function ReturnBytes() As Byte()
+    If Not IsBufferValid Then
+        Dim emptyBuf() As Byte
+        ReturnBytes = emptyBuf
+        Exit Function
+    End If
     ReturnBytes = m_Buffer
 End Function
 
 ' 返回 Base64 编码字符串
 Public Function ReturnBase64() As String
+    If Not IsBufferValid Then
+        ReturnBase64 = ""
+        Exit Function
+    End If
     ReturnBase64 = ToolsBase64.BytesToBase64(m_Buffer)
+End Function
+
+' 检查缓冲区是否有效（有数据）
+Private Function IsBufferValid() As Boolean
+    On Error Resume Next
+    Dim lb As Long
+    lb = LBound(m_Buffer)
+    If ERR.Number <> 0 Then
+        IsBufferValid = False
+        ERR.Clear
+    Else
+        IsBufferValid = (UBound(m_Buffer) >= lb)
+    End If
+    On Error GoTo 0
 End Function
 
 ' ============================================================
@@ -294,9 +321,7 @@ Public Function SaveData(Optional ByVal FilePath As String, Optional ByVal IsApp
     End If
     
     ' 写入缓冲区
-    Dim bufLen As Long
-    bufLen = UBound(m_Buffer) + 1
-    If bufLen > 0 Then
+    If IsBufferValid Then
         Put #hFile, , m_Buffer
     End If
     

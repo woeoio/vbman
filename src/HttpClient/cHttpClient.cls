@@ -35,7 +35,7 @@ Dim WithEvents Inst As WinHttp.WinHttpRequest
 Attribute Inst.VB_VarHelpID = -1
 Dim Json As New cJson
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" ( _
-    ByVal hWnd As Long, _
+    ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -126,7 +126,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
     '检查url
     If url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
-    If RequestDataQuery.Count > 0 Then url = ToolsHttp.AddToQueryString(url, ToolsHttp.MakeContent(RequestDataQuery))
+    If RequestDataQuery.count > 0 Then url = ToolsHttp.AddToQueryString(url, ToolsHttp.MakeContent(RequestDataQuery))
     '是否添加URL资源版本号
     '    If addVer Then Url = ToolsHttp.AddToQueryString(Url, Rnd())
     '打开链路
@@ -141,7 +141,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
             If RequestContentType = "" Then RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
             .Add Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_TYPE, RequestContentType
         End If
-        If .Count > 0 Then
+        If .count > 0 Then
             For Each x In .Keys()
                 If .Item(x) <> "" Then Inst.SetRequestHeader x, .Item(x)
             Next
@@ -151,6 +151,7 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
     Inst.Option(WinHttpRequestOption_SslErrorIgnoreFlags) = &H3300
     '处理POSTBODY
     If Body = "" Then
+        If RequestDataJson.RootIsEmpty = False Then RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_JSON
         If RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_JSON Then
             Body = RequestDataJson.Encode(, , True)
         ElseIf RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED Then
@@ -257,8 +258,8 @@ End Function
 
 Public Function ReturnJson(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As cJson
     Set ReturnJson = New cJson
-    Dim S As String: S = ReturnText(IsUtf8, IsConvert)
-    Call ReturnJson.Decode(S)
+    Dim s As String: s = ReturnText(IsUtf8, IsConvert)
+    Call ReturnJson.Decode(s)
 End Function
 
 Public Function ReturnText(Optional IsUtf8 As Boolean = True, Optional IsConvert As Boolean) As String

@@ -20,12 +20,18 @@ Option Explicit
 '   - 读取内容先进入内部缓冲区，再通过 ReturnXXX 提取
 ' ============================================================
 
+' --- 64位整数结构体 ---
+Private Type LARGE_INTEGER
+    LowPart As Long
+    HighPart As Long
+End Type
+
 ' --- Win32 API 声明 ---
 Private Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, ByVal lpOverlapped As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
-Private Declare Function SetFilePointerEx Lib "kernel32" (ByVal hFile As Long, liDistanceToMove As Currency, lpNewFilePointer As Currency, ByVal dwMoveMethod As Long) As Long
-Private Declare Function GetFileSizeEx Lib "kernel32" (ByVal hFile As Long, lpFileSize As Currency) As Long
+Private Declare Function SetFilePointerEx Lib "kernel32" (ByVal hFile As Long, liDistanceToMove As LARGE_INTEGER, lpNewFilePointer As LARGE_INTEGER, ByVal dwMoveMethod As Long) As Long
+Private Declare Function GetFileSizeEx Lib "kernel32" (ByVal hFile As Long, lpFileSize As LARGE_INTEGER) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function FlushFileBuffers Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
@@ -77,11 +83,15 @@ End Property
 ' 文件大小 (支持大文件，返回 Currency 类型，单位字节)
 Public Property Get FileSize() As Currency
     If Not m_IsOpen Then ERR.Raise 53, "cFileIO.FileSize", "文件未打开"
-    Dim sz As Currency
+    Dim sz As LARGE_INTEGER
     If GetFileSizeEx(m_hFile, sz) = 0 Then
         ERR.Raise 5, "cFileIO.FileSize", "获取文件大小失败"
     End If
-    FileSize = sz * 10000@  ' Currency 内部存储为 1/10000
+    ' LARGE_INTEGER 和 Currency 都是 8 字节，直接复制内存
+    Dim cySize As Currency
+    CopyMemory cySize, sz, 8
+    ' Currency 内部是 *10000 的定点数，需要除回来
+    FileSize = cySize / 10000@
 End Property
 
 ' 当前缓冲区字节数
@@ -174,13 +184,15 @@ End Function
 Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal EndPos As Long = -1) As cFileIO
     If Not m_IsOpen Then ERR.Raise 53, "cFileIO.ReadData", "文件未打开"
     
-    Dim fSize As Currency
+    Dim fSize As LARGE_INTEGER
     If GetFileSizeEx(m_hFile, fSize) = 0 Then
         m_LastError = "获取文件大小失败"
         ERR.Raise 5, "cFileIO.ReadData", m_LastError
     End If
-    Dim fLen As Currency
-    fLen = fSize * 10000@
+    ' LARGE_INTEGER 和 Currency 都是 8 字节，直接复制内存
+    Dim cySize As Currency, fLen As Currency
+    CopyMemory cySize, fSize, 8
+    fLen = cySize / 10000@  ' Currency 内部是 *10000 的定点数
     If fLen <= 0 Then
         Erase m_Buffer
         Set ReadData = Me
@@ -201,9 +213,14 @@ Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal En
         ERR.Raise 6, "cFileIO.ReadData", m_LastError
     End If
     
-    ' 定位到开始位置
-    Dim posCur As Currency
-    If SetFilePointerEx(m_hFile, CCur(sPos / 10000@), posCur, FILE_BEGIN) = 0 Then
+    ' 定位到开始位置 - 使用 LARGE_INTEGER
+    Dim posCur As LARGE_INTEGER
+    Dim distance As LARGE_INTEGER
+    ' Currency 和 LARGE_INTEGER 都是 8 字节，直接复制内存
+    Dim cyPos As Currency
+    cyPos = sPos * 10000@  ' Currency 内部表示
+    CopyMemory distance, cyPos, 8
+    If SetFilePointerEx(m_hFile, distance, posCur, FILE_BEGIN) = 0 Then
         m_LastError = "文件定位失败"
         ERR.Raise 5, "cFileIO.ReadData", m_LastError
     End If
@@ -212,13 +229,13 @@ Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal En
     Const CHUNK As Long = 2097152
     Dim totalRead As Currency
     totalRead = 0@
-    ReDim m_Buffer(0 To CInt(rLen) - 1)
+    ReDim m_Buffer(0 To CLng(rLen) - 1)
     
     Do While totalRead < rLen
         Dim toRead As Long
-        toRead = IIf(rLen - totalRead > CCur(CHUNK), CHUNK, CInt(rLen - totalRead))
+        toRead = IIf(rLen - totalRead > CCur(CHUNK), CHUNK, CLng(rLen - totalRead))
         Dim readLen As Long
-        If ReadFile(m_hFile, m_Buffer(CInt(totalRead)), toRead, readLen, 0) = 0 Then
+        If ReadFile(m_hFile, m_Buffer(CLng(totalRead)), toRead, readLen, 0) = 0 Then
             m_LastError = "读取文件失败"
             ERR.Raise 5, "cFileIO.ReadData", m_LastError
         End If
@@ -227,7 +244,7 @@ Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal En
     Loop
     
     If totalRead < rLen Then
-        ReDim Preserve m_Buffer(0 To CInt(totalRead) - 1)
+        ReDim Preserve m_Buffer(0 To CLng(totalRead) - 1)
     End If
     
     m_LastError = ""
@@ -291,16 +308,21 @@ Public Function SaveData(Optional ByVal FilePath As String, Optional ByVal IsApp
     
     ' 追加模式：定位到文件末尾
     If IsAppend Then
-        Dim posEnd As Currency
-        If SetFilePointerEx(hOut, 0@, posEnd, FILE_END) = 0 Then
+        Dim posEnd As LARGE_INTEGER
+        Dim zeroPos As LARGE_INTEGER
+        zeroPos.LowPart = 0
+        zeroPos.HighPart = 0
+        If SetFilePointerEx(hOut, zeroPos, posEnd, FILE_END) = 0 Then
             If needClose Then CloseHandle hOut
             m_LastError = "定位到文件末尾失败"
             ERR.Raise 5, "cFileIO.SaveData", m_LastError
         End If
     ElseIf needClose Then
         ' 新建文件，从头开始写
-        Dim posZero As Currency
-        SetFilePointerEx hOut, 0@, posZero, FILE_BEGIN
+        Dim posZero As LARGE_INTEGER
+        posZero.LowPart = 0
+        posZero.HighPart = 0
+        SetFilePointerEx hOut, posZero, posZero, FILE_BEGIN
     End If
     
     ' 分块写入

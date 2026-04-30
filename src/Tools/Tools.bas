@@ -20,3 +20,4 @@ Public Toast As New cToast
 Public Password As New cPassword
 Public Delay As New cDelay
 Public FileEx As New cFileEx
+Public Dialog As New cDialog

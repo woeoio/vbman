@@ -173,6 +173,114 @@ Public Function SetBufferText(ByVal Text As String, Optional ByVal CharSet As St
     Set SetBufferText = Me
 End Function
 
+' 用 Base64 字符串填充缓冲区，返回 Me
+Public Function SetBufferBase64(ByVal Base64String As String) As cFileEx
+    m_Buffer = ToolsBase64.Base64ToBytes(Base64String)
+    Set SetBufferBase64 = Me
+End Function
+
+' 用 Hex 字符串填充缓冲区，可选分隔符（默认支持空格分隔），返回 Me
+Public Function SetBufferHex(ByVal HexString As String, Optional ByVal Separator As String = " ") As cFileEx
+    Dim cleaned As String
+    Dim i As Long, j As Long
+    Dim hexPair As String
+    Dim b() As Byte
+    Dim count As Long
+    
+    ' 清理字符串：移除所有分隔符和空白字符
+    cleaned = Replace(HexString, Separator, "")
+    cleaned = Replace(cleaned, " ", "")  ' 额外移除空格
+    cleaned = Replace(cleaned, vbTab, "")
+    cleaned = Replace(cleaned, vbCr, "")
+    cleaned = Replace(cleaned, vbLf, "")
+    cleaned = UCase$(Trim$(cleaned))
+    
+    ' 确保长度为偶数
+    If Len(cleaned) Mod 2 <> 0 Then
+        cleaned = "0" & cleaned
+    End If
+    
+    count = Len(cleaned) \ 2
+    If count <= 0 Then
+        Erase m_Buffer
+        Set SetBufferHex = Me
+        Exit Function
+    End If
+    
+    ReDim b(0 To count - 1)
+    
+    For i = 0 To count - 1
+        hexPair = Mid$(cleaned, i * 2 + 1, 2)
+        ' 验证是否为有效的十六进制字符
+        For j = 1 To 2
+            Select Case Mid$(hexPair, j, 1)
+                Case "0" To "9", "A" To "F"
+                    ' 有效
+                Case Else
+                    ERR.Raise 5, "cFileEx.SetBufferHex", "无效的十六进制字符: " & Mid$(hexPair, j, 1)
+            End Select
+        Next j
+        b(i) = CByte("&H" & hexPair)
+    Next i
+    
+    m_Buffer = b
+    Set SetBufferHex = Me
+End Function
+
+' 用二进制字符串填充缓冲区，可选分隔符（默认支持空格分隔），返回 Me
+Public Function SetBufferBinString(ByVal BinString As String, Optional ByVal Separator As String = " ") As cFileEx
+    Dim cleaned As String
+    Dim i As Long, j As Long
+    Dim byteStr As String
+    Dim b() As Byte
+    Dim count As Long
+    Dim bVal As Byte
+    
+    ' 清理字符串：移除所有分隔符和空白字符
+    cleaned = Replace(BinString, Separator, "")
+    cleaned = Replace(cleaned, " ", "")  ' 额外移除空格
+    cleaned = Replace(cleaned, vbTab, "")
+    cleaned = Replace(cleaned, vbCr, "")
+    cleaned = Replace(cleaned, vbLf, "")
+    cleaned = Trim$(cleaned)
+    
+    ' 确保长度是8的倍数
+    Dim padding As Long
+    padding = 8 - (Len(cleaned) Mod 8)
+    If padding < 8 Then
+        cleaned = String$(padding, "0") & cleaned
+    End If
+    
+    count = Len(cleaned) \ 8
+    If count <= 0 Then
+        Erase m_Buffer
+        Set SetBufferBinString = Me
+        Exit Function
+    End If
+    
+    ReDim b(0 To count - 1)
+    
+    For i = 0 To count - 1
+        byteStr = Mid$(cleaned, i * 8 + 1, 8)
+        bVal = 0
+        ' 验证并转换为字节
+        For j = 1 To 8
+            Select Case Mid$(byteStr, j, 1)
+                Case "0"
+                    ' 位为0，不操作
+                Case "1"
+                    bVal = bVal + 2 ^ (8 - j)
+                Case Else
+                    ERR.Raise 5, "cFileEx.SetBufferBinString", "无效的二进制字符: " & Mid$(byteStr, j, 1)
+            End Select
+        Next j
+        b(i) = bVal
+    Next i
+    
+    m_Buffer = b
+    Set SetBufferBinString = Me
+End Function
+
 ' ============================================================
 ' 数据读取（读入内部缓冲区）
 ' ============================================================

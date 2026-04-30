@@ -30,6 +30,7 @@ Public StartUp As New cStartUp
 Public Toast As New cToast
 Public Password As New cPassword
 Public Delay As New cDelay
+Public FileEx As New cFileEx
 
 'µÚÈý·½
 Public Baidu As New cBaidu

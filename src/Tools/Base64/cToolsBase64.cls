@@ -222,6 +222,7 @@ Public Function Base64ToBytes(ByVal Data As String) As Byte()
     Dim Temp As Long
     Dim GroupCount As Long
     Dim CharValue As Long
+    Dim PaddingCount As Long
     
     ' 去除无效字符
     Data = Replace(Data, vbCr, "")
@@ -232,8 +233,16 @@ Public Function Base64ToBytes(ByVal Data As String) As Byte()
     ' 计算需要多少个3字节组
     GroupCount = Len(Data) \ 4
     
-    ' 初始化字节数组
-    ReDim Bytes(GroupCount * 3 - 1)
+    ' 计算填充字符数量（末尾的=号）
+    If Len(Data) > 0 Then
+        If Right$(Data, 1) = "=" Then PaddingCount = 1
+        If Len(Data) > 1 Then
+            If Mid$(Data, Len(Data) - 1, 1) = "=" Then PaddingCount = 2
+        End If
+    End If
+    
+    ' 初始化字节数组（根据填充字符调整实际大小）
+    ReDim Bytes(GroupCount * 3 - PaddingCount - 1)
     
     ' 处理每个4字符组
     For i = 0 To GroupCount - 1
@@ -246,8 +255,15 @@ Public Function Base64ToBytes(ByVal Data As String) As Byte()
             Temp = Temp Or (CharValue * (64 ^ (3 - j)))
         Next j
         
-        ' 转换为3个字节
-        For j = 0 To 2
+        ' 转换为3个字节（最后一个组根据填充数量减少输出）
+        Dim BytesToWrite As Long
+        If i = GroupCount - 1 Then
+            BytesToWrite = 3 - PaddingCount
+        Else
+            BytesToWrite = 3
+        End If
+        
+        For j = 0 To BytesToWrite - 1
             If i * 3 + j <= UBound(Bytes) Then
                 Bytes(i * 3 + j) = (Temp \ (256 ^ (2 - j))) And 255
             End If

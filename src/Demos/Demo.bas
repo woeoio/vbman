@@ -5,14 +5,80 @@ Option Explicit
 
 Public HttpSvr As New cHttpServer
 
+'Private Declare Function GetFileSizeEx Lib "kernel32" (ByVal hFile As Long, lpFileSize As Currency) As Boolean
+'Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
+'Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+'Private Const OF_READ = &H0
+'Private Const OF_WRITE = &H1
+'Private Const FILE_BEGIN = 0
+'Private Const FILE_END = 2
+'Private Const FILE_SHARE_READ = &H1
+'Private Const FILE_SHARE_WRITE = &H2
+'Private Const CREATE_NEW = 1
+'Private Const CREATE_ALWAYS = 2
+'Private Const OPEN_EXISTING = 3
+'Private Const OPEN_ALWAYS = 4
+'Private Const GENERIC_READ = &H80000000
+'Private Const GENERIC_WRITE = &H40000000
+'Private Const MOVEFILE_REPLACE_EXISTING = &H1
+'Private Const FILE_ATTRIBUTE_TEMPORARY = &H100
+'
+'Public Sub FileSize()
+'    Dim hf As Long, nSize As Currency
+'    hf = CreateFile("D:\test.txt", GENERIC_WRITE, FILE_SHARE_READ Or FILE_SHARE_WRITE, ByVal 0&, OPEN_ALWAYS, 0, 0)
+'    GetFileSizeEx hf, nSize                                                     '文件总长度
+'    CloseHandle hf
+'    MsgBox nSize
+'End Sub
 
 
+Public Sub FileIO()
+    
+    Dim F As New cFileEx
+    Dim Text As String
+    
+    ' --- 读取示例 ---
+    
+    Text = F.OpenFile("D:\test.txt").ReadData().ReturnText("UTF-8")
+    ' 或读取指定范围
+    Text = F.OpenFile("D:\test.txt").ReadData(100, 199).ReturnText("UTF-8")
+    
+    ' 链式：读取 -> 返回 Base64
+    Dim b64 As String
+    b64 = F.OpenFile("D:\test.txt").ReadData(10, 20).ReturnBase64()
+    
+    ' --- 写入示例 ---
+    Dim f2 As New cFileEx
+    f2.SetBufferText("Hello World", "UTF-8").SaveData "D:\out.txt"
+    
+    ' 追加写入
+    f2.SetBufferText("追加内容", "UTF-8").SaveData "D:\out.txt", True
+    
+    ' 从文件A读，写入文件B
+f2.OpenFile("D:\a.bin").ReadData().SaveData "D:\b.bin"
+    
+    
+    
+    Debug.Print b64, Text
+    
+    F.CloseFile
+    
+    
+    
+End Sub
+
+Public Sub GetFileSizeDemo()
+    Dim F As New cFileEx
+    F.OpenFile "D:\test.txt", "R"
+    Debug.Print "FileSize = " & F.FileSize & " bytes"
+    F.CloseFile
+End Sub
 
 Public Sub PostGet()
     Dim Http As New cHttpClient
     
     With Http.RequestDataQuery
-            .Item("rollNo") = "ROLL202506012"
+        .Item("rollNo") = "ROLL202506012"
     End With
     
     With Http.SendGet("http://219.139.32.67:8092/DryCoatingInspect/getByRollNoByUrl").ReturnJson()
@@ -31,7 +97,7 @@ Public Sub cColl()
     A.Add 1, "a"
     A.Add 1, "b"
     A.Add 1, "c"
-    Dim B() As String: B = A.Keys()
+    Dim b() As String: b = A.Keys()
     MsgBox A.Exists("A")
 End Sub
 

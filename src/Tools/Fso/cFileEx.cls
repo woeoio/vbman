@@ -286,8 +286,8 @@ End Function
 ' ============================================================
 
 ' 将文件指定范围读入内部缓冲区，返回 Me 支持链式调用。
-'   StartPos / EndPos 为 0-based 字节偏移；传 -1 表示使用默认值。
-'   StartPos = -1 : 从文件开头（第 0 字节）开始
+'   StartPos / EndPos 为 1-based 字节位置；传 -1 表示使用默认值。
+'   StartPos = -1 : 从文件开头（第 1 个字节）开始
 '   EndPos   = -1 : 读到文件最后一个字节
 Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal EndPos As Long = -1) As cFileEx
     If Not m_IsOpen Then ERR.Raise 53, "cFileEx.ReadData", "文件未打开"
@@ -301,11 +301,12 @@ Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal En
     End If
     
     Dim sPos As Long, ePos As Long
-    sPos = IIf(StartPos < 0, 0, StartPos)
+    ' StartPos/EndPos 是 1-based，转换为 0-based 用于内部计算
+    sPos = IIf(StartPos < 0, 0, StartPos - 1)
     If sPos < 0 Then sPos = 0
     If sPos >= fLen Then sPos = fLen - 1
     
-    ePos = IIf(EndPos < 0, fLen - 1, EndPos)
+    ePos = IIf(EndPos < 0, fLen - 1, EndPos - 1)
     If ePos >= fLen Then ePos = fLen - 1
     If ePos < sPos Then ePos = sPos
     
@@ -323,7 +324,7 @@ Public Function ReadData(Optional ByVal StartPos As Long = -1, Optional ByVal En
     
     On Error GoTo ReadError
     
-    ' 使用 Get 语句读取二进制数据
+    ' 使用 Get 语句读取二进制数据（位置是 1-based，所以 +1）
     Get #m_FileNo, sPos + 1, m_Buffer
     
     m_LastError = ""

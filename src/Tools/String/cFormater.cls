@@ -44,6 +44,7 @@ Private Const MS_DAY    As Long = 86400000                                      
 
 ' 设置数据源，返回 Me 支持链式调用
 Public Function Data(ByVal Source As Variant) As cFormater
+Attribute Data.VB_UserMemId = 0
     m_Source = Source
     m_HasData = True
     Set Data = Me

@@ -23,6 +23,20 @@ Debug.Print F.Data(Now - 0.5).ReturnTimeAgo()   ' 输出: 12小时前
 Debug.Print F.Data("13812345678").ReturnMaskedPhone()   ' 输出: 138****5678
 ```
 
+### 更简洁的写法（利用默认成员）
+
+`Data` 方法被设置为**默认成员**，可以直接传入参数而省略 `.Data`：
+
+```vb
+' 省略 .Data，直接传入数据
+Debug.Print F(1536000@).ReturnFileSize()        ' 输出: 1.46 MB
+Debug.Print F("13812345678").ReturnMaskedPhone() ' 输出: 138****5678
+
+' 配合 VBMAN 全局对象使用（VBMAN.Formater 返回全局 cFormater 实例）
+Debug.Print VBMAN.Formater(1536000@).ReturnFileSize()   ' 输出: 1.46 MB
+Debug.Print VBMAN.Formater(Now - 0.5).ReturnTimeAgo()   ' 输出: 12小时前
+```
+
 ---
 
 ## 核心方法
@@ -31,8 +45,8 @@ Debug.Print F.Data("13812345678").ReturnMaskedPhone()   ' 输出: 138****5678
 
 设置要格式化的数据源，返回 `Me` 支持链式调用。
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
+| 参数     | 类型      | 说明           |
+| -------- | --------- | -------------- |
 | `Source` | `Variant` | 任意类型的数据 |
 
 ```vb
@@ -54,9 +68,9 @@ End With
 
 将字节数转换为人类可读的文件大小格式 (B/KB/MB/GB/TB/PB)。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `DecimalPlaces` | `Long` | `2` | 小数位数 |
+| 参数            | 类型   | 默认值 | 说明     |
+| --------------- | ------ | ------ | -------- |
+| `DecimalPlaces` | `Long` | `2`    | 小数位数 |
 
 ```vb
 Debug.Print F.Data(512).ReturnFileSize()                 ' 512 B
@@ -87,8 +101,8 @@ Debug.Print F.Data(#1/1/2024#).ReturnTimeAgo()           ' 4月前 (假设当前
 
 自定义格式输出日期时间。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| 参数        | 类型     | 默认值                  | 说明              |
+| ----------- | -------- | ----------------------- | ----------------- |
 | `FormatStr` | `String` | `"yyyy-MM-dd HH:mm:ss"` | VB 日期格式字符串 |
 
 ```vb
@@ -123,9 +137,9 @@ Debug.Print F.Data(1234567.89).ReturnNumber(0)      ' 1,234,568
 
 返回货币格式。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `Symbol` | `String` | `"¥"` | 货币符号 |
+| 参数     | 类型     | 默认值 | 说明     |
+| -------- | -------- | ------ | -------- |
+| `Symbol` | `String` | `"¥"`  | 货币符号 |
 
 ```vb
 Debug.Print F.Data(1999.99).ReturnCurrency()        ' ¥1,999.99
@@ -158,10 +172,10 @@ Debug.Print F.Data(1999).ReturnRoman()              ' MCMXCIX
 
 截断超长文本，显示省略号。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `MaxLength` | `Long` | - | 最大长度 |
-| `Suffix` | `String` | `"..."` | 后缀 |
+| 参数        | 类型     | 默认值  | 说明     |
+| ----------- | -------- | ------- | -------- |
+| `MaxLength` | `Long`   | -       | 最大长度 |
+| `Suffix`    | `String` | `"..."` | 后缀     |
 
 ```vb
 Debug.Print F.Data("这是一段很长的文本").ReturnTruncate(5)      ' 这是一...
@@ -386,36 +400,36 @@ Debug.Print F.HasData       ' False
 ```vb
 Sub Demo()
     Dim F As New cFormater
-    
+
     ' 文件大小示例
     Debug.Print "=== 文件大小 ==="
     Debug.Print F.Data(512).ReturnFileSize()                    ' 512 B
     Debug.Print F.Data(1536000@).ReturnFileSize()               ' 1.46 MB
     Debug.Print F.Data(1073741824@).ReturnFileSize(1)           ' 1.0 GB
-    
+
     ' 时间示例
     Debug.Print vbCrLf & "=== 相对时间 ==="
     Debug.Print F.Data(Now).ReturnTimeAgo()                     ' 刚刚
     Debug.Print F.Data(Now - 0.02).ReturnTimeAgo()              ' 28分钟前
     Debug.Print F.Data(#1/1/2024#).ReturnDateTime("yyyy/MM/dd") ' 2024/01/01
-    
+
     ' 数字示例
     Debug.Print vbCrLf & "=== 数字格式化 ==="
     Debug.Print F.Data(1234567.89).ReturnNumber(2)              ' 1,234,567.89
     Debug.Print F.Data(0.856).ReturnPercent(1)                  ' 85.6%
     Debug.Print F.Data(1999.99).ReturnCurrency("$")             ' $1,999.99
-    
+
     ' 文本示例
     Debug.Print vbCrLf & "=== 文本格式化 ==="
     Debug.Print F.Data("hello_world").ReturnCamelCase()         ' helloWorld
     Debug.Print F.Data("hello world").ReturnPascalCase()        ' HelloWorld
     Debug.Print F.Data("test").ReturnPadLeft(6, "0")            ' 000test
-    
+
     ' 掩码示例
     Debug.Print vbCrLf & "=== 隐私掩码 ==="
     Debug.Print F.Data("13812345678").ReturnMaskedPhone()       ' 138****5678
     Debug.Print F.Data("admin@test.com").ReturnMaskedEmail()    ' a***@test.com
-    
+
     ' 文件路径示例
     Debug.Print vbCrLf & "=== 文件路径 ==="
     With F.Data("C:\Users\Test\document.txt")
@@ -444,6 +458,7 @@ End Sub
 ### 错误处理
 
 所有方法都包含基本的错误处理：
+
 - 无效数据返回空字符串或默认值
 - 数值转换失败返回 0 或 "0"
 - 不会抛出运行时错误
@@ -452,3 +467,4 @@ End Sub
 
 - 链式调用创建临时对象，建议在循环外复用实例
 - 大量数据处理时，考虑直接使用底层函数
+

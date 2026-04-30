@@ -259,6 +259,69 @@ Public Function ReturnBase64() As String
     ReturnBase64 = ToolsBase64.BytesToBase64(m_Buffer)
 End Function
 
+' 返回 Hex 编码字符串，可选分隔符（默认空格，每2字符一组）
+Public Function ReturnHex(Optional ByVal Separator As String = " ") As String
+    If Not IsBufferValid Then
+        ReturnHex = ""
+        Exit Function
+    End If
+    
+    Dim i As Long, ub As Long
+    Dim result As String
+    Dim hexByte As String
+    
+    ub = UBound(m_Buffer)
+    result = ""
+    
+    For i = LBound(m_Buffer) To ub
+        ' 格式化为2位十六进制，不足补0
+        hexByte = Right$("0" & Hex$(m_Buffer(i)), 2)
+        result = result & hexByte
+        ' 非最后一个字节时添加分隔符
+        If i < ub Then
+            result = result & Separator
+        End If
+    Next i
+    
+    ReturnHex = result
+End Function
+
+' 返回二进制字符串，可选分隔符（默认空格，每8字符一组）
+Public Function ReturnBinString(Optional ByVal Separator As String = " ") As String
+    If Not IsBufferValid Then
+        ReturnBinString = ""
+        Exit Function
+    End If
+    
+    Dim i As Long, j As Long, ub As Long
+    Dim result As String
+    Dim binByte As String
+    Dim b As Byte
+    
+    ub = UBound(m_Buffer)
+    result = ""
+    
+    For i = LBound(m_Buffer) To ub
+        b = m_Buffer(i)
+        binByte = ""
+        ' 将字节转换为8位二进制
+        For j = 7 To 0 Step -1
+            If (b And (2 ^ j)) <> 0 Then
+                binByte = binByte & "1"
+            Else
+                binByte = binByte & "0"
+            End If
+        Next j
+        result = result & binByte
+        ' 非最后一个字节时添加分隔符
+        If i < ub Then
+            result = result & Separator
+        End If
+    Next i
+    
+    ReturnBinString = result
+End Function
+
 ' 检查缓冲区是否有效（有数据）
 Private Function IsBufferValid() As Boolean
     On Error Resume Next

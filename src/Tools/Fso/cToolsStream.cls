@@ -66,9 +66,10 @@ Public Function LoadFileAsText(ByVal FileName As String, Optional ByVal CharSet 
     End If
     '    Inst.Close
 End Function
-Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String, Optional ByVal CharSet As String = "UTF-8") As Boolean
+Public Function SaveFileAsText(ByVal FileName As String, Optional Data As Variant, Optional ByVal CharSet As String = "UTF-8") As Boolean
     Dim Dat As String, isInst As Boolean
-    If Len(Data) = 0 Then
+    
+    If IsMissing(Data) = True Then
         If UseLine = True Then
             Dat = Txt.JoinLinesFromCollection(LineData)
         Else
@@ -77,12 +78,17 @@ Public Function SaveFileAsText(ByVal FileName As String, Optional Data As String
     Else
         Dat = Data
     End If
+    
     With Inst
         If .State <> adStateClosed Then .Close
         .Type = adTypeText
         .Open
         .CharSet = CharSet
-        If isInst = False Then .WriteText Dat
+        If isInst = False Then
+            'todo ado流对象不能写入空值，这里只能弄个空格先顶一下，后面有时间改用 cFileEx 对象
+            If Len(Dat) = 0 Then Dat = " "
+            .WriteText Dat
+        End If
         .SaveToFile FileName, adSaveCreateOverWrite
         '        .Close
     End With

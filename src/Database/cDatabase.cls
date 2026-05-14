@@ -262,7 +262,7 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
     Cmd.CommandText = pvRawSqlString
     Cmd.CommandType = adCmdText
     
-    Dim p As ADODB.Parameter
+    Dim P As ADODB.Parameter
     Dim lSize As Long
     '根据参数类型设置大小
     Select Case ParamType
@@ -283,8 +283,8 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
         If lSize = 0 Then lSize = 255
     End Select
     
-    Set p = Cmd.CreateParameter(ParamName, ParamType, adParamInput, lSize, ParamValue)
-    Cmd.Parameters.Append p
+    Set P = Cmd.CreateParameter(ParamName, ParamType, adParamInput, lSize, ParamValue)
+    Cmd.Parameters.Append P
 End Function
 
 '执行参数化查询
@@ -297,7 +297,7 @@ Public Function ExecParam(Optional RecordsAffected) As Boolean
     ExecParam = True
     
     '清理参数
-    Do While Cmd.Parameters.Count > 0
+    Do While Cmd.Parameters.count > 0
         Cmd.Parameters.Delete 0
     Loop
     Set Cmd = Nothing
@@ -307,13 +307,24 @@ eee:
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
     If Not Cmd Is Nothing Then
-        Do While Cmd.Parameters.Count > 0
+        Do While Cmd.Parameters.count > 0
             Cmd.Parameters.Delete 0
         Loop
         Set Cmd = Nothing
     End If
 End Function
 
+Public Function FetchParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic) As Boolean
+    FetchParam = QueryParam(CurType, LockType)
+    If FetchParam = True Then
+        Set Rows = ToolsList.RsToCollection(Rs)
+        If Rows.count > 0 Then
+            Set Row = Rows(1)
+        Else
+            Set Row = New Scripting.Dictionary
+        End If
+    End If
+End Function
 '查询参数化
 Public Function QueryParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic) As Boolean
     On Error GoTo eee
@@ -326,7 +337,7 @@ Public Function QueryParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Op
     QueryParam = True
     
     '清理参数
-    Do While Cmd.Parameters.Count > 0
+    Do While Cmd.Parameters.count > 0
         Cmd.Parameters.Delete 0
     Loop
     Set Cmd = Nothing
@@ -336,7 +347,7 @@ eee:
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
     If Not Cmd Is Nothing Then
-        Do While Cmd.Parameters.Count > 0
+        Do While Cmd.Parameters.count > 0
             Cmd.Parameters.Delete 0
         Loop
         Set Cmd = Nothing
@@ -379,7 +390,7 @@ Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
     Fetch = Query(CurType, LockType, Options)
     If Fetch = True Then
         Set Rows = ToolsList.RsToCollection(Rs)
-        If Rows.Count > 0 Then
+        If Rows.count > 0 Then
             Set Row = Rows(1)
         Else
             Set Row = New Scripting.Dictionary
@@ -453,7 +464,7 @@ eee:
 End Function
 
 '统计记录数
-Public Function Count(Optional ByVal TableName As String = "") As Long
+Public Function count(Optional ByVal TableName As String = "") As Long
     On Error GoTo eee
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     
@@ -468,7 +479,7 @@ Public Function Count(Optional ByVal TableName As String = "") As Long
     Dim rsTemp As New ADODB.Recordset
     rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
     If Not rsTemp.EOF Then
-        Count = rsTemp("cnt")
+        count = rsTemp("cnt")
     End If
     rsTemp.Close
     Set rsTemp = Nothing
@@ -550,7 +561,7 @@ End Function
 Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection) As Boolean
     On Error GoTo eee
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
-    If Data.Count = 0 Then BatchInsert = True: Exit Function
+    If Data.count = 0 Then BatchInsert = True: Exit Function
     
     '开始事务
     Call TransBegin
@@ -560,18 +571,18 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
     Dim fields As String, Values As String
     Dim SqlString As String
     
-    For i = 1 To Data.Count
+    For i = 1 To Data.count
         Set bRow = Data(i)
         fields = ""
         Values = ""
         
-        Dim Key As Variant
-        For Each Key In bRow.Keys
+        Dim key As Variant
+        For Each key In bRow.Keys
             If fields <> "" Then fields = fields & ", ": Values = Values & ", "
-            fields = fields & Key
+            fields = fields & key
             '处理值，转义单引号
             Dim Val As String
-            Val = CStr(bRow(Key))
+            Val = CStr(bRow(key))
             Val = Replace(Val, "'", "''")
             Values = Values & "'" & Val & "'"
         Next

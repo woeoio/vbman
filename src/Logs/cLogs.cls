@@ -108,6 +108,9 @@ Public Function View(Value As Boolean) As cLogs
     ShowLogsViewer = Value
 End Function
 
+Public Function DataLine(ByVal LogContent As String, Optional ByVal LogTitle As String, Optional LogLevel As EnumLogLevel = LvInfo) As cLogs
+    Set DataLine = Data(LogContent & vbCrLf, LogTitle, LogLevel)
+End Function
 Public Function Data(ByVal LogContent As String, Optional ByVal LogTitle As String, Optional LogLevel As EnumLogLevel = LvInfo) As cLogs
 Attribute Data.VB_UserMemId = 0
     Set Data = Me
@@ -163,7 +166,7 @@ End Function
 
 Public Function Save() As cLogs
     Set Save = Me
-    If CacheDatas.Count = 0 Then Exit Function
+    If CacheDatas.count = 0 Then Exit Function
     '用途：日志输出到文件，支持其他通道开关
     Dim LogPath As String
     Dim LogFile As String
@@ -207,7 +210,7 @@ End Function
 
 Private Function MakeLogContent(Optional Span As String = vbCrLf) As String
     Dim i As Long, Txt As String
-    For i = 1 To CacheDatas.Count
+    For i = 1 To CacheDatas.count
         Txt = Txt & Join(CacheDatas.Item(i), Span)                              '& vbCrLf
     Next
     Set CacheDatas = Nothing

@@ -32,6 +32,11 @@ Public HttpSvr As New cHttpServer
 'End Sub
 
 
+Public Sub LogTest()
+    Dim l As New cLogs
+    l.Data("dasd").Save
+End Sub
+
 Public Sub FileIO()
     
     Dim F As New cFileEx
@@ -97,7 +102,7 @@ Public Sub cColl()
     A.Add 1, "a"
     A.Add 1, "b"
     A.Add 1, "c"
-    Dim b() As String: b = A.Keys()
+    Dim B() As String: B = A.Keys()
     MsgBox A.Exists("A")
 End Sub
 

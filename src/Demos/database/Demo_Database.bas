@@ -10,7 +10,7 @@ Option Explicit
 
 '数据库配置 - 请根据实际环境修改
 Private Const TEST_DB_TYPE As Long = enumDbType.Mysql                           '1:Access, 2:Mysql, 3:MsSql, 4:Csv
-Private Const TEST_DB_ADDRESS As String = "10.0.0.252,3306"                     '如果使用CUSTOM，这里参数2填写完整DSN，后面参数3+不用填写
+Private Const TEST_DB_ADDRESS As String = "172.18.131.71,3306"                     '如果使用CUSTOM，这里参数2填写完整DSN，后面参数3+不用填写
 'Private Const TEST_DB_ADDRESS As String = "DRIVER=VBMAN Mysql ODBC Driver;MULTI_HOST=1;SERVER=10.0.0.252,3306;DATABASE=mysql;UID=root;PWD=root"
 Private Const TEST_DB_USERNAME As String = "root"
 Private Const TEST_DB_PASSWORD As String = "root"
@@ -340,15 +340,15 @@ Private Sub Test_QueryData()
     
     If bQuery Then
         Debug.Print "  [OK] Fetch 查询成功"
-        Debug.Print "       Rows集合数量: " & TestDB.Rows.Count
+        Debug.Print "       Rows集合数量: " & TestDB.Rows.count
         
-        If TestDB.Rows.Count > 0 Then
+        If TestDB.Rows.count > 0 Then
             Debug.Print "       第一行数据:"
-            Dim Key As Variant
+            Dim key As Variant
             Dim Row As Scripting.Dictionary
             Set Row = TestDB.Rows(1)
-            For Each Key In Row.Keys
-                Debug.Print "         " & Key & ": " & Row(Key)
+            For Each key In Row.Keys
+                Debug.Print "         " & key & ": " & Row(key)
             Next
         End If
     Else
@@ -388,7 +388,7 @@ Private Sub Test_UpdateData()
         Dim sqlCheck As String
         sqlCheck = "SELECT score FROM test_users WHERE username = '张三'"
         Call TestDB.Sql(sqlCheck).Fetch
-        If TestDB.Rows.Count > 0 Then
+        If TestDB.Rows.count > 0 Then
             Debug.Print "       更新后的分数: " & TestDB.Rows(1)("score")
         End If
     Else
@@ -415,7 +415,7 @@ Private Sub Test_DeleteData()
     
     '先查询总记录数
     Dim lCountBefore As Long
-    lCountBefore = TestDB.Count("test_users")
+    lCountBefore = TestDB.count("test_users")
     Debug.Print "  删除前记录数: " & lCountBefore
     
     '删除指定记录
@@ -432,7 +432,7 @@ Private Sub Test_DeleteData()
         
         '验证删除
         Dim lCountAfter As Long
-        lCountAfter = TestDB.Count("test_users")
+        lCountAfter = TestDB.count("test_users")
         Debug.Print "  删除后记录数: " & lCountAfter
     Else
         Debug.Print "  [FAIL] 删除失败"
@@ -477,7 +477,7 @@ Private Sub Test_Transaction()
         
         If bCommit Then
             Dim lCount As Long
-            lCount = TestDB.Count("test_users")
+            lCount = TestDB.count("test_users")
             Debug.Print "       当前记录数: " & lCount
         End If
     End If
@@ -490,7 +490,7 @@ Private Sub Test_Transaction()
     Debug.Print "       开始事务: " & IIf(bBegin, "成功", "失败")
     
     If bBegin Then
-        lCount = TestDB.Count("test_users")
+        lCount = TestDB.count("test_users")
         
         sqlInsert = "INSERT INTO test_users (username, email, age, score) VALUES ('回滚用户', 'rollback@test.com', 32, 90)"
         Call TestDB.Sql(sqlInsert).Exec
@@ -500,7 +500,7 @@ Private Sub Test_Transaction()
         Debug.Print "       回滚事务: " & IIf(bRollback, "成功", "失败")
         
         Dim lCount2 As Long
-        lCount2 = TestDB.Count("test_users")
+        lCount2 = TestDB.count("test_users")
         Debug.Print "       记录数变化: " & lCount & " -> " & lCount2 & " (应保持不变)"
     End If
     
@@ -578,7 +578,7 @@ Private Sub Test_Pagination()
     
     '获取总记录数
     Dim lTotalCount As Long
-    lTotalCount = TestDB.Count("test_users")
+    lTotalCount = TestDB.count("test_users")
     Debug.Print "  总记录数: " & lTotalCount
     
     '查询第1页，每页3条
@@ -620,13 +620,13 @@ Private Sub Test_Pagination()
     If bQuery Then
         Debug.Print ""
         Debug.Print "  [OK] 第2页查询成功"
-        Debug.Print "       记录数: " & TestDB.Rows.Count
+        Debug.Print "       记录数: " & TestDB.Rows.count
         
         '显示第2页数据
-        If TestDB.Rows.Count > 0 Then
+        If TestDB.Rows.count > 0 Then
             Debug.Print "  第2页数据:"
             Dim i As Long
-            For i = 1 To TestDB.Rows.Count
+            For i = 1 To TestDB.Rows.count
                 Dim Row As Scripting.Dictionary
                 Set Row = TestDB.Rows(i)
                 Debug.Print "    ID: " & Row("id") & ", 用户名: " & Row("username")
@@ -693,7 +693,7 @@ Private Sub Test_Count()
     
     '使用表名统计
     Dim lCount1 As Long
-    lCount1 = TestDB.Count("test_users")
+    lCount1 = TestDB.count("test_users")
     Debug.Print "  [OK] 表名统计: " & lCount1 & " 条记录"
     
     '使用SQL统计
@@ -701,7 +701,7 @@ Private Sub Test_Count()
     sqlCount = "SELECT * FROM test_users WHERE age > 25"
     
     Dim lCount2 As Long
-    lCount2 = TestDB.Sql(sqlCount).Count()
+    lCount2 = TestDB.Sql(sqlCount).count()
     Debug.Print "  [OK] SQL统计（年龄>25）: " & lCount2 & " 条记录"
     
     Debug.Print ""
@@ -759,14 +759,14 @@ Private Sub Test_GetTableFields()
         Exit Sub
     End If
     
-    If fields.Count > 0 Then
+    If fields.count > 0 Then
         Debug.Print "  [OK] 获取字段列表成功"
-        Debug.Print "       字段数量: " & fields.Count
+        Debug.Print "       字段数量: " & fields.count
         Debug.Print "       字段列表:"
         
         Dim i As Long
         Dim lMaxFields As Long
-        lMaxFields = fields.Count
+        lMaxFields = fields.count
         '限制显示的字段数量
         If lMaxFields > 50 Then lMaxFields = 50
         
@@ -774,12 +774,12 @@ Private Sub Test_GetTableFields()
             Debug.Print "         " & i & ". " & fields(i)
         Next
         
-        If fields.Count > 50 Then
-            Debug.Print "         ... 还有 " & (fields.Count - 50) & " 个字段未显示"
+        If fields.count > 50 Then
+            Debug.Print "         ... 还有 " & (fields.count - 50) & " 个字段未显示"
         End If
     Else
         Debug.Print "  [FAIL] 获取字段列表失败或表没有字段"
-        Debug.Print "       Collection.Count: " & fields.Count
+        Debug.Print "       Collection.Count: " & fields.count
         If TestDB.LastErr <> "" Then
             Debug.Print "       错误信息: " & TestDB.LastErr
         End If
@@ -819,7 +819,7 @@ Private Sub Test_BatchInsert()
     
     '获取插入前记录数
     Dim lCountBefore As Long
-    lCountBefore = TestDB.Count("test_users")
+    lCountBefore = TestDB.count("test_users")
     
     '执行批量插入
     Dim bBatch As Boolean
@@ -827,11 +827,11 @@ Private Sub Test_BatchInsert()
     
     If bBatch Then
         Debug.Print "  [OK] 批量插入成功"
-        Debug.Print "       插入数量: " & Data.Count
+        Debug.Print "       插入数量: " & Data.count
         
         '验证插入结果
         Dim lCountAfter As Long
-        lCountAfter = TestDB.Count("test_users")
+        lCountAfter = TestDB.count("test_users")
         Debug.Print "       记录数变化: " & lCountBefore & " -> " & lCountAfter
     Else
         Debug.Print "  [FAIL] 批量插入失败"
@@ -866,26 +866,26 @@ Private Sub Test_GetDatabases()
         Exit Sub
     End If
     
-    If Databases.Count > 0 Then
+    If Databases.count > 0 Then
         Debug.Print "  [OK] 获取数据库列表成功"
-        Debug.Print "       数据库数量: " & Databases.Count
+        Debug.Print "       数据库数量: " & Databases.count
         Debug.Print "       数据库列表（前10个）:"
         
         Dim i As Long
         Dim lMaxCount As Long
-        lMaxCount = Databases.Count
+        lMaxCount = Databases.count
         If lMaxCount > 10 Then lMaxCount = 10
         
         For i = 1 To lMaxCount
             Debug.Print "         " & i & ". " & Databases(i)
         Next
         
-        If Databases.Count > 10 Then
-            Debug.Print "         ... 还有 " & (Databases.Count - 10) & " 个数据库未显示"
+        If Databases.count > 10 Then
+            Debug.Print "         ... 还有 " & (Databases.count - 10) & " 个数据库未显示"
         End If
     Else
         Debug.Print "  [FAIL] 获取数据库列表失败或没有数据库"
-        Debug.Print "       Collection.Count: " & Databases.Count
+        Debug.Print "       Collection.Count: " & Databases.count
         If TestDB.LastErr <> "" Then
             Debug.Print "       错误信息: " & TestDB.LastErr
         End If
@@ -920,26 +920,26 @@ Private Sub Test_GetTables()
         Exit Sub
     End If
     
-    If Tables.Count > 0 Then
+    If Tables.count > 0 Then
         Debug.Print "  [OK] 获取表列表成功"
-        Debug.Print "       表数量: " & Tables.Count
+        Debug.Print "       表数量: " & Tables.count
         Debug.Print "       表列表（前10个）:"
         
         Dim i As Long
         Dim lMaxCount As Long
-        lMaxCount = Tables.Count
+        lMaxCount = Tables.count
         If lMaxCount > 10 Then lMaxCount = 10
         
         For i = 1 To lMaxCount
             Debug.Print "         " & i & ". " & Tables(i)
         Next
         
-        If Tables.Count > 10 Then
-            Debug.Print "         ... 还有 " & (Tables.Count - 10) & " 个表未显示"
+        If Tables.count > 10 Then
+            Debug.Print "         ... 还有 " & (Tables.count - 10) & " 个表未显示"
         End If
     Else
         Debug.Print "  [FAIL] 获取表列表失败或没有表"
-        Debug.Print "       Collection.Count: " & Tables.Count
+        Debug.Print "       Collection.Count: " & Tables.count
         If TestDB.LastErr <> "" Then
             Debug.Print "       错误信息: " & TestDB.LastErr
         End If

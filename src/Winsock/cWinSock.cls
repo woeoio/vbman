@@ -156,6 +156,16 @@ Public CurrentGroups As New Dictionary                                          
 ' Properties
 '=========================================================================
 
+' Current Users Count
+Public Property Get CountUsers() As Long
+    CountUsers = m_Users.count
+End Property
+
+' Current m_Groups Count
+Public Property Get CountGroups() As Long
+    CountGroups = m_Groups.count
+End Property
+
 ' Current socket state
 Public Property Get State() As WinsockState
     State = m_eState
@@ -319,7 +329,7 @@ End Property
 ' Get client count (for server socket)
 Public Property Get ClientCount() As Long
     If Not m_cClients Is Nothing Then
-        ClientCount = m_cClients.Count
+        ClientCount = m_cClients.count
     End If
 End Property
 
@@ -426,7 +436,7 @@ Public Sub UnbindGroup(ByVal GroupName As String, ByVal User As Variant)
     If m_Groups.Exists(GroupName) Then
         m_Groups(GroupName).Remove CStr(User)
         ' Remove empty group
-        If m_Groups(GroupName).Count = 0 Then
+        If m_Groups(GroupName).count = 0 Then
             m_Groups.Remove GroupName
         End If
     End If
@@ -464,7 +474,7 @@ Friend Sub UnbindUserFromAllGroups(ByVal User As Variant)
         End If
         
         ' Remove empty groups
-        If m_Groups.Exists(sGroup) And m_Groups(sGroup).Count = 0 Then
+        If m_Groups.Exists(sGroup) And m_Groups(sGroup).count = 0 Then
             m_Groups.Remove sGroup
         End If
     Next
@@ -479,8 +489,8 @@ Public Function GetGroupMembers(ByVal GroupName As String) As String()
     
     If m_Groups.Exists(GroupName) Then
         Set dMembers = m_Groups(GroupName)
-        If dMembers.Count > 0 Then
-            ReDim aResult(0 To dMembers.Count - 1)
+        If dMembers.count > 0 Then
+            ReDim aResult(0 To dMembers.count - 1)
             lIdx = 0
             For Each vMember In dMembers.Keys
                 aResult(lIdx) = CStr(vMember)
@@ -534,8 +544,8 @@ Public Function GetUserGroups(ByVal User As Variant) As String()
     If m_Users.Exists(User) Then
         Dim oClient As cWinsock
         Set oClient = m_Users(User)
-        If oClient.CurrentGroups.Count > 0 Then
-            ReDim aResult(0 To oClient.CurrentGroups.Count - 1)
+        If oClient.CurrentGroups.count > 0 Then
+            ReDim aResult(0 To oClient.CurrentGroups.count - 1)
             lIdx = 0
             For Each sGroup In oClient.CurrentGroups.Keys
                 aResult(lIdx) = CStr(sGroup)
@@ -892,7 +902,7 @@ Public Sub Close_()
     ' Close all client connections for server socket
     If m_bIsServer And Not m_cClients Is Nothing Then
         Dim oClient As cWinsock
-        Do While m_cClients.Count > 0
+        Do While m_cClients.count > 0
             Set oClient = m_cClients(1)
             RemoveClient oClient
             oClient.Close_
@@ -1067,7 +1077,7 @@ Private Sub m_oSocket_OnAccept()
         End If
         
         ' Raise ClientCountChange event for new connection
-        RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientConnected)
+        RaiseEvent ClientCountChange(oClient, m_cClients.count, wskClientConnected)
     End If
     
     Exit Sub
@@ -1121,7 +1131,7 @@ Private Sub m_oSocket_OnReceive()
                 End If
                 
                 ' Raise ClientCountChange event for new UDP client
-                RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientConnected)
+                RaiseEvent ClientCountChange(oClient, m_cClients.count, wskClientConnected)
             End If
             
             ' Store data and raise event
@@ -1190,7 +1200,7 @@ Friend Sub RemoveClient(oClient As cWinsock)
                 m_Users.Remove oClient.CurrentUser
             End If
             ' Raise ClientCountChange event for disconnection
-            RaiseEvent ClientCountChange(oClient, m_cClients.Count, wskClientDisconnected)
+            RaiseEvent ClientCountChange(oClient, m_cClients.count, wskClientDisconnected)
         End If
     End If
 End Sub
@@ -1323,7 +1333,7 @@ Public Function SyncReceiveArray( _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
     Optional HostPort As Long, _
-    Optional ByVal Flags As Long = 0) As Boolean
+    Optional ByVal flags As Long = 0) As Boolean
 
     On Error GoTo EH
 
@@ -1331,7 +1341,7 @@ Public Function SyncReceiveArray( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceiveArray = m_oSocket.SyncReceiveArray(Buffer, NeedLen, Timeout, HostAddress, HostPort, Flags)
+    SyncReceiveArray = m_oSocket.SyncReceiveArray(Buffer, NeedLen, Timeout, HostAddress, HostPort, flags)
 
     Exit Function
 EH:
@@ -1346,7 +1356,7 @@ Public Function SyncReceive( _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
     Optional HostPort As Long, _
-    Optional ByVal Flags As Long = 0) As Boolean
+    Optional ByVal flags As Long = 0) As Boolean
 
     On Error GoTo EH
 
@@ -1354,7 +1364,7 @@ Public Function SyncReceive( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceive = m_oSocket.SyncReceive(BufPtr, bufLen, Received, Timeout, HostAddress, HostPort, Flags)
+    SyncReceive = m_oSocket.SyncReceive(BufPtr, bufLen, Received, Timeout, HostAddress, HostPort, flags)
 
     Exit Function
 EH:
@@ -1388,7 +1398,7 @@ Public Function SyncSendArray( _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
     Optional ByVal HostPort As Long, _
-    Optional ByVal Flags As Long = 0) As Boolean
+    Optional ByVal flags As Long = 0) As Boolean
 
     On Error GoTo EH
 
@@ -1396,7 +1406,7 @@ Public Function SyncSendArray( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSendArray = m_oSocket.SyncSendArray(Buffer, Timeout, HostAddress, HostPort, Flags)
+    SyncSendArray = m_oSocket.SyncSendArray(Buffer, Timeout, HostAddress, HostPort, flags)
 
     Exit Function
 EH:
@@ -1410,7 +1420,7 @@ Public Function SyncSend( _
     Optional ByVal Timeout As Long, _
     Optional HostAddress As String, _
     Optional ByVal HostPort As Long, _
-    Optional ByVal Flags As Long = 0) As Boolean
+    Optional ByVal flags As Long = 0) As Boolean
 
     On Error GoTo EH
 
@@ -1418,7 +1428,7 @@ Public Function SyncSend( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSend = m_oSocket.SyncSend(BufPtr, bufLen, Timeout, HostAddress, HostPort, Flags)
+    SyncSend = m_oSocket.SyncSend(BufPtr, bufLen, Timeout, HostAddress, HostPort, flags)
 
     Exit Function
 EH:

@@ -72,8 +72,6 @@ Public Function CloseClient(Optional ByVal hSocket As Long) As Boolean
     GoTo QH
 Start:
     'SSE客户端关闭的时候会触发这个函数
-    '    If Clients.Exists(hSocket) = False Then Exit Function
-    '    Dim Client As cClientCallback
     Set Client = Clients(hSocket)
     '处理用户事件
     If Not EH Is Nothing Then
@@ -86,7 +84,7 @@ Start:
     '
     Set Clients(hSocket) = Nothing
     Clients.Remove hSocket
-    Client.Socket.CloseSck
+    ' 注意：不在此处关闭 Socket，由 cClientCallback.Release() 统一关闭
     'clear
     Dim User As String
     If MapHSocketToUsers.RootItem.Exists(hSocket) = True Then

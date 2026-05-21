@@ -14,8 +14,6 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Dim Client As cClientCallback
-Dim Sck As cTlsReMaster
-Dim CrossDomain As cHttpCrossDomain
 
 Dim JsonInst As New cJson
 
@@ -41,9 +39,11 @@ Public LCID As Long
 Public Status  As String
 
 Friend Property Set fClient(o As Object)
-    Set Client = o
-    Set Sck = Client.Socket
-    Set CrossDomain = Client.Parent.CrossDomain
+    If o Is Nothing Then
+        Set Client = Nothing
+    Else
+        Set Client = o
+    End If
 End Property
 
 
@@ -153,7 +153,7 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
     Header("Content-Type") = DataType & "; charset=" & CharSet
     Header("Content-Length") = UBound(Data) + 1                                 '注意空数组
     SendHeader Status, StatusText
-    Sck.SendData Data
+    Client.Socket.SendData Data
     Header.RemoveAll
 End Sub
 
@@ -166,8 +166,8 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     If UserVer = "FREE" Then
         Header("PowerBy") = "www.vb6.pro"
     End If
-    If CrossDomain.Enable = True Then
-        CrossDomain.AddTo Header
+    If Client.Parent.CrossDomain.Enable = True Then
+        Client.Parent.CrossDomain.AddTo Header
     End If
     ' 发送 Cookie（如果 Context 中有 Cookies 对象）
     If Not Client Is Nothing Then
@@ -194,7 +194,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     For Each x In Header.Keys()
         Head = Head & x & ": " & Header.Item(x) & vbCrLf
     Next
-    Sck.SendData Head & vbCrLf
+    Client.Socket.SendData Head & vbCrLf
 End Sub
 
 
@@ -208,9 +208,9 @@ Public Sub test()
         '        Debug.Print vSplit(0)
         sBody = Join(vSplit, vbCrLf & Index & ": ") & vbCrLf & _
         vbCrLf & Index & ": Current time is " & Now & _
-        vbCrLf & Index & ": RemoteHostIP is " & Sck.RemoteHostIP & _
-        vbCrLf & Index & ": RemotePort is " & Sck.RemotePort
-        Sck.SendData "HTTP/1.1 200 OK" & vbCrLf & _
+        vbCrLf & Index & ": RemoteHostIP is " & Client.Socket.RemoteHostIP & _
+        vbCrLf & Index & ": RemotePort is " & Client.Socket.RemotePort
+        Client.Socket.SendData "HTTP/1.1 200 OK" & vbCrLf & _
 "Content-Type: text/html" & vbCrLf & _
 "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
         sBody

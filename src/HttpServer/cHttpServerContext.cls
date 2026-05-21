@@ -48,3 +48,41 @@ Public Sub SkipNextMiddleWare()
     IsSkipNextMiddleWare = True
 End Sub
 
+' 显式释放所有内部对象引用，用于断开循环引用
+Friend Sub Release()
+    Set Request = Nothing
+    Set Response = Nothing
+    Set Session = Nothing
+    Set Cookies = Nothing
+    Set Db = Nothing
+    If Not SSE Is Nothing Then
+        Set SSE = Nothing
+    End If
+    Set ClientInfo = Nothing
+    Set Server = Nothing
+    Set App = Nothing
+    If Not UserData Is Nothing Then
+        UserData.RemoveAll
+        Set UserData = Nothing
+    End If
+    Set TimeUse = Nothing
+End Sub
+
+Private Sub Class_Terminate()
+    ' 保险清理：当对象引用计数归零时释放内部引用
+    Set Request = Nothing
+    Set Response = Nothing
+    Set Session = Nothing
+    Set Cookies = Nothing
+    Set Db = Nothing
+    Set SSE = Nothing
+    Set ClientInfo = Nothing
+    Set Server = Nothing
+    Set App = Nothing
+    If Not UserData Is Nothing Then
+        UserData.RemoveAll
+        Set UserData = Nothing
+    End If
+    Set TimeUse = Nothing
+End Sub
+

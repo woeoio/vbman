@@ -39,7 +39,7 @@ Private Const C_METHOD_ANY As String = "ANY"
 Private Const C_METHOD_GET As String = "GET"
 Private Const C_METHOD_POST As String = "POST"
 Private Const C_METHOD_PUT As String = "PUT"
-Private Const C_METHOD_DELETE As String = "DELTET"
+Private Const C_METHOD_DELETE As String = "DELETE"
 
 '¿ØÖÆÆ÷×Öµä
 Dim Controllers As New Scripting.Dictionary

@@ -78,10 +78,38 @@ End Sub
 
 Private Sub Socket_DataArrival(ByVal bytesTotal As Long)
     dataTotal = bytesTotal
-    Parent.OnDataArrival Index
+    If Not Parent Is Nothing Then Parent.OnDataArrival Index
 End Sub
 
 Private Sub Socket_CloseSck()
-    Parent.OnCloseSck Index
+    If Not Parent Is Nothing Then Parent.OnCloseSck Index
+End Sub
+
+' 显式释放所有引用，断开循环引用链
+' 调用顺序：Response.fClient → Context.Release → Parent → Socket
+Friend Sub Release()
+    ' 1. 断开 Response → Client 的循环引用
+    If Not Context Is Nothing Then
+        If Not Context.Response Is Nothing Then
+            Set Context.Response.fClient = Nothing
+        End If
+        ' 2. 释放 Context 内部所有对象引用
+        Context.Release
+        Set Context = Nothing
+    End If
+    ' 3. 断开 Client → cHttpServer 的引用（解开 cClientCallback ? cHttpServer 循环）
+    Set Parent = Nothing
+    ' 4. 释放 ClientInfo
+    Set ClientInfo = Nothing
+    ' 5. 关闭并释放 Socket
+    If Not Socket Is Nothing Then
+        On Error Resume Next
+        Socket.CloseSck
+        On Error GoTo 0
+        Set Socket = Nothing
+    End If
+    ' 6. 清空接收缓冲区
+    recvBufferLen = 0
+    IsSSE = False
 End Sub
 

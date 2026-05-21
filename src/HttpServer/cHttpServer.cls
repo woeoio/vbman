@@ -80,13 +80,22 @@ Public Function StopMe() As Boolean
     On Error GoTo EH
     m_oServer.CloseSck
     IsRunning = False
-    'clear
+    ' 逐一释放所有连接，断开循环引用
+    Dim i As Long
+    For i = m_cConnPool.Count To 1 Step -1
+        Dim oCallback As cClientCallback
+        Set oCallback = m_cConnPool.Item(i)
+        If Not oCallback Is Nothing Then
+            oCallback.Release
+        End If
+    Next
     Set m_cConnPool = Nothing
     Set HttpApp = Nothing
     Set HttpSvr = Nothing
     Set m_oServer = Nothing
     
     Set SSE = Nothing
+    Set ScriptEngine = Nothing
     
     Set Router = Nothing
     Set RouteBefore = Nothing
@@ -489,22 +498,30 @@ EH:
 End Sub
 
 Friend Sub OnCloseSck(Index As Long)
-    'todo 这里可能有内存泄漏
+    On Error GoTo EH
     Dim oCallback           As cClientCallback
     Set oCallback = m_cConnPool.Item(Index)
-    If oCallback.IsSSE = True Then
-        SSE.CloseClient oCallback.hSocket
+    If Not oCallback Is Nothing Then
+        If oCallback.IsSSE = True Then
+            SSE.CloseClient oCallback.hSocket
+        End If
+        ' 主动断开所有循环引用
+        oCallback.Release
     End If
     
-    ' 清理接收缓冲区
-    oCallback.GetRecvBufferLen = 0
-    
-    Set oCallback = Nothing
-    '    Set m_cConnPool.Item(Index) = Nothing
     m_cConnPool.Remove Index
-    If m_cConnPool.Count >= Index Then
-        m_cConnPool.Add Nothing, Before:=Index
-    End If
+    ' 清理尾部空位
+    Do While m_cConnPool.Count > 0
+        If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
+            Exit Do
+        End If
+        m_cConnPool.Remove m_cConnPool.Count
+    Loop
+    Exit Sub
+EH:
+    ' 出错时仍尝试清理集合
+    On Error Resume Next
+    m_cConnPool.Remove Index
     Do While m_cConnPool.Count > 0
         If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
             Exit Do

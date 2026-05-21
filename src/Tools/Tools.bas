@@ -13,6 +13,7 @@ Public ToolsDic As New cToolsDic
 Public ToolsFso As New cToolsFso
 Public ToolsList As New cToolsList
 Public ToolsDateTime As New cToolsDateTime
+Public ToolsCrc As New cToolsCrc
 
 Public InstJson As New cJson
 

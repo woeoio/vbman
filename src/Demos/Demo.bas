@@ -32,9 +32,19 @@ Public HttpSvr As New cHttpServer
 'End Sub
 
 
+Public Sub TestCRC()
+    Dim A(22) As Byte: A(2) = 200
+    With New cToolsCrc
+        Debug.Print .CalculateCRC16(A).ReturnHexString()
+'        Debug.Print .CalculateCRC32(A).ReturnLong(CRC32)
+        '        Debug.Print .CalculateCRC16Fast(A, 0, 4).ReturnHexString()
+    End With
+End Sub
+
+
 Public Sub LogTest()
-    Dim l As New cLogs
-    l.Data("dasd").Save
+    Dim L As New cLogs
+    L.Data("dasd").Save
 End Sub
 
 Public Sub FileIO()
@@ -102,7 +112,7 @@ Public Sub cColl()
     A.Add 1, "a"
     A.Add 1, "b"
     A.Add 1, "c"
-    Dim B() As String: B = A.Keys()
+    Dim b() As String: b = A.Keys()
     MsgBox A.Exists("A")
 End Sub
 
@@ -154,12 +164,12 @@ Public Sub TestAliyunCapt()
         .EnableDebug True
         
         ' 验证（从客户端获取的CaptchaVerifyParam）
-        Dim result As Boolean
+        Dim Result As Boolean
         ' 注意：下面的fResult是从前端验证码组件获取的验证参数，每次验证都不同
         Const fResult As String = "eyJjZXJ0aWZ5SWQiOiJacVpQS3IwMVdGIiwic2NlbmVJZCI6Inkza3ZhazliIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMZU1odjExKy9PcFNOOFl0NlFsQW1FNWt5bFEwRUhrUG9jWW9WK1lDdDZaS3ZaL0dTWFd2UXIySjRud0gxUStBaEMyWHVYMEErcjhLNDlsZ2tUVFk4c2o1Nk5HWnh0WVZucEdQUVUrT1RtSXYifQ=="
-        result = .VerifySync(fResult, "y3kvak9b")
+        Result = .VerifySync(fResult, "y3kvak9b")
         
-        If result = True Then
+        If Result = True Then
             MsgBox "验证通过！"
         Else
             MsgBox "验证失败！"
@@ -520,8 +530,8 @@ Sub JsonStr()
 End Sub
 
 Sub jsonbig()
-    Dim J As New cJson
-    J.LoadFrom "d:\temp\1.json"
+    Dim j As New cJson
+    j.LoadFrom "d:\temp\1.json"
     
 End Sub
 '

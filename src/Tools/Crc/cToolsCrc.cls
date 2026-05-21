@@ -28,10 +28,21 @@ Private CRC32Table(0 To 255) As Currency
 Private m_CRC16Value As Long
 Private m_CRC32Value As Currency
 
+' 数据缓存
+Private m_DataBytes() As Byte
+Private m_HasData As Boolean
+
 ' 缓存类型枚举
 Public Enum CRCType
     CRC16 = 0
     CRC32 = 1
+End Enum
+
+' 数据类型枚举
+Public Enum CRCDataType
+    DataType_ByteArray = 0   ' 字节数组
+    DataType_HexString = 1   ' HEX字符串（自动处理空格）
+    DataType_Text = 2        ' 文本字符串
 End Enum
 
 
@@ -59,22 +70,101 @@ End Sub
 
 
 '=============================================================================
+' 设置数据 (默认成员，可省略调用)
+' 参数: DataType - 数据类型 (见 CRCDataType 枚举)
+'       Content - 数据内容
+' 返回: cToolsCrc 实例 (支持链式调用)
+' 说明: 根据 DataType 自动处理数据并缓存到内部字节数组
+'=============================================================================
+Public Function Data(Optional ByVal DataType As CRCDataType = DataType_ByteArray, Optional ByVal Content As Variant = Empty) As cToolsCrc
+Attribute Data.VB_UserMemId = 0
+    Dim HexStr As String
+    Dim i As Long, j As Long
+    Dim ByteCount As Long
+    Dim HexValue As String
+    
+    ' 清除之前的数据
+    Erase m_DataBytes
+    m_HasData = False
+    
+    If IsEmpty(Content) Then
+        Set Data = Me
+        Exit Function
+    End If
+    
+    Select Case DataType
+        Case DataType_ByteArray
+            ' 字节数组
+            If IsArray(Content) Then
+                m_DataBytes = Content
+                m_HasData = True
+            End If
+            
+        Case DataType_HexString
+            ' HEX字符串（自动处理空格）
+            HexStr = CStr(Content)
+            ' 移除所有空格
+            HexStr = Replace(HexStr, " ", "")
+            HexStr = Replace(HexStr, vbTab, "")
+            HexStr = Replace(HexStr, "-", "")
+            HexStr = Replace(HexStr, ":", "")
+            
+            If Len(HexStr) > 0 And Len(HexStr) Mod 2 = 0 Then
+                ByteCount = Len(HexStr) \ 2
+                ReDim m_DataBytes(0 To ByteCount - 1)
+                
+                For i = 0 To ByteCount - 1
+                    HexValue = Mid$(HexStr, i * 2 + 1, 2)
+                    m_DataBytes(i) = CByte("&H" & HexValue)
+                Next i
+                m_HasData = True
+            End If
+            
+        Case DataType_Text
+            ' 文本字符串（转换为字节数组）
+            Dim Text As String
+            Text = CStr(Content)
+            If Len(Text) > 0 Then
+                ' 转换为 ANSI 字节数组
+                m_DataBytes = StrConv(Text, vbFromUnicode)
+                m_HasData = True
+            End If
+            
+        Case Else
+            ' 默认为字节数组
+            If IsArray(Content) Then
+                m_DataBytes = Content
+                m_HasData = True
+            End If
+    End Select
+    
+    Set Data = Me
+End Function
+
+
+'=============================================================================
 ' 计算 CRC16 (逐位计算法)
-' 参数: Data() - 数据字节数组
-'       StartIndex - 起始索引 (可选, 默认为 0)
+' 参数: StartIndex - 起始索引 (可选, 默认为 0)
 '       Length - 数据长度 (可选, 默认为 -1 表示计算到数组末尾)
 ' 返回: cToolsCrc 实例 (支持链式调用)
+' 说明: 必须使用 Data 方法预先设置数据
 '=============================================================================
-Public Function CalculateCRC16(ByRef Data() As Byte, Optional ByVal StartIndex As Long = 0, Optional ByVal Length As Long = -1) As cToolsCrc
+Public Function CalculateCRC16(Optional ByVal StartIndex As Long = 0, Optional ByVal Length As Long = -1) As cToolsCrc
     Dim CRC16High As Byte, CRC16Low As Byte
     Dim CalCRC16Hi As Byte, CalCRC16Lo As Byte
     Dim i As Long, j As Byte
     Dim defCRC16Hi As Byte, defCRC16Lo As Byte
     Dim ActualLength As Long
     
+    ' 检查是否有数据
+    If Not m_HasData Then
+        Set CalculateCRC16 = Me
+        Exit Function
+    End If
+    
     ' 如果 Length 为 -1，则计算到数组末尾
     If Length = -1 Then
-        ActualLength = UBound(Data) - StartIndex + 1
+        ActualLength = UBound(m_DataBytes) - StartIndex + 1
     Else
         ActualLength = Length
     End If
@@ -85,7 +175,7 @@ Public Function CalculateCRC16(ByRef Data() As Byte, Optional ByVal StartIndex A
     defCRC16Lo = &H1
     
     For i = StartIndex To StartIndex + ActualLength - 1
-        CRC16Low = CRC16Low Xor Data(i)
+        CRC16Low = CRC16Low Xor m_DataBytes(i)
         
         For j = 0 To 7
             CalCRC16Hi = CRC16High
@@ -378,4 +468,6 @@ Private Sub Class_Initialize()
     '    InitCRC32Table
     m_CRC16Value = 0
     m_CRC32Value = 0
+    m_HasData = False
+    Erase m_DataBytes
 End Sub

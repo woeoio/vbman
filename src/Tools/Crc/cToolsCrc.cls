@@ -76,7 +76,7 @@ End Sub
 ' 返回: cToolsCrc 实例 (支持链式调用)
 ' 说明: 根据 DataType 自动处理数据并缓存到内部字节数组
 '=============================================================================
-Public Function Data(Optional ByVal DataType As CRCDataType = DataType_ByteArray, Optional ByVal Content As Variant = Empty) As cToolsCrc
+Public Function Data(Optional ByVal DataType As CRCDataType = DataType_ByteArray, Optional ByVal Content As Variant) As cToolsCrc
 Attribute Data.VB_UserMemId = 0
     Dim HexStr As String
     Dim i As Long, j As Long
@@ -87,55 +87,55 @@ Attribute Data.VB_UserMemId = 0
     Erase m_DataBytes
     m_HasData = False
     
-    If IsEmpty(Content) Then
+    If IsMissing(Content) Then
         Set Data = Me
         Exit Function
     End If
     
     Select Case DataType
-        Case DataType_ByteArray
-            ' 字节数组
-            If IsArray(Content) Then
-                m_DataBytes = Content
-                m_HasData = True
-            End If
+    Case DataType_ByteArray
+        ' 字节数组
+        If IsArray(Content) Then
+            m_DataBytes = Content
+            m_HasData = True
+        End If
+        
+    Case DataType_HexString
+        ' HEX字符串（自动处理空格）
+        HexStr = CStr(Content)
+        ' 移除所有空格
+        HexStr = Replace(HexStr, " ", "")
+        HexStr = Replace(HexStr, vbTab, "")
+        HexStr = Replace(HexStr, "-", "")
+        HexStr = Replace(HexStr, ":", "")
+        
+        If Len(HexStr) > 0 And Len(HexStr) Mod 2 = 0 Then
+            ByteCount = Len(HexStr) \ 2
+            ReDim m_DataBytes(0 To ByteCount - 1)
             
-        Case DataType_HexString
-            ' HEX字符串（自动处理空格）
-            HexStr = CStr(Content)
-            ' 移除所有空格
-            HexStr = Replace(HexStr, " ", "")
-            HexStr = Replace(HexStr, vbTab, "")
-            HexStr = Replace(HexStr, "-", "")
-            HexStr = Replace(HexStr, ":", "")
-            
-            If Len(HexStr) > 0 And Len(HexStr) Mod 2 = 0 Then
-                ByteCount = Len(HexStr) \ 2
-                ReDim m_DataBytes(0 To ByteCount - 1)
-                
-                For i = 0 To ByteCount - 1
-                    HexValue = Mid$(HexStr, i * 2 + 1, 2)
-                    m_DataBytes(i) = CByte("&H" & HexValue)
-                Next i
-                m_HasData = True
-            End If
-            
-        Case DataType_Text
-            ' 文本字符串（转换为字节数组）
-            Dim Text As String
-            Text = CStr(Content)
-            If Len(Text) > 0 Then
-                ' 转换为 ANSI 字节数组
-                m_DataBytes = StrConv(Text, vbFromUnicode)
-                m_HasData = True
-            End If
-            
-        Case Else
-            ' 默认为字节数组
-            If IsArray(Content) Then
-                m_DataBytes = Content
-                m_HasData = True
-            End If
+            For i = 0 To ByteCount - 1
+                HexValue = Mid$(HexStr, i * 2 + 1, 2)
+                m_DataBytes(i) = CByte("&H" & HexValue)
+            Next i
+            m_HasData = True
+        End If
+        
+    Case DataType_Text
+        ' 文本字符串（转换为字节数组）
+        Dim Text As String
+        Text = CStr(Content)
+        If Len(Text) > 0 Then
+            ' 转换为 ANSI 字节数组
+            m_DataBytes = StrConv(Text, vbFromUnicode)
+            m_HasData = True
+        End If
+        
+    Case Else
+        ' 默认为字节数组
+        If IsArray(Content) Then
+            m_DataBytes = Content
+            m_HasData = True
+        End If
     End Select
     
     Set Data = Me

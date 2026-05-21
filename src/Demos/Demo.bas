@@ -33,11 +33,9 @@ Public HttpSvr As New cHttpServer
 
 
 Public Sub TestCRC()
-    Dim A(22) As Byte: A(2) = 200
+    Dim A(2) As Byte: A(2) = 200
     With New cToolsCrc
-        Debug.Print .CalculateCRC16(A).ReturnHexString()
-'        Debug.Print .CalculateCRC32(A).ReturnLong(CRC32)
-        '        Debug.Print .CalculateCRC16Fast(A, 0, 4).ReturnHexString()
+        Debug.Print .Data(DataType_ByteArray, A).CalculateCRC16(0, 2).ReturnHexString()
     End With
 End Sub
 

@@ -14,7 +14,6 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Public Json As New cJson
-Public Layer As New cLayer
 Public Db As New cDataBase
 Public HttpClient As New cHttpClient
 Public Csv As New cCsv
@@ -33,6 +32,9 @@ Public Delay As New cDelay
 Public FileEx As New cFileEx
 Public Dialog As New cDialog
 Public Formater As New cFormater
+
+Public Hash As New cCryptoHash
+Public HashMAC As New cCryptoHMAC
 
 'µÚÈý·½
 Public Baidu As New cBaidu

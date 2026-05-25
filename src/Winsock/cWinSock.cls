@@ -63,6 +63,17 @@ Event Error(Client As cWinsock, ByVal Number As Long, Description As String, ByV
 ' Client count changed (for server mode)
 Event ClientCountChange(Client As cWinsock, ByVal ClientCount As Long, ByVal Action As WinsockClientAction)
 
+' Complete message received (only fires when PacketProtocol is set)
+' Unlike DataArrival which fires on any raw data, this fires only when
+' a complete protocol-framed message is available
+Event MessageArrival(Client As cWinsock, ByVal bytesTotal As Long)
+
+' Client heartbeat timeout (server-side, fires when client idle exceeds HeartbeatTimeout)
+Event ClientTimeout(Client As cWinsock)
+
+' Heartbeat sent (client-side)
+Event HeartbeatSent(Client As cWinsock)
+
 Public Enum WinsockClientAction
     wskServerStoped = -1
     wskServerStarted = 0
@@ -143,6 +154,8 @@ Private m_oParentServer             As cWinsock
 Private m_cClients                  As Collection
 Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
+Private m_oPacketProtocol           As cPacketProtocol                          ' Packet protocol handler
+Private WithEvents m_oHeartbeat     As cHeartbeat                               ' Heartbeat manager
 
 Private m_Users As New Dictionary
 Private m_Groups As New Dictionary                                              ' GroupName -> Dictionary(UserName -> True)
@@ -336,6 +349,189 @@ End Property
 ' Internal socket reference
 Friend Property Get Socket() As cAsyncSocket
     Set Socket = m_oSocket
+End Property
+
+'--- Packet Protocol Properties ---
+
+' Get/Set the packet protocol handler object
+' Each cWinsock instance has its own independent protocol handler
+Public Property Get PacketHandler() As cPacketProtocol
+    Set PacketHandler = m_oPacketProtocol
+End Property
+
+Public Property Set PacketHandler(ByVal Value As cPacketProtocol)
+    Set m_oPacketProtocol = Value
+End Property
+
+' Quick setup: set packet protocol type (creates handler if needed)
+Public Property Get PacketProtocol() As PacketProtocolType
+    If m_oPacketProtocol Is Nothing Then
+        PacketProtocol = ppNone
+    Else
+        PacketProtocol = m_oPacketProtocol.ProtocolType
+    End If
+End Property
+
+Public Property Let PacketProtocol(ByVal Value As PacketProtocolType)
+    If Value = ppNone Then
+        Set m_oPacketProtocol = Nothing
+    Else
+        If m_oPacketProtocol Is Nothing Then
+            Set m_oPacketProtocol = New cPacketProtocol
+        End If
+        m_oPacketProtocol.ProtocolType = Value
+    End If
+End Property
+
+' Delimiter for ppDelimiter protocol
+Public Property Get Delimiter() As String
+    If m_oPacketProtocol Is Nothing Then
+        Delimiter = vbCrLf
+    Else
+        Delimiter = m_oPacketProtocol.Delimiter
+    End If
+End Property
+
+Public Property Let Delimiter(ByVal Value As String)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+        m_oPacketProtocol.ProtocolType = ppDelimiter
+    End If
+    m_oPacketProtocol.Delimiter = Value
+End Property
+
+' Fixed length for ppFixedLength protocol
+Public Property Get FixedLength() As Long
+    If m_oPacketProtocol Is Nothing Then
+        FixedLength = 0
+    Else
+        FixedLength = m_oPacketProtocol.FixedLength
+    End If
+End Property
+
+Public Property Let FixedLength(ByVal Value As Long)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+        m_oPacketProtocol.ProtocolType = ppFixedLength
+    End If
+    m_oPacketProtocol.FixedLength = Value
+End Property
+
+' Header bytes for ppLengthHeader protocol (2 or 4)
+Public Property Get HeaderBytes() As Long
+    If m_oPacketProtocol Is Nothing Then
+        HeaderBytes = 4
+    Else
+        HeaderBytes = m_oPacketProtocol.HeaderBytes
+    End If
+End Property
+
+Public Property Let HeaderBytes(ByVal Value As Long)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+        m_oPacketProtocol.ProtocolType = ppLengthHeader
+    End If
+    m_oPacketProtocol.HeaderBytes = Value
+End Property
+
+' Endian for ppLengthHeader protocol
+Public Property Get HeaderEndian() As EndianEnum
+    If m_oPacketProtocol Is Nothing Then
+        HeaderEndian = eeLittleEndian
+    Else
+        HeaderEndian = m_oPacketProtocol.Endian
+    End If
+End Property
+
+Public Property Let HeaderEndian(ByVal Value As EndianEnum)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+        m_oPacketProtocol.ProtocolType = ppLengthHeader
+    End If
+    m_oPacketProtocol.Endian = Value
+End Property
+
+'--- Heartbeat Properties (auto-driven by internal cTimer) ---
+
+' Get the heartbeat handler object (for advanced configuration)
+Public Property Get Heartbeat() As cHeartbeat
+    Set Heartbeat = m_oHeartbeat
+End Property
+
+' Enable/disable auto heartbeat (uses internal cTimer, no external polling needed)
+Public Property Let AutoHeartbeat(ByVal Value As Boolean)
+    If m_oHeartbeat Is Nothing Then
+        Set m_oHeartbeat = New cHeartbeat
+    End If
+    m_oHeartbeat.Enabled = Value
+End Property
+
+Public Property Get AutoHeartbeat() As Boolean
+    If m_oHeartbeat Is Nothing Then
+        AutoHeartbeat = False
+    Else
+        AutoHeartbeat = m_oHeartbeat.Enabled
+    End If
+End Property
+
+' Server: heartbeat timeout in seconds (default 120)
+' Clients idle beyond this are auto-disconnected
+Public Property Let HeartbeatTimeout(ByVal Value As Long)
+    If m_oHeartbeat Is Nothing Then
+        Set m_oHeartbeat = New cHeartbeat
+    End If
+    m_oHeartbeat.ServerTimeout = Value
+End Property
+
+Public Property Get HeartbeatTimeout() As Long
+    If m_oHeartbeat Is Nothing Then
+        HeartbeatTimeout = 120
+    Else
+        HeartbeatTimeout = m_oHeartbeat.ServerTimeout
+    End If
+End Property
+
+' Client: heartbeat interval in seconds (default 50)
+Public Property Let HeartbeatInterval(ByVal Value As Long)
+    If m_oHeartbeat Is Nothing Then
+        Set m_oHeartbeat = New cHeartbeat
+    End If
+    m_oHeartbeat.ClientInterval = Value
+End Property
+
+Public Property Get HeartbeatInterval() As Long
+    If m_oHeartbeat Is Nothing Then
+        HeartbeatInterval = 50
+    Else
+        HeartbeatInterval = m_oHeartbeat.ClientInterval
+    End If
+End Property
+
+' Heartbeat packet content (byte array, default single zero byte)
+Public Property Let HeartbeatData(ByRef Value() As Byte)
+    If m_oHeartbeat Is Nothing Then
+        Set m_oHeartbeat = New cHeartbeat
+    End If
+    m_oHeartbeat.HeartbeatData = Value
+End Property
+
+Public Property Get HeartbeatData() As Byte()
+    If m_oHeartbeat Is Nothing Then
+        Dim baDefault(0 To 0) As Byte
+        baDefault(0) = 0
+        HeartbeatData = baDefault
+    Else
+        HeartbeatData = m_oHeartbeat.HeartbeatData
+    End If
+End Property
+
+' Last activity time (seconds since last send/receive)
+Public Property Get IdleSeconds() As Long
+    If m_oHeartbeat Is Nothing Then
+        IdleSeconds = 0
+    Else
+        IdleSeconds = m_oHeartbeat.IdleSeconds
+    End If
 End Property
 
 '=========================================================================
@@ -699,6 +895,7 @@ End Sub
 ' Send string data
 ' CodePage: Text encoding for string data (default: ACP/GBK)
 '           Use ucsScpAcp for GBK/ACP encoding, ucsScpUtf8 for UTF-8 encoding
+' Note: When PacketProtocol is set, string data is auto-encoded and framed
 Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     On Error GoTo EH
     
@@ -706,6 +903,52 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage 
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
     
+    '--- Auto packet framing (Encode) ---
+    ' If protocol is set and input is a string, convert to bytes first then Encode
+    If Not m_oPacketProtocol Is Nothing Then
+        If m_oPacketProtocol.ProtocolType <> ppNone Then
+            Dim baRaw() As Byte
+            
+            Select Case varType(Data)
+            Case vbString
+                ' Convert string to bytes using specified CodePage
+                Dim oConvSocket As cAsyncSocket
+                If Not m_oSocket Is Nothing Then
+                    Set oConvSocket = m_oSocket
+                ElseIf Not m_oParentServer Is Nothing And Not m_oParentServer.Socket Is Nothing Then
+                    Set oConvSocket = m_oParentServer.Socket
+                Else
+                    Set oConvSocket = New cAsyncSocket
+                End If
+                baRaw = oConvSocket.ToTextArray(CStr(Data), CodePage)
+            Case vbByte + vbArray
+                baRaw = Data
+            Case Else
+                ERR.Raise vbObjectError, MODULE_NAME, "Unsupported data type for packet protocol: " & TypeName(Data)
+            End Select
+            
+            ' Encode (add framing markers)
+            Dim baEncoded() As Byte
+            baEncoded = m_oPacketProtocol.Encode(baRaw)
+            
+            ' Send encoded byte array
+            If m_eProtocol = wskUDPProtocol And m_bIsServer Then
+                If LenB(m_sRemoteHostIP) <> 0 Then
+                    m_oSocket.SendArray baEncoded, m_sRemoteHostIP, m_lRemotePort
+                ElseIf LenB(m_sRemoteHost) <> 0 Then
+                    m_oSocket.SendArray baEncoded, m_sRemoteHost, m_lRemotePort
+                Else
+                    ERR.Raise vbObjectError, MODULE_NAME, "RemoteHost or RemoteHostIP not specified"
+                End If
+            Else
+                m_oSocket.SendArray baEncoded
+            End If
+            
+            Exit Sub
+        End If
+    End If
+    
+    '--- Normal send (no protocol framing) ---
     Select Case varType(Data)
     Case vbString
         If m_eProtocol = wskUDPProtocol And m_bIsServer Then
@@ -747,10 +990,100 @@ EH:
     pvRaiseError ERR.Number, ERR.Description
 End Sub
 
-Public Function GetDataToString(Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp) As String
+'--- Heartbeat Auto-Tick (driven by internal cTimer) ---
+' This runs automatically every 10 seconds when AutoHeartbeat is enabled.
+' No external PollHeartbeat() call needed - cHeartbeat uses cTimer internally.
+
+Private Sub m_oHeartbeat_Tick()
+    On Error Resume Next
+    
+    If m_oHeartbeat Is Nothing Then Exit Sub
+    If Not m_oHeartbeat.Enabled Then Exit Sub
+    
+    '--- Server mode: check client timeouts ---
+    If m_bIsServer Then
+        If m_oHeartbeat.ServerTimeout > 0 Then
+            Dim colTimedOut As Collection
+            Set colTimedOut = m_oHeartbeat.CheckClientTimeouts(Me)
+            
+            If Not colTimedOut Is Nothing Then
+                Dim oClient As cWinsock
+                For Each oClient In colTimedOut
+                    ' Raise timeout event
+                    RaiseEvent ClientTimeout(oClient)
+                    ' Auto-disconnect
+                    RemoveClient oClient
+                    oClient.Close_
+                Next
+            End If
+        End If
+    End If
+    
+    '--- Client mode: send heartbeat ---
+    If Not m_bIsServer Then
+        If m_oHeartbeat.ClientInterval > 0 Then
+            If m_oHeartbeat.ShouldSendHeartbeat() Then
+                ' Send heartbeat data
+                Dim baHB() As Byte
+                baHB = m_oHeartbeat.HeartbeatData
+                On Error Resume Next
+                If UBound(baHB) >= 0 Then
+                    m_oSocket.SendArray baHB
+                    m_oHeartbeat.RecordHeartbeatSent
+                    RaiseEvent HeartbeatSent(Me)
+                End If
+            End If
+        End If
+    End If
+End Sub
+
+' Get data as text string (default ACP/GBK encoding)
+Public Function GetDataText(Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp) As String
     Dim vData As Variant
     GetData vData, vbString, maxLen, CodePage
-    GetDataToString = vData
+    GetDataText = vData
+End Function
+
+' Get data as UTF-8 text string
+Public Function GetDataTextUTF8(Optional ByVal maxLen As Long = -1) As String
+    GetDataTextUTF8 = GetDataText(maxLen, wcpUtf8)
+End Function
+
+' Get data as Unicode text string
+Public Function GetDataTextUnicode(Optional ByVal maxLen As Long = -1) As String
+    GetDataTextUnicode = GetDataText(maxLen, wcpUnicode)
+End Function
+
+' Get data as hex string (space-separated, e.g. "48 65 6C 6C 6F")
+Public Function GetDataHex(Optional ByVal maxLen As Long = -1) As String
+    Dim baData() As Byte
+    Dim i As Long
+    Dim sHex As String
+    
+    GetData baData, vbByte + vbArray, maxLen
+    
+    On Error Resume Next
+    For i = 0 To UBound(baData)
+        sHex = sHex & Right$("0" & Hex$(baData(i)), 2) & " "
+    Next
+    On Error GoTo 0
+    
+    If Len(sHex) > 0 Then
+        GetDataHex = Left$(sHex, Len(sHex) - 1)
+    End If
+End Function
+
+' Get data as byte array
+Public Function GetDataByteArray(Optional ByVal maxLen As Long = -1) As Byte()
+    On Error Resume Next
+    Dim baData() As Byte
+    GetData baData, vbByte + vbArray, maxLen
+    GetDataByteArray = baData
+End Function
+
+'--- Legacy alias ---
+Public Function GetDataToString(Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp) As String
+    GetDataToString = GetDataText(maxLen, CodePage)
 End Function
 ' Receive data from buffer
 ' CodePage: Text encoding for string data (default: ACP/GBK for compatibility)
@@ -922,7 +1255,16 @@ Public Sub Close_()
     m_bCloseEventRaised = False
     Set m_oParentServer = Nothing
     m_baRecvBuffer = vbNullString
-End Sub
+    
+    ' Clear packet protocol buffer
+    If Not m_oPacketProtocol Is Nothing Then
+        m_oPacketProtocol.Clear
+    End If
+    
+    ' Stop heartbeat
+    If Not m_oHeartbeat Is Nothing Then
+        m_oHeartbeat.[Stop]
+    End If
 
 ' Bind to local address/port (for UDP)
 Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
@@ -1014,6 +1356,14 @@ End Sub
 
 Private Sub m_oSocket_OnConnect()
     m_eState = sckConnected
+    
+    ' Auto-start heartbeat if configured
+    If Not m_oHeartbeat Is Nothing Then
+        If m_oHeartbeat.Enabled Then
+            m_oHeartbeat.ResetActivity
+        End If
+    End If
+    
     RaiseEvent Connect(Me)
 End Sub
 
@@ -1064,6 +1414,32 @@ Private Sub m_oSocket_OnAccept()
         oClient.Tag = "#" & m_lClientCounter
         m_cClients.Add oClient, oClient.Tag
         
+        ' Inherit packet protocol configuration from server
+        ' Each client gets its own independent protocol instance
+        If Not m_oPacketProtocol Is Nothing Then
+            If m_oPacketProtocol.ProtocolType <> ppNone Then
+                oClient.PacketProtocol = m_oPacketProtocol.ProtocolType
+                Select Case m_oPacketProtocol.ProtocolType
+                Case ppDelimiter
+                    oClient.Delimiter = m_oPacketProtocol.Delimiter
+                Case ppFixedLength
+                    oClient.FixedLength = m_oPacketProtocol.FixedLength
+                Case ppLengthHeader
+                    oClient.HeaderBytes = m_oPacketProtocol.HeaderBytes
+                    oClient.HeaderEndian = m_oPacketProtocol.Endian
+                End Select
+            End If
+        End If
+        
+        ' Inherit heartbeat configuration from server
+        ' New client gets its own heartbeat instance for idle tracking
+        If Not m_oHeartbeat Is Nothing Then
+            If m_oHeartbeat.Enabled Then
+                oClient.AutoHeartbeat = True
+                oClient.HeartbeatTimeout = m_oHeartbeat.ServerTimeout
+            End If
+        End If
+        
         ' Raise event to notify user - allow rejection
         Dim bDisConnect As Boolean
         bDisConnect = False
@@ -1091,6 +1467,9 @@ Private Sub m_oSocket_OnReceive()
     Dim lIdx As Long
     
     On Error GoTo EH
+    
+    ' Reset heartbeat activity timer
+    If Not m_oHeartbeat Is Nothing Then m_oHeartbeat.ResetActivity
     
     lBytes = m_oSocket.AvailableBytes
     
@@ -1142,6 +1521,54 @@ Private Sub m_oSocket_OnReceive()
         ' TCP or client socket
         If m_oSocket.ReceiveArray(baBuffer) Then
             If UBound(baBuffer) >= 0 Then
+                '--- Packet protocol: auto-deframe ---
+                If Not m_oPacketProtocol Is Nothing Then
+                    If m_oPacketProtocol.ProtocolType <> ppNone Then
+                        ' Decode through protocol handler
+                        Dim colMessages As Collection
+                        Dim vMsg As Variant
+                        Dim baMsg() As Byte
+                        Dim lMsgIdx As Long
+                        
+                        Set colMessages = m_oPacketProtocol.Decode(baBuffer)
+                        
+                        If Not colMessages Is Nothing Then
+                            ' Process each complete message
+                            For Each vMsg In colMessages
+                                baMsg = vMsg
+                                lMsgIdx = 0
+                                
+                                ' Replace recv buffer with this message's data
+                                ' (GetData will read from m_baRecvBuffer)
+                                m_baRecvBuffer = baMsg
+                                
+                                ' Calculate message size
+                                On Error Resume Next
+                                lBytes = UBound(baMsg) + 1
+                                If ERR.Number <> 0 Then lBytes = 0
+                                On Error GoTo EH
+                                
+                                ' Raise MessageArrival event
+                                If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
+                                    m_oParentServer.RaiseMessageArrivalEvent Me, lBytes
+                                Else
+                                    RaiseEvent MessageArrival(Me, lBytes)
+                                End If
+                                
+                                ' Also raise DataArrival for backward compatibility
+                                If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
+                                    m_oParentServer.RaiseDataArrivalEvent Me, lBytes
+                                Else
+                                    RaiseEvent DataArrival(Me, lBytes)
+                                End If
+                            Next
+                        End If
+                        
+                        Exit Sub
+                    End If
+                End If
+                
+                '--- Normal (no protocol): append to receive buffer ---
                 ' Append to receive buffer
                 If UBound(m_baRecvBuffer) >= 0 Then
                     lIdx = UBound(m_baRecvBuffer) + 1
@@ -1171,6 +1598,9 @@ EH:
 End Sub
 
 Private Sub m_oSocket_OnSend()
+    ' Reset heartbeat activity timer
+    If Not m_oHeartbeat Is Nothing Then m_oHeartbeat.ResetActivity
+    
     ' If this is an accepted client, raise event through parent server
     If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
         m_oParentServer.RaiseSendCompleteEvent Me
@@ -1223,6 +1653,11 @@ End Sub
 ' Raise Error event for a client (used by accepted clients to notify through parent server)
 Friend Sub RaiseErrorEvent(oClient As cWinsock, ByVal Number As Long, Description As String)
     RaiseEvent Error(oClient, Number, Description, Number)
+End Sub
+
+' Raise MessageArrival event for a client (used by accepted clients to notify through parent server)
+Friend Sub RaiseMessageArrivalEvent(oClient As cWinsock, ByVal bytesTotal As Long)
+    RaiseEvent MessageArrival(oClient, bytesTotal)
 End Sub
 
 '=========================================================================
@@ -1488,6 +1923,12 @@ Private Sub Class_Terminate()
     ' Clear CurrentGroups
     Set CurrentGroups = New Dictionary
     CurrentGroups.CompareMode = TextCompare
+    
+    ' Clear packet protocol
+    Set m_oPacketProtocol = Nothing
+    
+    ' Clear heartbeat
+    Set m_oHeartbeat = Nothing
     
     Close_
     ' Raise ClientCountChange event for new connection

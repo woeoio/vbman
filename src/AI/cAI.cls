@@ -18,6 +18,8 @@ Option Explicit
 'AI 对象类 - 通用 OpenAI 兼容 API 客户端
 '支持：豆包、DeepSeek、OpenAI、通义千问等
 '2025-01-19 初始版本
+'2025-05-25 修复：流式响应改用 cSSEClient、修复 JSON 解析逻辑、
+'           修复系统提示词重复添加、修复 WithEvents 声明
 
 '引用 cHttpClient.cls 类文件
 '引用 cJson.cls 类文件
@@ -33,8 +35,8 @@ Public Event OnError(ErrorMsg As String, ErrorCode As Long)
 '=========================================================================
 ' 私有变量
 '=========================================================================
-Dim HttpClient As cHttpClient
-Dim SSEClient As cSSEClient
+Private WithEvents SSEClient As cSSEClient
+Attribute SSEClient.VB_VarHelpID = -1
 Dim Json As New cJson
 
 '基础配置
@@ -76,6 +78,10 @@ Private m_IsStreaming As Boolean
 '=========================================================================
 Public Property Get LastError() As String
     LastError = m_LastError
+End Property
+
+Public Property Get IsStreaming() As Boolean
+    IsStreaming = m_IsStreaming
 End Property
 
 '=========================================================================
@@ -275,8 +281,9 @@ End Function
 ' 执行方法（非链式）
 '=========================================================================
 
-'发送聊天请求（同步）
-'如果 Stream=True 且提供了回调，则异步流式返回；否则同步返回完整结果
+'发送聊天请求
+'Stream=False 时同步返回完整结果
+'Stream=True 时通过 SSE 流式接收，阻塞等待直到完成
 Public Function Chat(Optional UserMessage As String, Optional Callback As Object, Optional CallbackMethod As String) As String
     On Error GoTo ERR_HANDLER
     
@@ -298,10 +305,13 @@ Public Function Chat(Optional UserMessage As String, Optional Callback As Object
     
     '检查是否启用流式响应
     If m_Stream = True Then
-        '流式响应
+        '检查是否已有流式请求在执行
+        If m_IsStreaming Then
+            ERR.Raise 500, , "上一次流式请求尚未完成"
+        End If
+        
         m_StreamCallback = Callback
         m_StreamCallbackMethod = CallbackMethod
-        m_IsStreaming = True
         m_StreamBuffer = ""
         
         Call SendStreamRequest
@@ -365,28 +375,34 @@ End Sub
 ' 私有方法
 '=========================================================================
 
-'构建请求体
+'构建请求体（不修改 m_Messages，避免系统提示词重复添加）
 Private Function BuildRequestBody() As String
     Set Json = New cJson
     
     '设置模型
     Json("model") = m_Model
     
-    '设置消息列表
-    If m_Messages Is Nothing Then
-        Set m_Messages = New Collection
-    End If
+    '构建消息列表（使用临时集合，不修改 m_Messages）
+    Dim MsgList As New Collection
     
     '如果有系统提示词，添加到消息列表开头
     If m_SystemPrompt <> "" Then
         Dim SysMsg As New Scripting.Dictionary
         SysMsg("role") = "system"
         SysMsg("content") = m_SystemPrompt
-        m_Messages.Add SysMsg, , 1
+        MsgList.Add SysMsg
+    End If
+    
+    '添加用户/助手消息
+    If Not m_Messages Is Nothing Then
+        Dim i As Long
+        For i = 1 To m_Messages.Count
+            MsgList.Add m_Messages(i)
+        Next
     End If
     
     '设置消息
-    Json("messages") = m_Messages
+    Json("messages") = MsgList
     
     '设置参数
     If m_Temperature <> 1# Then
@@ -422,7 +438,7 @@ End Function
 
 '发送同步请求
 Private Function SendSyncRequest() As String
-    Set HttpClient = New cHttpClient
+    Dim HttpClient As New cHttpClient
     
     '设置超时
     HttpClient.RequestTimeOut = m_Timeout
@@ -462,117 +478,100 @@ Private Function SendSyncRequest() As String
     RaiseEvent OnComplete(SendSyncRequest)
 End Function
 
-'发送流式请求
+'发送流式请求（使用 cSSEClient）
 Private Sub SendStreamRequest()
-    Set HttpClient = New cHttpClient
+    '先停止流式状态，避免清理旧 SSE 连接时 OnClose 重复触发
+    m_IsStreaming = False
     
-    '设置超时
-    HttpClient.RequestTimeOut = m_Timeout
-    HttpClient.RequestChartSet = "utf-8"
+    '清理旧的 SSE 连接
+    If Not SSEClient Is Nothing Then
+        On Error Resume Next
+        SSEClient.Disconnect
+        On Error GoTo 0
+        Set SSEClient = Nothing
+    End If
+    
+    '创建新的 SSE 客户端
+    Set SSEClient = New cSSEClient
+    SSEClient.DisableAutoReconnect
+    SSEClient.RequestTimeOut = m_Timeout
     
     '设置请求头
-    HttpClient.RequestHeaders("Authorization") = "Bearer " & m_ApiKey
-    HttpClient.RequestHeaders("Content-Type") = "application/json"
-    HttpClient.RequestHeaders("Accept") = "text/event-stream"
-    HttpClient.RequestHeaders("Cache-Control") = "no-cache"
+    SSEClient.SetHeader "Authorization", "Bearer " & m_ApiKey
+    SSEClient.SetHeader "Content-Type", "application/json"
     
     '设置组织 ID（如果有）
     If m_Organization <> "" Then
-        HttpClient.RequestHeaders("OpenAI-Organization") = m_Organization
+        SSEClient.SetHeader "OpenAI-Organization", m_Organization
     End If
     
     '添加自定义请求头
     If Not m_CustomHeaders Is Nothing Then
         Dim Key As Variant
         For Each Key In m_CustomHeaders.Keys()
-            HttpClient.RequestHeaders(Key) = m_CustomHeaders(Key)
+            SSEClient.SetHeader CStr(Key), CStr(m_CustomHeaders(Key))
         Next
     End If
     
-    '构建请求 URL
+    '构建请求 URL 和请求体
     Dim Url As String
     Url = m_BaseUrl & m_ApiPath
-    
-    '发送异步请求
     Dim Body As String
     Body = BuildRequestBody()
     
-    Call HttpClient.Async(True).SendPost(Url, Body)
+    '设置流式状态（在新客户端创建后再设置）
+    m_IsStreaming = True
+    
+    '发送流式请求
+    SSEClient.ConnectPost Url, Body
 End Sub
 
-'解析 SSE 数据并提取 delta 内容
-Private Sub ParseStreamChunk(Data As String)
-    If Data = "" Then Exit Sub
+'解析流式响应的 JSON 数据
+'OpenAI SSE 返回格式：{"id":"...","choices":[{"delta":{"content":"..."}}]}
+Private Sub ParseStreamJson(JsonData As String)
+    If JsonData = "" Then Exit Sub
     
-    'SSE 格式示例：
-    'data: {"id":"...","choices":[{"delta":{"content":"hello"}}]}
+    Dim ChunkJson As New cJson
+    On Error Resume Next
+    Call ChunkJson.Decode(JsonData)
+    If Err.Number <> 0 Then Exit Sub
     
-    Dim Lines() As String
-    Lines = Split(Data, vbLf)
+    'SSE 返回的 JSON 是对象格式（不是数组），RootItem 是 Dictionary
+    If ChunkJson.RootItem.Count = 0 Then Exit Sub
+    If Not ChunkJson.RootItem.Exists("choices") Then Exit Sub
     
-    Dim i As Long
-    For i = LBound(Lines) To UBound(Lines)
-        Dim Line As String
-        Line = Trim(Lines(i))
+    '提取 choices 数组（JSON 数组解析为 Collection）
+    Dim vChoices As Variant
+    Set vChoices = ChunkJson.Item("choices")
+    If Err.Number <> 0 Then Exit Sub
+    If vChoices Is Nothing Then Exit Sub
+    
+    '取第一个 choice（JSON 对象解析为 Dictionary）
+    Dim vChoice As Variant
+    Set vChoice = vChoices(1)
+    If Err.Number <> 0 Then Exit Sub
+    If vChoice Is Nothing Then Exit Sub
+    
+    '提取 delta
+    Dim vDelta As Variant
+    Set vDelta = vChoice("delta")
+    If Err.Number <> 0 Then Exit Sub
+    If vDelta Is Nothing Then Exit Sub
+    
+    '提取 content（可能不存在：首帧只有 role，末帧只有 finish_reason）
+    If vDelta.Exists("content") Then
+        Dim Content As String
+        Content = CStr(vDelta("content"))
+        If Err.Number <> 0 Then Exit Sub
         
-        '跳过空行和注释行
-        If Line = "" Then Exit For
-        If Left(Line, 1) = ":" Then GoTo NEXT_LINE
-        
-        '检查是否为 data: 行
-        If Left(Line, 5) = "data:" Then
-            Dim JsonData As String
-            JsonData = Trim(Mid(Line, 6))
+        If Content <> "" Then
+            '追加到缓冲区
+            m_StreamBuffer = m_StreamBuffer & Content
             
-            '检查是否为结束标记 [DONE]
-            If JsonData = "[DONE]" Then
-                '流式响应完成
-                Call TriggerStreamChunk("", True)
-                m_IsStreaming = False
-                Exit Sub
-            End If
-            
-            '解析 JSON
-            Dim ChunkJson As New cJson
-            On Error Resume Next
-            Call ChunkJson.Decode(JsonData)
-            
-            If ERR.Number = 0 Then
-                '提取 delta 内容
-                If ChunkJson.RootIsArray Then
-                    '检查 choices 数组
-                    If ChunkJson.Items.Count > 0 Then
-                        Dim Choices As Variant
-                        Set Choices = ChunkJson.Items(1)
-                        
-                        If Not Choices Is Nothing Then
-                            If Choices.Exists("delta") Then
-                                Dim Delta As Variant
-                                Set Delta = Choices("delta")
-                                
-                                If Not Delta Is Nothing Then
-                                    If Delta.Exists("content") Then
-                                        Dim Content As String
-                                        Content = Delta("content")
-                                        
-                                        '追加到缓冲区
-                                        m_StreamBuffer = m_StreamBuffer & Content
-                                        
-                                        '触发流式响应事件
-                                        Call TriggerStreamChunk(Content, False)
-                                    End If
-                                End If
-                            End If
-                        End If
-                    End If
-                End If
-            End If
-            
-            On Error GoTo 0
+            '触发流式响应事件
+            Call TriggerStreamChunk(Content, False)
         End If
-        
-NEXT_LINE:
-    Next i
+    End If
 End Sub
 
 '触发流式响应（回调或事件）
@@ -607,9 +606,14 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    '清理对象
-    Set HttpClient = Nothing
-    Set SSEClient = Nothing
+    '清理 SSE 客户端
+    If Not SSEClient Is Nothing Then
+        On Error Resume Next
+        SSEClient.Disconnect
+        On Error GoTo 0
+        Set SSEClient = Nothing
+    End If
+    
     Set Json = Nothing
     Set m_Messages = Nothing
     Set m_CustomHeaders = Nothing
@@ -617,52 +621,25 @@ Private Sub Class_Terminate()
 End Sub
 
 '=========================================================================
-' HTTP 客户端事件处理（流式响应）
-'=========================================================================
-
-'HTTP 客户端响应完成事件
-Private Sub HttpClient_OnResponseFinished()
-    On Error Resume Next
-    
-    '获取响应数据
-    Dim ResponseText As String
-    ResponseText = HttpClient.ReturnText(True, False)
-    
-    '解析 SSE 数据
-    If ResponseText <> "" Then
-        Call ParseStreamChunk(ResponseText)
-    End If
-    
-    '标记流式响应完成
-    m_IsStreaming = False
-    
-    '触发完成标记
-    Call TriggerStreamChunk("", True)
-    
-    On Error GoTo 0
-End Sub
-
-'HTTP 客户端错误事件
-Private Sub HttpClient_OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String)
-    m_LastError = ErrorDescription
-    m_IsStreaming = False
-    
-    RaiseEvent OnError(ErrorDescription, ErrorNumber)
-End Sub
-
-'=========================================================================
-' SSE 客户端事件处理（备用方案）
+' SSE 客户端事件处理（流式响应）
 '=========================================================================
 
 'SSE 连接打开事件
 Private Sub SSEClient_OnOpen()
-    'SSE 连接已建立
+    'SSE 连接已建立，等待数据
 End Sub
 
-'SSE 消息事件
+'SSE 消息事件 - 逐条处理 SSE 数据
 Private Sub SSEClient_OnMessage(ByVal EventName As String, ByVal Data As String, ByVal Id As String)
-    '解析 SSE 数据
-    Call ParseStreamChunk("data: " & Data & vbLf)
+    '检查是否为结束标记 [DONE]
+    If Data = "[DONE]" Then
+        m_IsStreaming = False
+        Call TriggerStreamChunk("", True)
+        Exit Sub
+    End If
+    
+    '解析 JSON 数据，提取 delta.content
+    Call ParseStreamJson(Data)
 End Sub
 
 'SSE 错误事件
@@ -675,8 +652,9 @@ End Sub
 
 'SSE 连接关闭事件
 Private Sub SSEClient_OnClose()
-    'SSE 连接已关闭
-    m_IsStreaming = False
-    Call TriggerStreamChunk("", True)
+    '只有在仍在流式状态时才触发完成（防止 [DONE] 已触发过的情况）
+    If m_IsStreaming Then
+        m_IsStreaming = False
+        Call TriggerStreamChunk("", True)
+    End If
 End Sub
-

@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Option Explicit
 '作者：邓伟，QQ：215879458，可自由传播，但请勿删本签名
 
-'引用“Microsoft WinHTTP Services, version 5.1”组件
+'引用"Microsoft WinHTTP Services, version 5.1"组件
 '引用了Microsoft Scripting Runtime组件
 '引用 cJson.cls 类文件
 
@@ -25,8 +25,9 @@ Option Explicit
 '疑问:winhttp返回值类型还有个"流",,这个是可以做直播等流媒体?---- 了解了一下,可以做文件上传和下载的,不过直播应该也可以
 
 '2023-03-15 增加了对json的content-type 的处理 : AjaxInst.postContentType = Json
-
 '2023-03-30 改大了同步请求的默认超时值为5分钟，后续增加超时参数给用户设置
+'2025-05-25 修复：异步 OnError 事件缺失、异步状态码检查、新增 StatusCode/StatusText 属性、
+'           修复超时最小值修改用户设置、清理废弃 RequestDataBody、改进 ParseSetCookie
 
 'todo 增加集合对象, 实现并发异步请求池子
 'todo 增加集合对象, 实现串行异步请求队列
@@ -42,16 +43,15 @@ Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" ( 
     ByVal lpDirectory As String, _
     ByVal nShowCmd As Long) As Long
 
-
-    '缓存请求的返回内容
+'缓存请求的返回内容
 Public ResponseRaw As Variant
 '模仿前几天写的php版ajax，做个完整处理过的 res.header+res.cookies+res.data
 Public Event OnResponseFinished()
+Public Event OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String)
 
 Public LastError As String
 Dim pvRequestData() As Byte
 Public RequestDataJson As New cJson
-Public RequestDataBody As New Scripting.Dictionary                              '废弃
 Public RequestDataForm As New Scripting.Dictionary
 Public RequestDataQuery As New Scripting.Dictionary
 Public RequestHeaders As New Scripting.Dictionary
@@ -64,8 +64,32 @@ Public Cookies As New Scripting.Dictionary
 
 Public DebugStart As Boolean
 Public DebugInfo As New cJson
+
 '链式调用函数参数变量区
 Dim IsAsync As Boolean
+
+'响应状态码（异步/同步均可用）
+Private m_StatusCode As Long
+Private m_StatusText As String
+
+'=========================================================================
+' 属性：响应状态码
+'=========================================================================
+Public Property Get StatusCode() As Long
+    On Error Resume Next
+    If m_StatusCode = 0 Then m_StatusCode = Inst.Status
+    StatusCode = m_StatusCode
+End Property
+
+Public Property Get StatusText() As String
+    On Error Resume Next
+    If m_StatusText = "" Then m_StatusText = Inst.StatusText
+    StatusText = m_StatusText
+End Property
+
+'=========================================================================
+' 请求方法
+'=========================================================================
 
 Public Function MapRequestContentType(ReqType As EnumRequestContentType, Optional ContentType As String) As String
     MapRequestContentType = SetRequestContentType(ReqType, ContentType)
@@ -86,11 +110,28 @@ Public Sub ShowPage(url As String)
     ShellExecute 0, "open", url, 0, 0, 1
 End Sub
 
+'设置 Cookie（支持 "name=value; name2=value2" 格式，自动解析到 Cookies 字典）
 Public Function SetCookies(ByVal Value As String) As cHttpClient
     Set SetCookies = Me
     If Trim(Value) = "" Then Exit Function
-    'todo 此处应该实现字符串解析到 Cookies 对象,
-    '并且返回头如果有 set-cookies 也要自动处理, 而且可能有多个 set-Cookies
+    
+    '解析 Cookie 字符串到 Cookies 字典，同时保留原始值作为请求头
+    Dim Pairs() As String
+    Pairs = Split(Value, ";")
+    Dim i As Long
+    For i = LBound(Pairs) To UBound(Pairs)
+        Dim Pair As String
+        Pair = Trim(Pairs(i))
+        If Pair <> "" Then
+            Dim EqPos As Long
+            EqPos = InStr(Pair, "=")
+            If EqPos > 0 Then
+                Cookies(Trim(Left(Pair, EqPos - 1))) = Trim(Mid(Pair, EqPos + 1))
+            End If
+        End If
+    Next
+    
+    '设置请求头
     RequestHeaders("Cookie") = Value
 End Function
 
@@ -123,6 +164,11 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
     Set Fetch = Me
     On Error GoTo ERR:
     Dim x As Variant: LastError = "": Set DebugInfo = Nothing
+    
+    '清除上次响应状态
+    m_StatusCode = 0
+    m_StatusText = ""
+    
     '检查url
     If url = "" Then ERR.Raise 500, , "请求的URL地址为空,请检查!"
     '处理请求参数
@@ -135,7 +181,14 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
     '处理Header
     With RequestHeaders
         If .Exists("Cookie") = False Then
-            'todo
+            '如果有已保存的 Cookie，自动带上
+            If Cookies.count > 0 Then
+                Dim CookieStr As String
+                CookieStr = BuildCookieHeader()
+                If CookieStr <> "" Then
+                    .Add "Cookie", CookieStr
+                End If
+            End If
         End If
         If .Exists("Content-Type") = False Then
             If RequestContentType = "" Then RequestContentType = Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
@@ -176,16 +229,16 @@ Public Function Fetch(Method As EnumRequestMethod, ByVal url As String, Optional
     
     If IsAsync = False Then
         '设置等待超时, '由于使用异步请求,如果用户参数改为同步请求,此处则等待返回,无需使用do循环+doevents
-        If RequestTimeOut < 30 Then RequestTimeOut = 30
-        If Inst.WaitForResponse(RequestTimeOut) = False Then ERR.Raise 900, , "请求超时: " & RequestTimeOut
-        '处理网络不可用
-        '        If Inst.Status = WinHttpRequestStatus_Sending Then ERR.Raise 901, , "网络不可用"
-        '        Do While httpRequest.Status = WinHttpRequestStatus_Sending
-        '            DoEvents                                                            '允许其他事件处理，防止卡死
-        '        Loop
-        '
+        Dim WaitTimeout As Long
+        WaitTimeout = IIf(RequestTimeOut < 30, 30, RequestTimeOut)
+        If Inst.WaitForResponse(WaitTimeout) = False Then ERR.Raise 900, , "请求超时: " & WaitTimeout
+        
+        '保存状态码
+        m_StatusCode = Inst.Status
+        m_StatusText = Inst.StatusText
+        
         '状态码判断：4xx/5xx 为明确错误，其余交给调用方处理
-        If Inst.Status >= 400 And Inst.Status <= 599 Then ERR.Raise Inst.Status, , Inst.Status & "#" & Inst.StatusText & "#" & Left(Inst.ResponseText, 1024)
+        If m_StatusCode >= 400 And m_StatusCode <= 599 Then ERR.Raise m_StatusCode, , m_StatusCode & "#" & m_StatusText & "#" & Left(Inst.ResponseText, 1024)
         '解析 返回头
         Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
     End If
@@ -227,8 +280,8 @@ CLEAN:
             End With
             If IsAsync = False Then
                 With .NewItem("Response")
-                    .Item("Status") = Inst.Status
-                    .Item("StatusText") = Inst.StatusText
+                    .Item("Status") = m_StatusCode
+                    .Item("StatusText") = m_StatusText
                     Set .Item("Headers") = ResponseHeaders
                     'ReturnText 会干扰 err 对象
                     .Item("Content") = ReturnText(True)
@@ -240,13 +293,16 @@ CLEAN:
     DebugStart = False
     
     RequestDataJson.Clear
-    RequestDataBody.RemoveAll
     RequestDataForm.RemoveAll
     RequestDataQuery.RemoveAll
     '    RequestHeaders.RemoveAll
     '    Cookies.RemoveAll
     Return
 End Function
+
+'=========================================================================
+' 响应获取方法
+'=========================================================================
 
 Public Function ReturnStream() As Variant
     ReturnStream = Inst.ResponseStream
@@ -275,6 +331,26 @@ Public Function ReturnText(Optional IsUtf8 As Boolean = True, Optional IsConvert
     End If
 End Function
 
+'=========================================================================
+' 私有方法
+'=========================================================================
+
+'构建 Cookie 请求头字符串（从 Cookies 字典）
+Private Function BuildCookieHeader() As String
+    If Cookies.count = 0 Then Exit Function
+    Dim k As Variant
+    Dim Result As String
+    For Each k In Cookies.Keys()
+        If Result <> "" Then Result = Result & "; "
+        Result = Result & CStr(k) & "=" & CStr(Cookies(k))
+    Next
+    BuildCookieHeader = Result
+End Function
+
+'=========================================================================
+' 初始化和清理
+'=========================================================================
+
 Private Sub Class_Initialize()
     Set Inst = New WinHttp.WinHttpRequest
     '    oHttp.SetProxy 1
@@ -289,7 +365,6 @@ Private Sub Class_Initialize()
     '    reqHeaders.Add Consts.TOOLS_HTTP_HEADER_FIELD_CONTENT_TYPE, Consts.TOOLS_HTTP_CONTENT_TYPE_FORM_URLENCODED
     '    reqHeaders.Add "req-from", "vb ajax class by 215879458@qq.com"
     '    postBody.Add "ver", 1#
-    RequestDataBody.CompareMode = TextCompare
     RequestDataForm.CompareMode = TextCompare
     RequestDataQuery.CompareMode = TextCompare
     RequestHeaders.CompareMode = TextCompare
@@ -303,16 +378,34 @@ Private Sub Class_Terminate()
     Set Inst = Nothing
 End Sub
 
-'WinHttpRequest 事件处理程序
+'=========================================================================
+' WinHttpRequest 事件处理程序
+'=========================================================================
+
 Private Sub Inst_OnResponseFinished()
+    On Error Resume Next
+    
+    '保存状态码（异步模式下也需要）
+    m_StatusCode = Inst.Status
+    m_StatusText = Inst.StatusText
+    
     '解析返回头
     Call ToolsHttp.ParseKeyValue(Inst.GetAllResponseHeaders(), ResponseHeaders)
+    
     '自动处理 Set-Cookie 响应头
     If ResponseHeaders.Exists("Set-Cookie") Then
         Call ParseSetCookie(ResponseHeaders("Set-Cookie"))
     End If
-    '触发自定义事件
-    RaiseEvent OnResponseFinished
+    
+    '异步模式下检查 HTTP 状态码
+    If m_StatusCode >= 400 And m_StatusCode <= 599 Then
+        'HTTP 错误，触发 OnError 事件
+        LastError = m_StatusCode & " " & m_StatusText
+        RaiseEvent OnError(m_StatusCode, m_StatusCode & " " & m_StatusText & " " & Left(Inst.ResponseText, 512))
+    Else
+        '正常响应，触发 OnResponseFinished 事件
+        RaiseEvent OnResponseFinished
+    End If
 End Sub
 
 Private Sub Inst_OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String)
@@ -324,45 +417,48 @@ Private Sub Inst_OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As St
             .Item("Description") = ErrorDescription
         End With
     End If
+    '触发自定义错误事件，通知上层（如 cSSEClient）
+    RaiseEvent OnError(ErrorNumber, ErrorDescription)
 End Sub
 
+'=========================================================================
+' Set-Cookie 解析
+'=========================================================================
+
 '解析 Set-Cookie 响应头
+'注意：WinHttp 的 GetAllResponseHeaders 返回的是拼接后的字符串，
+'多个 Set-Cookie 之间用 vbCrLf 分隔，不能用逗号分割（Expires 值含逗号）
 Private Sub ParseSetCookie(ByVal SetCookieValue As String)
     If Trim(SetCookieValue) = "" Then Exit Sub
     
-    Dim CookieParts() As String
-    Dim CookieItem As String
-    Dim CookieParts2() As String
     Dim CookieName As String
     Dim CookieValue As String
     
-    '处理可能存在多个 Set-Cookie 的情况（使用逗号分隔或换行符）
+    '按换行符分割多个 Set-Cookie（WinHttp 返回的多个同名头用换行分隔）
     Dim MultiCookies() As String
-    MultiCookies = Split(SetCookieValue, ",")
+    MultiCookies = Split(SetCookieValue, vbCrLf)
     
     Dim i As Long
     For i = LBound(MultiCookies) To UBound(MultiCookies)
+        Dim CookieItem As String
         CookieItem = Trim(MultiCookies(i))
-        If CookieItem <> "" Then
-            '找到第一个等号分隔 name=value
-            Dim EqPos As Long
-            EqPos = InStr(CookieItem, "=")
-            If EqPos > 0 Then
-                CookieName = Trim(Left(CookieItem, EqPos - 1))
-                '只取到分号或行尾
-                Dim SemicolonPos As Long
-                SemicolonPos = InStr(EqPos + 1, CookieItem, ";")
-                If SemicolonPos > 0 Then
-                    CookieValue = Mid(CookieItem, EqPos + 1, SemicolonPos - EqPos - 1)
-                Else
-                    CookieValue = Mid(CookieItem, EqPos + 1)
-                End If
-                Cookies(CookieName) = CookieValue
+        If CookieItem = "" Then GoTo NEXT_COOKIE
+        
+        '找到第一个等号分隔 name=value
+        Dim EqPos As Long
+        EqPos = InStr(CookieItem, "=")
+        If EqPos > 0 Then
+            CookieName = Trim(Left(CookieItem, EqPos - 1))
+            '只取到分号或行尾（分号后是属性如 Path、Domain、Expires 等）
+            Dim SemicolonPos As Long
+            SemicolonPos = InStr(EqPos + 1, CookieItem, ";")
+            If SemicolonPos > 0 Then
+                CookieValue = Trim(Mid(CookieItem, EqPos + 1, SemicolonPos - EqPos - 1))
+            Else
+                CookieValue = Trim(Mid(CookieItem, EqPos + 1))
             End If
+            Cookies(CookieName) = CookieValue
         End If
+NEXT_COOKIE:
     Next i
 End Sub
-
-
-
-

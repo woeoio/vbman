@@ -1,4 +1,782 @@
-                Cmd.CreateParameter("p" & i, adVariant, adParamInput, , ParamValues(i))
+════════════════════════════════════════════════════════════════════════════════
+                        VBMAN网络应用开发框架软件
+                            源程序（后30页）
+════════════════════════════════════════════════════════════════════════════════
+软件名称：VBMAN网络应用开发框架软件
+版本号：V1.0
+开发语言：Visual Basic 6.0
+════════════════════════════════════════════════════════════════════════════════
+
+【第31页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cHttpClient.cls（续）
+'# 描述：HTTP客户端核心实现
+'#############################################################################
+Public Function SendGet(Url As String) As Boolean
+    On Error GoTo EH
+    LastError = ""
+    RequestMethod = ReqGet
+    RequestUrl = Url
+    Call InternalSend
+    SendGet = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+Public Function SendPost(Url As String, PostData As String, Optional ContentType As String = "application/x-www-form-urlencoded") As Boolean
+    On Error GoTo EH
+    LastError = ""
+    RequestMethod = ReqPost
+    RequestUrl = Url
+    RequestPostData = PostData
+    RequestContentType = ContentType
+    Call InternalSend
+    SendPost = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+Public Function SendPut(Url As String, PutData As String, Optional ContentType As String = "application/json") As Boolean
+    On Error GoTo EH
+    LastError = ""
+    RequestMethod = ReqPut
+    RequestUrl = Url
+    RequestPostData = PutData
+    RequestContentType = ContentType
+    Call InternalSend
+    SendPut = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+Public Function SendDelete(Url As String) As Boolean
+    On Error GoTo EH
+    LastError = ""
+    RequestMethod = ReqDelete
+    RequestUrl = Url
+    Call InternalSend
+    SendDelete = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+【第32页】═══════════════════════════════════════════════════════════════════════
+Private Sub InternalSend()
+    Dim WinHttp As New WinHttpRequest
+    Dim i As Long
+    
+    '设置超时
+    WinHttp.SetTimeouts RequestTimeOut * 1000, RequestTimeOut * 1000, RequestTimeOut * 1000, RequestTimeOut * 1000
+    
+    '打开请求
+    Select Case RequestMethod
+        Case ReqGet: WinHttp.Open "GET", RequestUrl, False
+        Case ReqPost: WinHttp.Open "POST", RequestUrl, False
+        Case ReqPut: WinHttp.Open "PUT", RequestUrl, False
+        Case ReqDelete: WinHttp.Open "DELETE", RequestUrl, False
+        Case ReqHead: WinHttp.Open "HEAD", RequestUrl, False
+        Case ReqOptions: WinHttp.Open "OPTIONS", RequestUrl, False
+        Case ReqPatch: WinHttp.Open "PATCH", RequestUrl, False
+    End Select
+    
+    '设置请求头
+    If RequestContentType <> "" Then
+        WinHttp.SetRequestHeader "Content-Type", RequestContentType
+    End If
+    
+    Dim Key As Variant
+    For Each Key In RequestHeaders.Keys
+        WinHttp.SetRequestHeader Key, RequestHeaders(Key)
+    Next
+    
+    '设置代理
+    If RequestProxy <> "" Then
+        WinHttp.SetProxy HTTPREQUEST_PROXY_SETTING_PROXY, RequestProxy
+    End If
+    
+    '发送请求
+    If RequestMethod = ReqPost Or RequestMethod = ReqPut Or RequestMethod = ReqPatch Then
+        WinHttp.Send RequestPostData
+    Else
+        WinHttp.Send
+    End If
+    
+    '等待响应
+    Do While WinHttp.WaitForResponse(1000) = 0
+        DoEvents
+    Loop
+    
+    '获取响应
+    ResponseStatus = WinHttp.Status
+    ResponseStatusText = WinHttp.StatusText
+    ResponseText = WinHttp.ResponseText
+    ResponseBody = WinHttp.ResponseBody
+    
+    '获取响应头
+    Set ResponseHeaders = New Scripting.Dictionary
+    On Error Resume Next
+    Dim AllResponseHeaders As String
+    AllResponseHeaders = WinHttp.GetAllResponseHeaders
+    If AllResponseHeaders <> "" Then
+        Dim HeaderLines() As String
+        HeaderLines = Split(AllResponseHeaders, vbCrLf)
+        For i = 0 To UBound(HeaderLines)
+            If InStr(HeaderLines(i), ":") > 0 Then
+                Dim HeaderName As String, HeaderValue As String
+                HeaderName = Trim(Left(HeaderLines(i), InStr(HeaderLines(i), ":") - 1))
+                HeaderValue = Trim(Mid(HeaderLines(i), InStr(HeaderLines(i), ":") + 1))
+                ResponseHeaders(HeaderName) = HeaderValue
+            End If
+        Next
+    End If
+    On Error GoTo 0
+End Sub
+
+【第33页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cModbusMaster.cls
+'# 描述：Modbus主站类
+'# 功能：支持Modbus TCP和RTU协议，实现主站功能
+'#############################################################################
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cModbusMaster"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+
+'作者：邓伟，215879458@qq.com
+'Modbus 主站类
+'支持 TCP 和 RTU 两种传输模式
+
+Public Event OnConnected()
+Public Event OnDisconnected()
+Public Event OnError(ByVal ErrorCode As Long, ByVal ErrorDesc As String)
+Public Event OnDataReceived(ByVal FunctionCode As Byte, Data() As Byte)
+
+Private m_Transport As Object
+Private m_TransportType As Integer
+Private m_LastError As String
+Private m_TransactionId As Long
+
+Public Property Get LastError() As String
+    LastError = m_LastError
+End Property
+
+Public Property Get IsConnected() As Boolean
+    If m_Transport Is Nothing Then
+        IsConnected = False
+    Else
+        IsConnected = m_Transport.IsConnected
+    End If
+End Property
+
+【第34页】═══════════════════════════════════════════════════════════════════════
+'使用TCP模式连接
+Public Function ConnectTCP(ByVal Host As String, ByVal Port As Long, Optional ByVal TimeoutMs As Long = 5000) As Boolean
+    On Error GoTo EH
+    
+    Set m_Transport = New cModbusTransportTCP
+    m_TransportType = 1
+    
+    If m_Transport.Connect(Host, Port, TimeoutMs) Then
+        ConnectTCP = True
+        RaiseEvent OnConnected
+    Else
+        m_LastError = m_Transport.LastError
+        ConnectTCP = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ConnectTCP = False
+End Function
+
+'使用RTU模式连接（串口）
+Public Function ConnectRTU(ByVal ComPort As String, ByVal BaudRate As Long, Optional ByVal DataBits As Integer = 8, Optional ByVal Parity As String = "N", Optional ByVal StopBits As Integer = 1, Optional ByVal TimeoutMs As Long = 5000) As Boolean
+    On Error GoTo EH
+    
+    Set m_Transport = New cModbusTransportRTU
+    m_TransportType = 2
+    
+    If m_Transport.Connect(ComPort, BaudRate, DataBits, Parity, StopBits, TimeoutMs) Then
+        ConnectRTU = True
+        RaiseEvent OnConnected
+    Else
+        m_LastError = m_Transport.LastError
+        ConnectRTU = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ConnectRTU = False
+End Function
+
+Public Sub Disconnect()
+    On Error Resume Next
+    If Not m_Transport Is Nothing Then
+        m_Transport.Disconnect
+        Set m_Transport = Nothing
+    End If
+    RaiseEvent OnDisconnected
+End Sub
+
+【第35页】═══════════════════════════════════════════════════════════════════════
+'读取线圈状态（功能码 01）
+Public Function ReadCoils(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer
+    Dim CoilValues() As Boolean
+    
+    Request = BuildRequest(SlaveId, &H1, StartAddr, Quantity)
+    Response = SendAndReceive(Request)
+    If UBound(Response) < 0 Then
+        ReadCoils = Empty
+        Exit Function
+    End If
+    
+    Dim ByteCount As Byte
+    ByteCount = Response(8)
+    
+    ReDim CoilValues(Quantity - 1)
+    
+    For i = 0 To Quantity - 1
+        Dim ByteIndex As Integer
+        Dim BitIndex As Integer
+        ByteIndex = i \ 8
+        BitIndex = i Mod 8
+        
+        If ByteIndex < ByteCount Then
+            CoilValues(i) = ((Response(9 + ByteIndex) And (2 ^ BitIndex)) <> 0)
+        Else
+            CoilValues(i) = False
+        End If
+    Next
+    
+    ReadCoils = CoilValues
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ReadCoils = Empty
+End Function
+
+'读取离散输入状态（功能码 02）
+Public Function ReadDiscreteInputs(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer
+    Dim InputValues() As Boolean
+    
+    Request = BuildRequest(SlaveId, &H2, StartAddr, Quantity)
+    Response = SendAndReceive(Request)
+    If UBound(Response) < 0 Then
+        ReadDiscreteInputs = Empty
+        Exit Function
+    End If
+    
+    Dim ByteCount As Byte
+    ByteCount = Response(8)
+    
+    ReDim InputValues(Quantity - 1)
+    
+    For i = 0 To Quantity - 1
+        ByteIndex = i \ 8
+        BitIndex = i Mod 8
+        
+        If ByteIndex < ByteCount Then
+            InputValues(i) = ((Response(9 + ByteIndex) And (2 ^ BitIndex)) <> 0)
+        Else
+            InputValues(i) = False
+        End If
+    Next
+    
+    ReadDiscreteInputs = InputValues
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ReadDiscreteInputs = Empty
+End Function
+
+【第36页】═══════════════════════════════════════════════════════════════════════
+'读取保持寄存器（功能码 03）
+Public Function ReadHoldingRegisters(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer
+    Dim RegisterValues() As Integer
+    
+    Request = BuildRequest(SlaveId, &H3, StartAddr, Quantity)
+    Response = SendAndReceive(Request)
+    If UBound(Response) < 0 Then
+        ReadHoldingRegisters = Empty
+        Exit Function
+    End If
+    
+    Dim ByteCount As Byte
+    ByteCount = Response(8)
+    
+    ReDim RegisterValues(Quantity - 1)
+    
+    For i = 0 To Quantity - 1
+        If (i * 2 + 1) < ByteCount Then
+            RegisterValues(i) = Response(9 + i * 2) * 256 + Response(10 + i * 2)
+        Else
+            RegisterValues(i) = 0
+        End If
+    Next
+    
+    ReadHoldingRegisters = RegisterValues
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ReadHoldingRegisters = Empty
+End Function
+
+'读取输入寄存器（功能码 04）
+Public Function ReadInputRegisters(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer
+    Dim RegisterValues() As Integer
+    
+    Request = BuildRequest(SlaveId, &H4, StartAddr, Quantity)
+    Response = SendAndReceive(Request)
+    If UBound(Response) < 0 Then
+        ReadInputRegisters = Empty
+        Exit Function
+    End If
+    
+    Dim ByteCount As Byte
+    ByteCount = Response(8)
+    
+    ReDim RegisterValues(Quantity - 1)
+    
+    For i = 0 To Quantity - 1
+        If (i * 2 + 1) < ByteCount Then
+            RegisterValues(i) = Response(9 + i * 2) * 256 + Response(10 + i * 2)
+        Else
+            RegisterValues(i) = 0
+        End If
+    Next
+    
+    ReadInputRegisters = RegisterValues
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    ReadInputRegisters = Empty
+End Function
+
+【第37页】═══════════════════════════════════════════════════════════════════════
+'写单个线圈（功能码 05）
+Public Function WriteSingleCoil(ByVal SlaveId As Byte, ByVal Addr As Integer, ByVal Value As Boolean) As Boolean
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim CoilValue As Integer
+    
+    If Value Then
+        CoilValue = &HFF00
+    Else
+        CoilValue = &H0
+    End If
+    
+    Request = BuildRequest(SlaveId, &H5, Addr, CoilValue)
+    Response = SendAndReceive(Request)
+    
+    If UBound(Response) < 0 Then
+        WriteSingleCoil = False
+        Exit Function
+    End If
+    
+    If Response(7) = &H5 Then
+        WriteSingleCoil = True
+    Else
+        m_LastError = "功能码不匹配"
+        WriteSingleCoil = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    WriteSingleCoil = False
+End Function
+
+'写单个寄存器（功能码 06）
+Public Function WriteSingleRegister(ByVal SlaveId As Byte, ByVal Addr As Integer, ByVal Value As Integer) As Boolean
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    
+    Request = BuildRequest(SlaveId, &H6, Addr, Value)
+    Response = SendAndReceive(Request)
+    
+    If UBound(Response) < 0 Then
+        WriteSingleRegister = False
+        Exit Function
+    End If
+    
+    If Response(7) = &H6 Then
+        WriteSingleRegister = True
+    Else
+        m_LastError = "功能码不匹配"
+        WriteSingleRegister = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    WriteSingleRegister = False
+End Function
+
+【第38页】═══════════════════════════════════════════════════════════════════════
+'写多个线圈（功能码 0F）
+Public Function WriteMultipleCoils(ByVal SlaveId As Byte, ByVal StartAddr As Integer, Values() As Boolean) As Boolean
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer, j As Integer
+    Dim Quantity As Integer
+    Dim ByteCount As Integer
+    Dim CoilBytes() As Byte
+    
+    Quantity = UBound(Values) + 1
+    ByteCount = (Quantity + 7) \ 8
+    
+    ReDim CoilBytes(ByteCount - 1)
+    
+    For i = 0 To Quantity - 1
+        If Values(i) Then
+            CoilBytes(i \ 8) = CoilBytes(i \ 8) Or (2 ^ (i Mod 8))
+        End If
+    Next
+    
+    ReDim Request(12 + ByteCount)
+    Request(0) = SlaveId
+    Request(1) = &HF
+    Request(2) = (StartAddr And &HFF00) \ 256
+    Request(3) = StartAddr And &HFF
+    Request(4) = (Quantity And &HFF00) \ 256
+    Request(5) = Quantity And &HFF
+    Request(6) = ByteCount
+    
+    For i = 0 To ByteCount - 1
+        Request(7 + i) = CoilBytes(i)
+    Next
+    
+    Response = SendAndReceive(Request)
+    
+    If UBound(Response) < 0 Then
+        WriteMultipleCoils = False
+        Exit Function
+    End If
+    
+    If Response(7) = &HF Then
+        WriteMultipleCoils = True
+    Else
+        m_LastError = "功能码不匹配"
+        WriteMultipleCoils = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    WriteMultipleCoils = False
+End Function
+
+【第39页】═══════════════════════════════════════════════════════════════════════
+'写多个寄存器（功能码 10）
+Public Function WriteMultipleRegisters(ByVal SlaveId As Byte, ByVal StartAddr As Integer, Values() As Integer) As Boolean
+    On Error GoTo EH
+    Dim Request() As Byte
+    Dim Response() As Byte
+    Dim i As Integer
+    Dim Quantity As Integer
+    Dim ByteCount As Integer
+    
+    Quantity = UBound(Values) + 1
+    ByteCount = Quantity * 2
+    
+    ReDim Request(12 + ByteCount)
+    Request(0) = SlaveId
+    Request(1) = &H10
+    Request(2) = (StartAddr And &HFF00) \ 256
+    Request(3) = StartAddr And &HFF
+    Request(4) = (Quantity And &HFF00) \ 256
+    Request(5) = Quantity And &HFF
+    Request(6) = ByteCount
+    
+    For i = 0 To Quantity - 1
+        Request(7 + i * 2) = (Values(i) And &HFF00) \ 256
+        Request(8 + i * 2) = Values(i) And &HFF
+    Next
+    
+    Response = SendAndReceive(Request)
+    
+    If UBound(Response) < 0 Then
+        WriteMultipleRegisters = False
+        Exit Function
+    End If
+    
+    If Response(7) = &H10 Then
+        WriteMultipleRegisters = True
+    Else
+        m_LastError = "功能码不匹配"
+        WriteMultipleRegisters = False
+    End If
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    WriteMultipleRegisters = False
+End Function
+
+【第40页】═══════════════════════════════════════════════════════════════════════
+'构建请求报文
+Private Function BuildRequest(ByVal SlaveId As Byte, ByVal FunctionCode As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Byte()
+    Dim Request(11) As Byte
+    
+    m_TransactionId = m_TransactionId + 1
+    Request(0) = (m_TransactionId And &HFF00) \ 256
+    Request(1) = m_TransactionId And &HFF
+    
+    Request(2) = 0
+    Request(3) = 0
+    
+    Request(4) = 0
+    Request(5) = 6
+    
+    Request(6) = SlaveId
+    Request(7) = FunctionCode
+    
+    Request(8) = (StartAddr And &HFF00) \ 256
+    Request(9) = StartAddr And &HFF
+    
+    Request(10) = (Quantity And &HFF00) \ 256
+    Request(11) = Quantity And &HFF
+    
+    BuildRequest = Request
+End Function
+
+'发送请求并接收响应
+Private Function SendAndReceive(Request() As Byte) As Byte()
+    Dim Response() As Byte
+    
+    If m_Transport Is Nothing Then
+        m_LastError = "未连接"
+        ReDim Response(-1)
+        SendAndReceive = Response
+        Exit Function
+    End If
+    
+    If Not m_Transport.IsConnected Then
+        m_LastError = "连接已断开"
+        ReDim Response(-1)
+        SendAndReceive = Response
+        Exit Function
+    End If
+    
+    If Not m_Transport.Send(Request) Then
+        m_LastError = m_Transport.LastError
+        ReDim Response(-1)
+        SendAndReceive = Response
+        Exit Function
+    End If
+    
+    Response = m_Transport.Receive()
+    If UBound(Response) < 0 Then
+        m_LastError = m_Transport.LastError
+    End If
+    
+    SendAndReceive = Response
+End Function
+
+【第41页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cDatabase.cls
+'# 描述：数据库操作类
+'# 功能：封装ADO数据库操作，简化数据库访问
+'#############################################################################
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cDataBase"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+
+Public Event OnError(ByVal ErrorCode As Long, ByVal ErrorDesc As String)
+
+Private m_Connection As ADODB.Connection
+Private m_ConnectionString As String
+Private m_LastError As String
+Private m_CommandTimeout As Long
+Private m_ConnectionTimeout As Long
+
+Public Property Get LastError() As String
+    LastError = m_LastError
+End Property
+
+Public Property Let ConnectionString(ByVal Value As String)
+    m_ConnectionString = Value
+End Property
+
+Public Property Get ConnectionString() As String
+    ConnectionString = m_ConnectionString
+End Property
+
+Public Property Let CommandTimeout(ByVal Value As Long)
+    m_CommandTimeout = Value
+    If Not m_Connection Is Nothing Then
+        m_Connection.CommandTimeout = Value
+    End If
+End Property
+
+Public Property Let ConnectionTimeout(ByVal Value As Long)
+    m_ConnectionTimeout = Value
+    If Not m_Connection Is Nothing Then
+        m_Connection.ConnectionTimeout = Value
+    End If
+End Property
+
+【第42页】═══════════════════════════════════════════════════════════════════════
+'打开数据库连接
+Public Function OpenConnection() As Boolean
+    On Error GoTo EH
+    
+    m_LastError = ""
+    
+    If m_ConnectionString = "" Then
+        m_LastError = "连接字符串为空"
+        OpenConnection = False
+        Exit Function
+    End If
+    
+    Set m_Connection = New ADODB.Connection
+    
+    If m_CommandTimeout > 0 Then
+        m_Connection.CommandTimeout = m_CommandTimeout
+    End If
+    
+    If m_ConnectionTimeout > 0 Then
+        m_Connection.ConnectionTimeout = m_ConnectionTimeout
+    End If
+    
+    m_Connection.Open m_ConnectionString
+    
+    OpenConnection = True
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnError(ERR.Number, m_LastError)
+    OpenConnection = False
+End Function
+
+'关闭数据库连接
+Public Sub CloseConnection()
+    On Error Resume Next
+    If Not m_Connection Is Nothing Then
+        If m_Connection.State = adStateOpen Then
+            m_Connection.Close
+        End If
+        Set m_Connection = Nothing
+    End If
+End Sub
+
+'执行SQL语句（不返回结果集）
+Public Function Execute(ByVal SQL As String, Optional ByVal ParamValues As Variant) As Long
+    On Error GoTo EH
+    Dim Cmd As ADODB.Command
+    Dim i As Integer
+    
+    m_LastError = ""
+    
+    If m_Connection Is Nothing Then
+        m_LastError = "连接未打开"
+        Execute = -1
+        Exit Function
+    End If
+    
+    Set Cmd = New ADODB.Command
+    Set Cmd.ActiveConnection = m_Connection
+    Cmd.CommandText = SQL
+    Cmd.CommandType = adCmdText
+    
+    '添加参数
+    If Not IsMissing(ParamValues) Then
+        If IsArray(ParamValues) Then
+            For i = LBound(ParamValues) To UBound(ParamValues)
+                Cmd.Parameters.Append Cmd.CreateParameter("p" & i, adVariant, adParamInput, , ParamValues(i))
+            Next
+        End If
+    End If
+    
+    Cmd.Execute
+    Execute = Cmd.RecordsAffected
+    Exit Function
+    
+EH:
+    m_LastError = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnError(ERR.Number, m_LastError)
+    Execute = -1
+End Function
+
+【第43页】═══════════════════════════════════════════════════════════════════════
+'执行查询（返回Recordset）
+Public Function Query(ByVal SQL As String, Optional ByVal ParamValues As Variant) As ADODB.Recordset
+    On Error GoTo EH
+    Dim Cmd As ADODB.Command
+    Dim Rs As ADODB.Recordset
+    Dim i As Integer
+    
+    m_LastError = ""
+    
+    If m_Connection Is Nothing Then
+        m_LastError = "连接未打开"
+        Set Query = Nothing
+        Exit Function
+    End If
+    
+    Set Cmd = New ADODB.Command
+    Set Cmd.ActiveConnection = m_Connection
+    Cmd.CommandText = SQL
+    Cmd.CommandType = adCmdText
+    
+    '添加参数
+    If Not IsMissing(ParamValues) Then
+        If IsArray(ParamValues) Then
+            For i = LBound(ParamValues) To UBound(ParamValues)
+                Cmd.Parameters.Append Cmd.CreateParameter("p" & i, adVariant, adParamInput, , ParamValues(i))
             Next
         End If
     End If
@@ -164,10 +942,8 @@ Public Function Connect(ByVal Host As String, Optional ByVal Port As Long = 6379
     Set m_Socket = New cWinsock
     m_Socket.Protocol = wskTCPProtocol
     
-    '使用同步连接
     m_Socket.ConnectTo Host, Port
     
-    '等待连接成功
     Dim StartTime As Long
     StartTime = GetTickCount()
     Do While m_Socket.State <> wskConnected
@@ -213,13 +989,9 @@ Private Function SendCommand(ByVal Command As String) As String
         Exit Function
     End If
     
-    '清空接收缓冲区
     m_RecvBuffer = ""
-    
-    '发送命令
     m_Socket.SendData Command & vbCrLf
     
-    '等待响应
     Dim StartTime As Long
     Dim Response As String
     StartTime = GetTickCount()
@@ -252,7 +1024,6 @@ Private Function ReceiveResponse() As String
         m_RecvBuffer = m_RecvBuffer & Data
     End If
     
-    '检查是否收到完整响应
     If InStr(m_RecvBuffer, vbCrLf) > 0 Then
         ReceiveResponse = m_RecvBuffer
         m_RecvBuffer = ""
@@ -283,7 +1054,6 @@ Public Function GetValue(ByVal Key As String) As String
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析响应 $长度\r\n值\r\n
     Dim Pos1 As Long, Pos2 As Long
     Pos1 = InStr(Response, "$")
     If Pos1 > 0 Then
@@ -297,7 +1067,7 @@ Public Function GetValue(ByVal Key As String) As String
                 If ValueLen > 0 Then
                     GetValue = Mid(Response, Pos2 + 2, ValueLen)
                 ElseIf ValueLen = -1 Then
-                    GetValue = ""  '键不存在
+                    GetValue = ""
                 End If
             End If
         End If
@@ -312,7 +1082,6 @@ Public Function Delete(ByVal Key As String) As Long
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析 :数字\r\n
     If Left(Response, 1) = ":" Then
         Dim Pos As Long
         Pos = InStr(Response, vbCrLf)
@@ -331,7 +1100,6 @@ Public Function Exists(ByVal Key As String) As Boolean
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析 :1\r\n 或 :0\r\n
     If Left(Response, 1) = ":" Then
         Exists = (InStr(Response, ":1") > 0)
     End If
@@ -367,7 +1135,6 @@ Public Function HGet(ByVal Key As String, ByVal Field As String) As String
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析响应
     Dim Pos1 As Long, Pos2 As Long
     Pos1 = InStr(Response, "$")
     If Pos1 > 0 Then
@@ -440,7 +1207,6 @@ Public Function LPop(ByVal Key As String) As String
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析响应
     Dim Pos1 As Long, Pos2 As Long
     Pos1 = InStr(Response, "$")
     If Pos1 > 0 Then
@@ -468,7 +1234,6 @@ Public Function RPop(ByVal Key As String) As String
     Dim Response As String
     Response = SendCommand(Cmd)
     
-    '解析响应
     Dim Pos1 As Long, Pos2 As Long
     Pos1 = InStr(Response, "$")
     If Pos1 > 0 Then
@@ -598,7 +1363,6 @@ Public Function HashBytes(ByRef Data() As Byte, ByVal Algorithm As HashAlgorithm
     
     m_LastError = ""
     
-    '选择算法
     Select Case Algorithm
         Case HashMD5: Algid = CALG_MD5: HashLen = 16
         Case HashSHA1: Algid = CALG_SHA1: HashLen = 20
@@ -608,20 +1372,17 @@ Public Function HashBytes(ByRef Data() As Byte, ByVal Algorithm As HashAlgorithm
             Exit Function
     End Select
     
-    '获取CSP上下文
     If CryptAcquireContext(hProv, vbNullString, vbNullString, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) = 0 Then
         m_LastError = "获取加密上下文失败"
         Exit Function
     End If
     
-    '创建哈希对象
     If CryptCreateHash(hProv, Algid, 0, 0, hHash) = 0 Then
         CryptReleaseContext hProv, 0
         m_LastError = "创建哈希对象失败"
         Exit Function
     End If
     
-    '哈希数据
     If CryptHashData(hHash, Data(0), UBound(Data) + 1, 0) = 0 Then
         CryptDestroyHash hHash
         CryptReleaseContext hProv, 0
@@ -629,7 +1390,6 @@ Public Function HashBytes(ByRef Data() As Byte, ByVal Algorithm As HashAlgorithm
         Exit Function
     End If
     
-    '获取哈希值
     ReDim HashData(HashLen - 1)
     If CryptGetHashParam(hHash, HP_HASHVAL, HashData(0), HashLen, 0) = 0 Then
         CryptDestroyHash hHash
@@ -638,13 +1398,11 @@ Public Function HashBytes(ByRef Data() As Byte, ByVal Algorithm As HashAlgorithm
         Exit Function
     End If
     
-    '转换为十六进制字符串
     Result = ""
     For i = 0 To HashLen - 1
         Result = Result & Right("0" & Hex(HashData(i)), 2)
     Next
     
-    '清理
     CryptDestroyHash hHash
     CryptReleaseContext hProv, 0
     
@@ -667,13 +1425,11 @@ Public Function HashFile(ByVal FilePath As String, ByVal Algorithm As HashAlgori
     
     m_LastError = ""
     
-    '检查文件是否存在
     If Dir(FilePath) = "" Then
         m_LastError = "文件不存在"
         Exit Function
     End If
     
-    '读取文件
     FileNum = FreeFile
     Open FilePath For Binary As #FileNum
     FileLen = LOF(FileNum)

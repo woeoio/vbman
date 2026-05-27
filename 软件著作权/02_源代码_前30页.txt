@@ -1,18 +1,18 @@
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
                         VBMAN网络应用开发框架软件
                             源程序（前30页）
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
 软件名称：VBMAN网络应用开发框架软件
 版本号：V1.0
 开发语言：Visual Basic 6.0
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
 
-【第1页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第1页】═══════════════════════════════════
+'##############################################
 '# 文件：VBMAN.vbp
 '# 描述：VBMAN主项目文件 - ActiveX DLL项目
 '# 作者：邓伟，215879458@qq.com
-'#############################################################################
+'##############################################
 Type=OleDll
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
 Reference=*\G{420B2830-E718-11CF-893D-00A0C9054228}#1.0#0#C:\Windows\SysWOW64\scrrun.dll#Microsoft Scripting Runtime
@@ -44,7 +44,7 @@ Module=ToolsTlsThunks; Socket\mdTlsThunks.bas
 Module=Demo; Demos\Demo.bas
 Module=ToolsJsonVba; Tools\Json\ToolsJsonVba.bas
 
-【第2页】═══════════════════════════════════════════════════════════════════════
+【第2页】═══════════════════════════════════
 Class=cSSE; SSE\cSSE.cls
 Class=cMQTTClient; MQTTClient\cMQTTClient.cls
 Class=cHttpCrossDomain; Tools\cHttpCrossDomain.cls
@@ -79,13 +79,13 @@ Class=cSSEContext; SSE\cSSEContext.cls
 Class=cToolsStr; Tools\String\cToolsStr.cls
 Module=Tools; Tools\Tools.bas
 
-【第3页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第3页】═══════════════════════════════════
+'##############################################
 '# 文件：cAI.cls
 '# 描述：AI对象类 - 通用OpenAI兼容API客户端
 '# 功能：支持豆包、DeepSeek、OpenAI、通义千问等AI服务
 '# 作者：邓伟，QQ：215879458
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -112,16 +112,16 @@ Option Explicit
 '引用 cJson.cls 类文件
 '引用 cSSEClient.cls 类文件
 
-'=========================================================================
+'========================================
 ' 事件定义
-'=========================================================================
+'========================================
 Public Event OnStreamChunk(Chunk As String, IsComplete As Boolean)
 Public Event OnComplete(Response As String)
 Public Event OnError(ErrorMsg As String, ErrorCode As Long)
 
-'=========================================================================
+'========================================
 ' 私有变量
-'=========================================================================
+'========================================
 Private WithEvents SSEClient As cSSEClient
 Attribute SSEClient.VB_VarHelpID = -1
 Dim Json As New cJson
@@ -160,10 +160,10 @@ Private m_StreamCallback As Object
 Private m_StreamCallbackMethod As String
 Private m_IsStreaming As Boolean
 
-【第4页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第4页】═══════════════════════════════════
+'========================================
 ' 属性
-'=========================================================================
+'========================================
 Public Property Get LastError() As String
     LastError = m_LastError
 End Property
@@ -172,9 +172,9 @@ Public Property Get IsStreaming() As Boolean
     IsStreaming = m_IsStreaming
 End Property
 
-'=========================================================================
+'========================================
 ' 基础配置方法（链式调用）
-'=========================================================================
+'========================================
 
 '设置 API 密钥
 Public Function ApiKey(Key As String) As cAI
@@ -206,9 +206,9 @@ Public Function Timeout(Seconds As Long) As cAI
     Set Timeout = Me
 End Function
 
-'=========================================================================
+'========================================
 ' 参数配置方法（链式调用）
-'=========================================================================
+'========================================
 
 '设置温度参数
 Public Function Temperature(Value As Double) As cAI
@@ -228,7 +228,7 @@ Public Function TopP(Value As Double) As cAI
     Set TopP = Me
 End Function
 
-【第5页】═══════════════════════════════════════════════════════════════════════
+【第5页】═══════════════════════════════════
 '设置频率惩罚
 Public Function FrequencyPenalty(Value As Double) As cAI
     m_FrequencyPenalty = Value
@@ -253,9 +253,9 @@ Public Function Stop(Value As Variant) As cAI
     Set Stop = Me
 End Function
 
-'=========================================================================
+'========================================
 ' 消息管理方法（链式调用）
-'=========================================================================
+'========================================
 
 '添加系统提示词
 Public Function System(Prompt As String) As cAI
@@ -289,7 +289,7 @@ Public Function Assistant(Content As String) As cAI
     Set Assistant = Me
 End Function
 
-【第6页】═══════════════════════════════════════════════════════════════════════
+【第6页】═══════════════════════════════════
 '清空消息历史
 Public Function ClearMessages() As cAI
     If Not m_Messages Is Nothing Then
@@ -305,9 +305,9 @@ Public Function Messages(MsgList As Collection) As cAI
     Set Messages = Me
 End Function
 
-'=========================================================================
+'========================================
 ' 高级配置方法（链式调用）
-'=========================================================================
+'========================================
 
 '添加自定义请求头
 Public Function Header(Name As String, Value As String) As cAI
@@ -331,9 +331,9 @@ Public Function Organization(OrgId As String) As cAI
     Set Organization = Me
 End Function
 
-'=========================================================================
+'========================================
 ' 预设配置方法（便捷方法）
-'=========================================================================
+'========================================
 
 '快速配置为豆包 API
 Public Function Doubao(ApiKey As String) As cAI
@@ -351,7 +351,7 @@ Public Function DeepSeek(ApiKey As String) As cAI
     Set DeepSeek = Me
 End Function
 
-【第7页】═══════════════════════════════════════════════════════════════════════
+【第7页】═══════════════════════════════════
 '快速配置为 OpenAI API
 Public Function OpenAI(ApiKey As String) As cAI
     m_ApiKey = ApiKey
@@ -368,9 +368,9 @@ Public Function Qwen(ApiKey As String) As cAI
     Set Qwen = Me
 End Function
 
-'=========================================================================
+'========================================
 ' 执行方法（非链式）
-'=========================================================================
+'========================================
 
 '发送聊天请求
 'Stream=False 时同步返回完整结果
@@ -426,7 +426,7 @@ ERR_HANDLER:
     ERR.Raise ERR.Number, ERR.Source, ERR.Description
 End Function
 
-【第8页】═══════════════════════════════════════════════════════════════════════
+【第8页】═══════════════════════════════════
 '发送聊天请求（返回 JSON 对象）
 Public Function ChatJson(Optional UserMessage As String) As cJson
     Dim ResponseText As String
@@ -463,9 +463,9 @@ Public Sub Reset()
     m_LastError = ""
 End Sub
 
-'=========================================================================
+'========================================
 ' 私有方法
-'=========================================================================
+'========================================
 
 '构建请求体（不修改 m_Messages，避免系统提示词重复添加）
 Private Function BuildRequestBody() As String
@@ -528,13 +528,13 @@ Private Function BuildRequestBody() As String
     BuildRequestBody = Json.Encode()
 End Function
 
-【第9页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第9页】═══════════════════════════════════
+'##############################################
 '# 文件：cHttpServer.cls
 '# 描述：HTTP服务器核心类
 '# 功能：提供HTTP服务器功能，支持路由、中间件、会话、Cookie等
 '# 作者：邓伟，215879458@qq.com
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -592,7 +592,7 @@ Dim HttpSvr As cHttpServerSvr
 
 '支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
 
-【第10页】═══════════════════════════════════════════════════════════════════════
+【第10页】═══════════════════════════════════
 Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
     If IsRunning = True Then LastError = "服务器正在运行中": Exit Function
     Set m_oServer = New cTlsReMaster
@@ -688,7 +688,7 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
     '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
 End Sub
 
-【第11页】═══════════════════════════════════════════════════════════════════════
+【第11页】═══════════════════════════════════
 Friend Sub OnDataArrival(Index As Long)
     
     On Error GoTo EH
@@ -779,7 +779,7 @@ Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolea
     ContainsCompleteRequest = (bufferLen >= totalRequired)
 End Function
 
-【第12页】═══════════════════════════════════════════════════════════════════════
+【第12页】═══════════════════════════════════
 ' 查找 CRLFCRLF 标记
 Private Function FindCRLFCRLF(buffer() As Byte, bufLen As Long) As Long
     Dim i As Long
@@ -848,7 +848,7 @@ Private Sub RemoveProcessedData(oCallback As cClientCallback, extractedRequest A
     oCallback.RemoveFromBuffer processedLen
 End Sub
 
-【第13页】═══════════════════════════════════════════════════════════════════════
+【第13页】═══════════════════════════════════
 ' 从请求头字符串中解析 Content-Length
 Private Function ParseContentLengthFromHeader(headerStr As String) As Long
     On Error GoTo EH
@@ -928,7 +928,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
     ' 请求头转为字符串
     sRequestHead = ToolsUtf8.Decode(aReqHead)
 
-【第14页】═══════════════════════════════════════════════════════════════════════
+【第14页】═══════════════════════════════════
     ' 解析请求头
     If Request.ParseHeader(sRequestHead) = False Then
         ERR.Raise 500, "REQUEST", Request.LastError
@@ -1004,7 +1004,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
     ' 开始路由
     Call Router.Entry(oCallback)
 
-【第15页】═══════════════════════════════════════════════════════════════════════
+【第15页】═══════════════════════════════════
     ' 保存 Session 到持久化存储
     If Session.SessionID <> "" Then
         ' 将 SessionID 写入 Cookie
@@ -1072,13 +1072,13 @@ EH:
     Loop
 End Sub
 
-【第16页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第16页】═══════════════════════════════════
+'##############################################
 '# 文件：cJson.cls
 '# 描述：JSON处理类
 '# 功能：JSON数据解析和生成
 '# 作者：邓伟，QQ:215879458
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -1129,7 +1129,7 @@ Public Property Get RootIsEmpty() As Boolean
     If RootItems.Count = 0 And RootItem.Count = 0 Then RootIsEmpty = True
 End Property
 
-【第17页】═══════════════════════════════════════════════════════════════════════
+【第17页】═══════════════════════════════════
 Public Property Get RootIsArray() As Boolean
     If RootItems.Count > 0 Then RootIsArray = True: Exit Property
 End Property
@@ -1177,7 +1177,7 @@ Public Sub Clear()
     LastError = ""
 End Sub
 
-【第18页】═══════════════════════════════════════════════════════════════════════
+【第18页】═══════════════════════════════════
 Public Function NewItem(Optional ParentKey As String) As cJson
     Set NewItem = New cJson
     If ParentKey = "" Then
@@ -1235,7 +1235,7 @@ ret:
     End If
 End Function
 
-【第19页】═══════════════════════════════════════════════════════════════════════
+【第19页】═══════════════════════════════════
 Public Function Decode(ByRef Source As Variant) As cJson
     ' [using]: ToolsJsonVba.ParseJson from
     ' VBA-JSON v2.3.1
@@ -1306,7 +1306,7 @@ EH:
     ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & CStr(Source)
 End Function
 
-【第20页】═══════════════════════════════════════════════════════════════════════
+【第20页】═══════════════════════════════════
 Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF-8") As cJson
     Dim Txt As String: Txt = ToolsStream.LoadFileAsText(Path, CharSet)
     Set LoadFrom = Decode(Txt)
@@ -1335,14 +1335,14 @@ Private Sub Class_Initialize()
     RootItem.CompareMode = TextCompare
 End Sub
 
-【第21页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第21页】═══════════════════════════════════
+'##############################################
 '# 文件：cWebSocketServer.cls
 '# 描述：WebSocket服务器类
 '# 功能：提供WebSocket服务器功能，支持多客户端连接和消息广播
 '# 作者：Claude (Anthropic)
-'#############################################################################
-'=========================================================================
+'##############################################
+'========================================
 '
 ' cWebSocketServer - WebSocket Server for VB6
 '
@@ -1355,7 +1355,7 @@ End Sub
 ' Author: Claude (Anthropic)
 ' Date: 2026-01-10
 '
-'=========================================================================
+'========================================
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -1371,9 +1371,9 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-'=========================================================================
+'========================================
 ' Events
-'=========================================================================
+'========================================
 
 ' Client connected (after successful handshake)
 Event OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String, ByVal RemotePort As Long)
@@ -1396,10 +1396,10 @@ Event OnStart(ByVal Port As Long)
 ' Server stopped
 Event OnStop()
 
-【第22页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第22页】═══════════════════════════════════
+'========================================
 ' Member Variables
-'=========================================================================
+'========================================
 
 Private WithEvents m_ListenSocket As cWinsock
 Attribute m_ListenSocket.VB_VarHelpID = -1
@@ -1412,9 +1412,9 @@ Private m_IsListening As Boolean
 ' Frame builder (shared for efficiency)
 Private m_FrameBuilder As cWebSocketFrame
 
-'=========================================================================
+'========================================
 ' Properties
-'=========================================================================
+'========================================
 
 ' Listening port
 Public Property Get Port() As Long
@@ -1456,10 +1456,10 @@ Public Property Get ClientIDs() As Variant
     ClientIDs = vResult
 End Property
 
-【第23页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第23页】═══════════════════════════════════
+'========================================
 ' Public Methods - Server Control
-'=========================================================================
+'========================================
 
 ' Start listening on specified port
 Public Sub Listen(Optional ByVal Port As Long = 8080)
@@ -1514,10 +1514,10 @@ Public Sub StopServer()
     RaiseEvent OnStop
 End Sub
 
-【第24页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第24页】═══════════════════════════════════
+'========================================
 ' Public Methods - Messaging
-'=========================================================================
+'========================================
 
 ' Send text message to specific client
 Public Sub SendText(ByVal ClientID As String, ByVal Message As String)
@@ -1574,7 +1574,7 @@ Public Sub BroadcastText(ByVal Message As String, Optional ByVal ExcludeClientID
     Next
 End Sub
 
-【第25页】═══════════════════════════════════════════════════════════════════════
+【第25页】═══════════════════════════════════
 ' Broadcast binary message to all connected clients
 Public Sub BroadcastBinary(Data() As Byte, Optional ByVal ExcludeClientID As String = "")
     On Error Resume Next
@@ -1609,9 +1609,9 @@ Public Sub DisconnectClient(ByVal ClientID As String, _
     End If
 End Sub
 
-'=========================================================================
+'========================================
 ' Private Methods - Client Management
-'=========================================================================
+'========================================
 
 Private Function GetClient(ByVal ClientID As String) As cWebSocketServerClient
     On Error Resume Next
@@ -1643,10 +1643,10 @@ Private Sub RemoveClient(ByVal ClientID As String, ByVal Reason As String)
     End If
 End Sub
 
-【第26页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第26页】═══════════════════════════════════
+'========================================
 ' Private Methods - Handshake
-'=========================================================================
+'========================================
 
 Private Function HandleHandshake(ByVal Client As cWebSocketServerClient, ByVal Request As String) As Boolean
     Dim sKey As String
@@ -1692,9 +1692,9 @@ ErrorHandler:
     HandleHandshake = False
 End Function
 
-'=========================================================================
+'========================================
 ' Private Methods - Frame Processing
-'=========================================================================
+'========================================
 
 Private Sub ProcessClientData(ByVal Client As cWebSocketServerClient)
     Dim oParser As cWebSocketFrame
@@ -1742,7 +1742,7 @@ ErrorHandler:
     RaiseError "ProcessClientData: " & ERR.Description
 End Sub
 
-【第27页】═══════════════════════════════════════════════════════════════════════
+【第27页】═══════════════════════════════════
 Private Sub ProcessDataFrame(ByVal Client As cWebSocketServerClient, _
                             ByRef Payload() As Byte, _
                             ByVal OpCode As WsOpCode, _
@@ -1814,7 +1814,7 @@ Private Sub DeliverClientMessage(ByVal Client As cWebSocketServerClient, _
     End If
 End Sub
 
-【第28页】═══════════════════════════════════════════════════════════════════════
+【第28页】═══════════════════════════════════
 Private Sub ProcessCloseFrame(ByVal Client As cWebSocketServerClient, ByRef Payload() As Byte)
     Dim sReason As String
 
@@ -1842,18 +1842,18 @@ Private Sub ProcessPingFrame(ByVal Client As cWebSocketServerClient, ByRef Paylo
     Client.SendPong Payload
 End Sub
 
-'=========================================================================
+'========================================
 ' Private Methods - Helpers
-'=========================================================================
+'========================================
 
 Private Sub RaiseError(ByVal Description As String)
     Debug.Print "[cWebSocketServer] Error: " & Description
     RaiseEvent OnError(Description)
 End Sub
 
-'=========================================================================
+'========================================
 ' Socket Event Handlers
-'=========================================================================
+'========================================
 
 Private Sub m_ListenSocket_ConnectionRequest(Client As cWinsock, ByRef DisConnect As Boolean)
     On Error GoTo ErrorHandler
@@ -1884,7 +1884,7 @@ ErrorHandler:
     RaiseError "ConnectionRequest: " & ERR.Description
 End Sub
 
-【第29页】═══════════════════════════════════════════════════════════════════════
+【第29页】═══════════════════════════════════
 Private Sub m_ListenSocket_DataArrival(Client As cWinsock, ByVal bytesTotal As Long)
     Dim oClient As cWebSocketServerClient
     Dim baData() As Byte
@@ -1952,10 +1952,10 @@ Private Sub m_ListenSocket_Error(Client As cWinsock, ByVal Number As Long, Descr
     End If
 End Sub
 
-【第30页】═══════════════════════════════════════════════════════════════════════
-'=========================================================================
+【第30页】═══════════════════════════════════
+'========================================
 ' Class Events
-'=========================================================================
+'========================================
 
 Private Sub Class_Initialize()
     m_IsListening = False
@@ -1969,11 +1969,11 @@ Private Sub Class_Terminate()
     Set m_FrameBuilder = Nothing
 End Sub
 
-'#############################################################################
+'##############################################
 '# 文件：cWebSocketFrame.cls
 '# 描述：WebSocket帧处理类
 '# 功能：处理WebSocket协议的帧编解码
-'#############################################################################
+'##############################################
 Public Enum WsOpCode
     WS_OPCODE_CONTINUATION = 0
     WS_OPCODE_TEXT = 1
@@ -2007,11 +2007,11 @@ Public Enum WsClientState
     WS_CLIENT_CLOSED = 3
 End Enum
 
-'#############################################################################
+'##############################################
 '# 文件：cHttpClient.cls
 '# 描述：HTTP客户端类
 '# 功能：发送HTTP请求，支持GET/POST/PUT/DELETE等方法
-'#############################################################################
+'##############################################
 Public Enum HTTPRequestMethod
     ReqGet = 0
     ReqPost = 1
@@ -2030,6 +2030,6 @@ Public Enum HTTPPostDataType
     PostDataBinary = 4
 End Enum
 
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
                               【前30页源代码结束】
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════

@@ -1,17 +1,17 @@
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
                         VBMAN网络应用开发框架软件
                             源程序（后30页）
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
 软件名称：VBMAN网络应用开发框架软件
 版本号：V1.0
 开发语言：Visual Basic 6.0
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
 
-【第31页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第31页】═══════════════════════════════════
+'##############################################
 '# 文件：cHttpClient.cls（续）
 '# 描述：HTTP客户端核心实现
-'#############################################################################
+'##############################################
 Public Function SendGet(Url As String) As Boolean
     On Error GoTo EH
     LastError = ""
@@ -64,7 +64,7 @@ EH:
     LastError = ERR.Number & "#" & ERR.Description
 End Function
 
-【第32页】═══════════════════════════════════════════════════════════════════════
+【第32页】═══════════════════════════════════
 Private Sub InternalSend()
     Dim WinHttp As New WinHttpRequest
     Dim i As Long
@@ -136,12 +136,12 @@ Private Sub InternalSend()
     On Error GoTo 0
 End Sub
 
-【第33页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第33页】═══════════════════════════════════
+'##############################################
 '# 文件：cModbusMaster.cls
 '# 描述：Modbus主站类
 '# 功能：支持Modbus TCP和RTU协议，实现主站功能
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -183,7 +183,7 @@ Public Property Get IsConnected() As Boolean
     End If
 End Property
 
-【第34页】═══════════════════════════════════════════════════════════════════════
+【第34页】═══════════════════════════════════
 '使用TCP模式连接
 Public Function ConnectTCP(ByVal Host As String, ByVal Port As Long, Optional ByVal TimeoutMs As Long = 5000) As Boolean
     On Error GoTo EH
@@ -235,7 +235,7 @@ Public Sub Disconnect()
     RaiseEvent OnDisconnected
 End Sub
 
-【第35页】═══════════════════════════════════════════════════════════════════════
+【第35页】═══════════════════════════════════
 '读取线圈状态（功能码 01）
 Public Function ReadCoils(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
     On Error GoTo EH
@@ -316,7 +316,7 @@ EH:
     ReadDiscreteInputs = Empty
 End Function
 
-【第36页】═══════════════════════════════════════════════════════════════════════
+【第36页】═══════════════════════════════════
 '读取保持寄存器（功能码 03）
 Public Function ReadHoldingRegisters(ByVal SlaveId As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Variant
     On Error GoTo EH
@@ -389,7 +389,7 @@ EH:
     ReadInputRegisters = Empty
 End Function
 
-【第37页】═══════════════════════════════════════════════════════════════════════
+【第37页】═══════════════════════════════════
 '写单个线圈（功能码 05）
 Public Function WriteSingleCoil(ByVal SlaveId As Byte, ByVal Addr As Integer, ByVal Value As Boolean) As Boolean
     On Error GoTo EH
@@ -451,7 +451,7 @@ EH:
     WriteSingleRegister = False
 End Function
 
-【第38页】═══════════════════════════════════════════════════════════════════════
+【第38页】═══════════════════════════════════
 '写多个线圈（功能码 0F）
 Public Function WriteMultipleCoils(ByVal SlaveId As Byte, ByVal StartAddr As Integer, Values() As Boolean) As Boolean
     On Error GoTo EH
@@ -506,7 +506,7 @@ EH:
     WriteMultipleCoils = False
 End Function
 
-【第39页】═══════════════════════════════════════════════════════════════════════
+【第39页】═══════════════════════════════════
 '写多个寄存器（功能码 10）
 Public Function WriteMultipleRegisters(ByVal SlaveId As Byte, ByVal StartAddr As Integer, Values() As Integer) As Boolean
     On Error GoTo EH
@@ -553,7 +553,7 @@ EH:
     WriteMultipleRegisters = False
 End Function
 
-【第40页】═══════════════════════════════════════════════════════════════════════
+【第40页】═══════════════════════════════════
 '构建请求报文
 Private Function BuildRequest(ByVal SlaveId As Byte, ByVal FunctionCode As Byte, ByVal StartAddr As Integer, ByVal Quantity As Integer) As Byte()
     Dim Request(11) As Byte
@@ -613,12 +613,12 @@ Private Function SendAndReceive(Request() As Byte) As Byte()
     SendAndReceive = Response
 End Function
 
-【第41页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第41页】═══════════════════════════════════
+'##############################################
 '# 文件：cDatabase.cls
 '# 描述：数据库操作类
 '# 功能：封装ADO数据库操作，简化数据库访问
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -668,7 +668,7 @@ Public Property Let ConnectionTimeout(ByVal Value As Long)
     End If
 End Property
 
-【第42页】═══════════════════════════════════════════════════════════════════════
+【第42页】═══════════════════════════════════
 '打开数据库连接
 Public Function OpenConnection() As Boolean
     On Error GoTo EH
@@ -751,7 +751,7 @@ EH:
     Execute = -1
 End Function
 
-【第43页】═══════════════════════════════════════════════════════════════════════
+【第43页】═══════════════════════════════════
 '执行查询（返回Recordset）
 Public Function Query(ByVal SQL As String, Optional ByVal ParamValues As Variant) As ADODB.Recordset
     On Error GoTo EH
@@ -854,7 +854,7 @@ Public Function GetSingleValue(ByVal SQL As String, Optional ByVal ParamValues A
     Set Rs = Nothing
 End Function
 
-【第44页】═══════════════════════════════════════════════════════════════════════
+【第44页】═══════════════════════════════════
 '开始事务
 Public Sub BeginTrans()
     On Error Resume Next
@@ -889,12 +889,12 @@ Private Sub Class_Terminate()
     CloseConnection
 End Sub
 
-【第45页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第45页】═══════════════════════════════════
+'##############################################
 '# 文件：cRedisClient.cls
 '# 描述：Redis客户端类
 '# 功能：连接Redis服务器，支持常用命令
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -969,7 +969,7 @@ EH:
     Connect = False
 End Function
 
-【第46页】═══════════════════════════════════════════════════════════════════════
+【第46页】═══════════════════════════════════
 Public Sub Disconnect()
     On Error Resume Next
     If Not m_Socket Is Nothing Then
@@ -1030,7 +1030,7 @@ Private Function ReceiveResponse() As String
     End If
 End Function
 
-【第47页】═══════════════════════════════════════════════════════════════════════
+【第47页】═══════════════════════════════════
 '字符串操作 - SET
 Public Function SetValue(ByVal Key As String, ByVal Value As String, Optional ByVal ExpireSeconds As Long = 0) As Boolean
     Dim Cmd As String
@@ -1091,7 +1091,7 @@ Public Function Delete(ByVal Key As String) As Long
     End If
 End Function
 
-【第48页】═══════════════════════════════════════════════════════════════════════
+【第48页】═══════════════════════════════════
 '检查键是否存在
 Public Function Exists(ByVal Key As String) As Boolean
     Dim Cmd As String
@@ -1153,7 +1153,7 @@ Public Function HGet(ByVal Key As String, ByVal Field As String) As String
     End If
 End Function
 
-【第49页】═══════════════════════════════════════════════════════════════════════
+【第49页】═══════════════════════════════════
 '哈希操作 - HDEL
 Public Function HDel(ByVal Key As String, ByVal Field As String) As Boolean
     Dim Cmd As String
@@ -1225,7 +1225,7 @@ Public Function LPop(ByVal Key As String) As String
     End If
 End Function
 
-【第50页】═══════════════════════════════════════════════════════════════════════
+【第50页】═══════════════════════════════════
 '列表操作 - RPOP
 Public Function RPop(ByVal Key As String) As String
     Dim Cmd As String
@@ -1290,12 +1290,12 @@ Private Sub Class_Terminate()
     Disconnect
 End Sub
 
-【第51页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第51页】═══════════════════════════════════
+'##############################################
 '# 文件：cCryptoHash.cls
 '# 描述：加密哈希类
 '# 功能：提供MD5、SHA1、SHA256等哈希算法
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -1341,7 +1341,7 @@ Public Property Get LastError() As String
     LastError = m_LastError
 End Property
 
-【第52页】═══════════════════════════════════════════════════════════════════════
+【第52页】═══════════════════════════════════
 '计算字符串哈希
 Public Function HashString(ByVal Text As String, ByVal Algorithm As HashAlgorithm) As String
     Dim TextBytes() As Byte
@@ -1414,7 +1414,7 @@ EH:
     HashBytes = ""
 End Function
 
-【第53页】═══════════════════════════════════════════════════════════════════════
+【第53页】═══════════════════════════════════
 '计算文件哈希
 Public Function HashFile(ByVal FilePath As String, ByVal Algorithm As HashAlgorithm) As String
     On Error GoTo EH
@@ -1467,12 +1467,12 @@ Public Function SHA256(ByVal Text As String) As String
     SHA256 = HashString(Text, HashSHA256)
 End Function
 
-【第54页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第54页】═══════════════════════════════════
+'##############################################
 '# 文件：cToolsArray.cls
 '# 描述：数组工具类
 '# 功能：提供数组操作辅助方法
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -1539,7 +1539,7 @@ Public Function IndexOf(ByRef arr As Variant, ByVal Value As Variant) As Long
     On Error GoTo 0
 End Function
 
-【第55页】═══════════════════════════════════════════════════════════════════════
+【第55页】═══════════════════════════════════
 '拼接数组为字符串
 Public Function JoinArray(ByRef arr As Variant, Optional ByVal Delimiter As String = ",") As String
     On Error Resume Next
@@ -1609,7 +1609,7 @@ EH:
     Unique = Array()
 End Function
 
-【第56页】═══════════════════════════════════════════════════════════════════════
+【第56页】═══════════════════════════════════
 '数组排序（冒泡排序）
 Public Function Sort(ByRef arr As Variant, Optional ByVal Ascending As Boolean = True) As Variant
     On Error GoTo EH
@@ -1664,12 +1664,12 @@ EH:
     Reverse = arr
 End Function
 
-【第57页】═══════════════════════════════════════════════════════════════════════
-'#############################################################################
+【第57页】═══════════════════════════════════
+'##############################################
 '# 文件：cToolsStr.cls
 '# 描述：字符串工具类
 '# 功能：提供字符串处理辅助方法
-'#############################################################################
+'##############################################
 VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
@@ -1720,7 +1720,7 @@ Public Function SubString(ByVal Text As String, ByVal StartPos As Long, Optional
     End If
 End Function
 
-【第58页】═══════════════════════════════════════════════════════════════════════
+【第58页】═══════════════════════════════════
 '字符串替换
 Public Function ReplaceAll(ByVal Text As String, ByVal Find As String, ByVal ReplaceWith As String) As String
     ReplaceAll = Replace(Text, Find, ReplaceWith)
@@ -1767,7 +1767,7 @@ Public Function CountOccurrences(ByVal Text As String, ByVal Char As String) As 
     CountOccurrences = Count
 End Function
 
-【第59页】═══════════════════════════════════════════════════════════════════════
+【第59页】═══════════════════════════════════
 '转换为小写
 Public Function ToLower(ByVal Text As String) As String
     ToLower = LCase(Text)
@@ -1819,7 +1819,7 @@ Public Function Base64Encode(ByVal Text As String) As String
     Base64Encode = cToolsBase64.Encode(arr)
 End Function
 
-【第60页】═══════════════════════════════════════════════════════════════════════
+【第60页】═══════════════════════════════════
 'Base64解码
 Public Function Base64Decode(ByVal Text As String) As String
     Dim arr() As Byte
@@ -1880,13 +1880,13 @@ Public Function HtmlEncode(ByVal Text As String) As String
     HtmlEncode = Result
 End Function
 
-'#############################################################################
+'##############################################
 '# 【源代码结束】
-'#############################################################################
+'##############################################
 
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
                               【后30页源代码结束】
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════
 
 说明：
 1. 本源代码文档包含VBMAN网络应用开发框架软件的核心代码
@@ -1896,4 +1896,4 @@ End Function
 4. 代码总行数约50,000+行，本提交包含前后各30页，共60页
 5. 每页不少于50行代码，符合软件著作权登记要求
 
-════════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════

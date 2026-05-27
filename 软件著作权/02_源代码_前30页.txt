@@ -1,0 +1,2035 @@
+════════════════════════════════════════════════════════════════════════════════
+                        VBMAN网络应用开发框架软件
+                            源程序（前30页）
+════════════════════════════════════════════════════════════════════════════════
+软件名称：VBMAN网络应用开发框架软件
+版本号：V1.0
+开发语言：Visual Basic 6.0
+════════════════════════════════════════════════════════════════════════════════
+
+【第1页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：VBMAN.vbp
+'# 描述：VBMAN主项目文件 - ActiveX DLL项目
+'# 作者：邓伟，215879458@qq.com
+'#############################################################################
+Type=OleDll
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
+Reference=*\G{420B2830-E718-11CF-893D-00A0C9054228}#1.0#0#C:\Windows\SysWOW64\scrrun.dll#Microsoft Scripting Runtime
+Reference=*\G{2A75196C-D9EB-4129-B803-931327F72D5C}#2.8#0#C:\Program Files (x86)\Common Files\System\ado\msado28.tlb#Microsoft ActiveX Data Objects 2.8 Library
+Reference=*\G{0E59F1D2-1FBE-11D0-8FF2-00A0D10038BC}#1.0#0#C:\Windows\SysWOW64\msscript.ocx#Microsoft Script Control 1.0
+Reference=*\G{662901FC-6951-4854-9EB2-D9A2570F2B2E}#5.1#0#C:\Windows\system32\winhttpcom.dll#Microsoft WinHTTP Services, version 5.1
+Reference=*\G{3050F1C5-98B5-11CF-BB82-00AA00BDCE0B}#4.0#0#C:\Windows\SysWOW64\mshtml.tlb#Microsoft HTML Object Library
+Class=cAsyncSocket; Socket\cAsyncSocket.cls
+Class=cClientCallback; Socket\cClientCallback.cls
+Class=cTlsSocket; Socket\cTlsSocket.cls
+Class=cTlsReMaster; Socket\contrib\cTlsReMaster.cls
+Class=cHttpServerRouter; HttpServer\cHttpServerRouter.cls
+Class=cHttpServer; HttpServer\cHttpServer.cls
+Class=cHttpServerClientInfo; HttpServer\cHttpServerClientInfo.cls
+Class=cHttpServerRequest; HttpServer\cHttpServerRequest.cls
+Class=cHttpServerResponse; HttpServer\cHttpServerResponse.cls
+Class=cHttpServerApp; HttpServer\cHttpServerApp.cls
+Class=cHttpServerSession; HttpServer\cHttpServerSession.cls
+Class=cHttpServerCookies; HttpServer\cHttpServerCookies.cls
+Class=cHttpServerRouteBefore; HttpServer\cHttpServerRouteBefore.cls
+Class=cHttpServerRouterAfter; HttpServer\cHttpServerRouterAfter.cls
+Class=cHttpServerSvr; HttpServer\cHttpServerSvr.cls
+Module=ToolsHttpMimeType; Tools\ToolsHttpMimeType.bas
+Class=cTimeUse; Tools\DateTime\cTimeUse.cls
+Class=cDataBase; Database\cDatabase.cls
+Module=ToolsJs; Tools\ToolsJs.bas
+Class=cJson; Tools\Json\cJson.cls
+Module=ToolsTlsThunks; Socket\mdTlsThunks.bas
+Module=Demo; Demos\Demo.bas
+Module=ToolsJsonVba; Tools\Json\ToolsJsonVba.bas
+
+【第2页】═══════════════════════════════════════════════════════════════════════
+Class=cSSE; SSE\cSSE.cls
+Class=cMQTTClient; MQTTClient\cMQTTClient.cls
+Class=cHttpCrossDomain; Tools\cHttpCrossDomain.cls
+Class=cSSEserver; SSE\cSSEServer.cls
+Class=cSSEHandle; SSE\cSSEHandle.cls
+Class=cHttpClient; HttpClient\cHttpClient.cls
+Class=cTelnetServer; TelnetServer\cTelnetServer.cls
+Class=cTcpServer; TcpServer\cTcpServer.cls
+Class=cTcpClient; TcpClient\cTcpClient.cls
+Module=ToolsLogs; Logs\ToolsLogs.bas
+Class=sGlobal; StaticClass\sGlobal.cls
+Class=cLayer; Layer\cLayer.cls
+Class=cVBMAN; StaticClass\cVBMAN.cls
+Form=Layer\FLayer.frm
+Class=cIni; Tools\Ini\cIni.cls
+Class=cCsv; Tools\Csv\cCsv.cls
+Class=cJson2; Tools\Json\cJson2.cls
+Class=cMail; Mail\cMail.cls
+Class=cHttpServerCookieAttr; HttpServer\cHttpServerCookieAttr.cls
+Class=cWebDavClient; WebDavClient\cWebDavClient.cls
+Module=ToolsTimer; Tools\DateTime\Timer\ToolsTimer.bas
+Class=cTimer; Tools\DateTime\Timer\cTimer.cls
+Class=cTimers; Tools\DateTime\Timer\cTimers.cls
+Class=cLogs; Logs\cLogs.cls
+Form=Logs\FLogs.frm
+Class=cToolsStream; Tools\Fso\cToolsStream.cls
+Class=cToolsWindow; Tools\Window\cToolsWindow.cls
+Class=cBaidu; Baidu\cBaidu.cls
+Class=cCmd; Cmd\cCmd.cls
+Class=cHttpServerContext; HttpServer\cHttpServerContext.cls
+Class=cSSEContext; SSE\cSSEContext.cls
+Class=cToolsStr; Tools\String\cToolsStr.cls
+Module=Tools; Tools\Tools.bas
+
+【第3页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cAI.cls
+'# 描述：AI对象类 - 通用OpenAI兼容API客户端
+'# 功能：支持豆包、DeepSeek、OpenAI、通义千问等AI服务
+'# 作者：邓伟，QQ：215879458
+'#############################################################################
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cAI"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+'作者：邓伟，QQ：215879458，可自由传播，但请勿删本签名
+
+'AI 对象类 - 通用 OpenAI 兼容 API 客户端
+'支持：豆包、DeepSeek、OpenAI、通义千问等
+'2025-01-19 初始版本
+'2025-05-25 修复：流式响应改用 cSSEClient、修复 JSON 解析逻辑、
+'           修复系统提示词重复添加、修复 WithEvents 声明
+
+'引用 cHttpClient.cls 类文件
+'引用 cJson.cls 类文件
+'引用 cSSEClient.cls 类文件
+
+'=========================================================================
+' 事件定义
+'=========================================================================
+Public Event OnStreamChunk(Chunk As String, IsComplete As Boolean)
+Public Event OnComplete(Response As String)
+Public Event OnError(ErrorMsg As String, ErrorCode As Long)
+
+'=========================================================================
+' 私有变量
+'=========================================================================
+Private WithEvents SSEClient As cSSEClient
+Attribute SSEClient.VB_VarHelpID = -1
+Dim Json As New cJson
+
+'基础配置
+Private m_ApiKey As String
+Private m_BaseUrl As String
+Private m_ApiPath As String
+Private m_Model As String
+Private m_Timeout As Long
+
+'请求参数
+Private m_Temperature As Double
+Private m_MaxTokens As Long
+Private m_TopP As Double
+Private m_FrequencyPenalty As Double
+Private m_PresencePenalty As Double
+Private m_Stream As Boolean
+Private m_Stop As Variant
+
+'消息管理
+Private m_Messages As Collection
+Private m_SystemPrompt As String
+
+'高级配置
+Private m_CustomHeaders As Scripting.Dictionary
+Private m_Proxy As String
+Private m_Organization As String
+
+'错误处理
+Private m_LastError As String
+
+'流式响应相关
+Private m_StreamBuffer As String
+Private m_StreamCallback As Object
+Private m_StreamCallbackMethod As String
+Private m_IsStreaming As Boolean
+
+【第4页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' 属性
+'=========================================================================
+Public Property Get LastError() As String
+    LastError = m_LastError
+End Property
+
+Public Property Get IsStreaming() As Boolean
+    IsStreaming = m_IsStreaming
+End Property
+
+'=========================================================================
+' 基础配置方法（链式调用）
+'=========================================================================
+
+'设置 API 密钥
+Public Function ApiKey(Key As String) As cAI
+    m_ApiKey = Key
+    Set ApiKey = Me
+End Function
+
+'设置基础 URL（用于适配不同服务商）
+Public Function BaseUrl(Url As String) As cAI
+    m_BaseUrl = Url
+    Set BaseUrl = Me
+End Function
+
+'设置 API 路径（用于适配不同 API 版本）
+Public Function ApiPath(Path As String) As cAI
+    m_ApiPath = Path
+    Set ApiPath = Me
+End Function
+
+'设置模型名称
+Public Function Model(ModelName As String) As cAI
+    m_Model = ModelName
+    Set Model = Me
+End Function
+
+'设置超时时间
+Public Function Timeout(Seconds As Long) As cAI
+    m_Timeout = Seconds
+    Set Timeout = Me
+End Function
+
+'=========================================================================
+' 参数配置方法（链式调用）
+'=========================================================================
+
+'设置温度参数
+Public Function Temperature(Value As Double) As cAI
+    m_Temperature = Value
+    Set Temperature = Me
+End Function
+
+'设置最大 token 数
+Public Function MaxTokens(Value As Long) As cAI
+    m_MaxTokens = Value
+    Set MaxTokens = Me
+End Function
+
+'设置 Top-P
+Public Function TopP(Value As Double) As cAI
+    m_TopP = Value
+    Set TopP = Me
+End Function
+
+【第5页】═══════════════════════════════════════════════════════════════════════
+'设置频率惩罚
+Public Function FrequencyPenalty(Value As Double) As cAI
+    m_FrequencyPenalty = Value
+    Set FrequencyPenalty = Me
+End Function
+
+'设置存在惩罚
+Public Function PresencePenalty(Value As Double) As cAI
+    m_PresencePenalty = Value
+    Set PresencePenalty = Me
+End Function
+
+'启用/禁用流式响应
+Public Function Stream(Enable As Boolean) As cAI
+    m_Stream = Enable
+    Set Stream = Me
+End Function
+
+'设置停止序列
+Public Function Stop(Value As Variant) As cAI
+    m_Stop = Value
+    Set Stop = Me
+End Function
+
+'=========================================================================
+' 消息管理方法（链式调用）
+'=========================================================================
+
+'添加系统提示词
+Public Function System(Prompt As String) As cAI
+    m_SystemPrompt = Prompt
+    Set System = Me
+End Function
+
+'添加用户消息
+Public Function User(Content As String) As cAI
+    If m_Messages Is Nothing Then
+        Set m_Messages = New Collection
+    End If
+    
+    Dim Msg As New Scripting.Dictionary
+    Msg("role") = "user"
+    Msg("content") = Content
+    m_Messages.Add Msg
+    Set User = Me
+End Function
+
+'添加助手消息
+Public Function Assistant(Content As String) As cAI
+    If m_Messages Is Nothing Then
+        Set m_Messages = New Collection
+    End If
+    
+    Dim Msg As New Scripting.Dictionary
+    Msg("role") = "assistant"
+    Msg("content") = Content
+    m_Messages.Add Msg
+    Set Assistant = Me
+End Function
+
+【第6页】═══════════════════════════════════════════════════════════════════════
+'清空消息历史
+Public Function ClearMessages() As cAI
+    If Not m_Messages Is Nothing Then
+        Set m_Messages = Nothing
+    End If
+    m_SystemPrompt = ""
+    Set ClearMessages = Me
+End Function
+
+'设置消息列表（高级用法）
+Public Function Messages(MsgList As Collection) As cAI
+    Set m_Messages = MsgList
+    Set Messages = Me
+End Function
+
+'=========================================================================
+' 高级配置方法（链式调用）
+'=========================================================================
+
+'添加自定义请求头
+Public Function Header(Name As String, Value As String) As cAI
+    If m_CustomHeaders Is Nothing Then
+        Set m_CustomHeaders = New Scripting.Dictionary
+        m_CustomHeaders.CompareMode = TextCompare
+    End If
+    m_CustomHeaders(Name) = Value
+    Set Header = Me
+End Function
+
+'设置代理
+Public Function Proxy(ProxyUrl As String) As cAI
+    m_Proxy = ProxyUrl
+    Set Proxy = Me
+End Function
+
+'设置组织 ID
+Public Function Organization(OrgId As String) As cAI
+    m_Organization = OrgId
+    Set Organization = Me
+End Function
+
+'=========================================================================
+' 预设配置方法（便捷方法）
+'=========================================================================
+
+'快速配置为豆包 API
+Public Function Doubao(ApiKey As String) As cAI
+    m_ApiKey = ApiKey
+    m_BaseUrl = "https://ark.cn-beijing.volces.com/api/v3"
+    m_ApiPath = "/chat/completions"
+    Set Doubao = Me
+End Function
+
+'快速配置为 DeepSeek API
+Public Function DeepSeek(ApiKey As String) As cAI
+    m_ApiKey = ApiKey
+    m_BaseUrl = "https://api.deepseek.com/v1"
+    m_ApiPath = "/chat/completions"
+    Set DeepSeek = Me
+End Function
+
+【第7页】═══════════════════════════════════════════════════════════════════════
+'快速配置为 OpenAI API
+Public Function OpenAI(ApiKey As String) As cAI
+    m_ApiKey = ApiKey
+    m_BaseUrl = "https://api.openai.com/v1"
+    m_ApiPath = "/chat/completions"
+    Set OpenAI = Me
+End Function
+
+'快速配置为通义千问 API
+Public Function Qwen(ApiKey As String) As cAI
+    m_ApiKey = ApiKey
+    m_BaseUrl = "https://dashscope.aliyuncs.com/api/v1"
+    m_ApiPath = "/chat/completions"
+    Set Qwen = Me
+End Function
+
+'=========================================================================
+' 执行方法（非链式）
+'=========================================================================
+
+'发送聊天请求
+'Stream=False 时同步返回完整结果
+'Stream=True 时通过 SSE 流式接收，阻塞等待直到完成
+Public Function Chat(Optional UserMessage As String, Optional Callback As Object, Optional CallbackMethod As String) As String
+    On Error GoTo ERR_HANDLER
+    
+    '添加用户消息（如果提供）
+    If UserMessage <> "" Then
+        Call Me.User(UserMessage)
+    End If
+    
+    '验证配置
+    If m_ApiKey = "" Then
+        ERR.Raise 500, , "API Key 未设置，请使用 ApiKey() 或预设配置方法设置"
+    End If
+    
+    '设置默认值
+    If m_BaseUrl = "" Then m_BaseUrl = "https://api.openai.com/v1"
+    If m_ApiPath = "" Then m_ApiPath = "/chat/completions"
+    If m_Model = "" Then m_Model = "gpt-3.5-turbo"
+    If m_Timeout = 0 Then m_Timeout = 60
+    
+    '检查是否启用流式响应
+    If m_Stream = True Then
+        '检查是否已有流式请求在执行
+        If m_IsStreaming Then
+            ERR.Raise 500, , "上一次流式请求尚未完成"
+        End If
+        
+        m_StreamCallback = Callback
+        m_StreamCallbackMethod = CallbackMethod
+        m_StreamBuffer = ""
+        
+        Call SendStreamRequest
+        
+        '等待流式响应完成（阻塞等待）
+        Do While m_IsStreaming
+            DoEvents
+        Loop
+        
+        Chat = m_StreamBuffer
+    Else
+        '同步请求
+        Chat = SendSyncRequest
+    End If
+    
+    Exit Function
+    
+ERR_HANDLER:
+    m_LastError = ERR.Description
+    RaiseEvent OnError(ERR.Description, ERR.Number)
+    ERR.Raise ERR.Number, ERR.Source, ERR.Description
+End Function
+
+【第8页】═══════════════════════════════════════════════════════════════════════
+'发送聊天请求（返回 JSON 对象）
+Public Function ChatJson(Optional UserMessage As String) As cJson
+    Dim ResponseText As String
+    ResponseText = Me.Chat(UserMessage)
+    
+    Set ChatJson = New cJson
+    Call ChatJson.Decode(ResponseText)
+End Function
+
+'重置所有配置为默认值
+Public Sub Reset()
+    m_ApiKey = ""
+    m_BaseUrl = ""
+    m_ApiPath = ""
+    m_Model = ""
+    m_Timeout = 0
+    
+    m_Temperature = 1#
+    m_MaxTokens = 0
+    m_TopP = 1#
+    m_FrequencyPenalty = 0#
+    m_PresencePenalty = 0#
+    m_Stream = False
+    m_Stop = Empty
+    
+    Call ClearMessages
+    
+    If Not m_CustomHeaders Is Nothing Then
+        Set m_CustomHeaders = Nothing
+    End If
+    m_Proxy = ""
+    m_Organization = ""
+    
+    m_LastError = ""
+End Sub
+
+'=========================================================================
+' 私有方法
+'=========================================================================
+
+'构建请求体（不修改 m_Messages，避免系统提示词重复添加）
+Private Function BuildRequestBody() As String
+    Set Json = New cJson
+    
+    '设置模型
+    Json("model") = m_Model
+    
+    '构建消息列表（使用临时集合，不修改 m_Messages）
+    Dim MsgList As New Collection
+    
+    '如果有系统提示词，添加到消息列表开头
+    If m_SystemPrompt <> "" Then
+        Dim SysMsg As New Scripting.Dictionary
+        SysMsg("role") = "system"
+        SysMsg("content") = m_SystemPrompt
+        MsgList.Add SysMsg
+    End If
+    
+    '添加用户/助手消息
+    If Not m_Messages Is Nothing Then
+        Dim i As Long
+        For i = 1 To m_Messages.Count
+            MsgList.Add m_Messages(i)
+        Next
+    End If
+    
+    '设置消息
+    Json("messages") = MsgList
+    
+    '设置参数
+    If m_Temperature <> 1# Then
+        Json("temperature") = m_Temperature
+    End If
+    
+    If m_MaxTokens > 0 Then
+        Json("max_tokens") = m_MaxTokens
+    End If
+    
+    If m_TopP <> 1# Then
+        Json("top_p") = m_TopP
+    End If
+    
+    If m_FrequencyPenalty <> 0 Then
+        Json("frequency_penalty") = m_FrequencyPenalty
+    End If
+    
+    If m_PresencePenalty <> 0 Then
+        Json("presence_penalty") = m_PresencePenalty
+    End If
+    
+    If m_Stream = True Then
+        Json("stream") = True
+    End If
+    
+    If Not IsEmpty(m_Stop) Then
+        Json("stop") = m_Stop
+    End If
+    
+    BuildRequestBody = Json.Encode()
+End Function
+
+【第9页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cHttpServer.cls
+'# 描述：HTTP服务器核心类
+'# 功能：提供HTTP服务器功能，支持路由、中间件、会话、Cookie等
+'# 作者：邓伟，215879458@qq.com
+'#############################################################################
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cHttpServer"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+'作者：邓伟，215879458@qq.com
+
+Option Explicit
+
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+
+' Session 存储类型枚举
+Public Enum EnumSessionStorageType
+    SessionStorageMemory = 0      ' 内存存储（不持久化）
+    SessionStorageFileSystem = 1   ' 文件系统存储
+    SessionStorageDatabase = 2     ' 数据库存储
+End Enum
+
+Dim IsRunning  As Boolean
+
+Private WithEvents m_oServer    As cTlsReMaster
+Attribute m_oServer.VB_VarHelpID = -1
+Private m_cConnPool             As New Collection
+
+Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
+Public Event OnLogs(ByVal Level As String, ByVal Content As String)
+
+Public SSE As New cSSE
+Public ScriptEngine As New cScriptEngine
+
+Public Router As New cHttpServerRouter
+Public RouteBefore As New cHttpServerRouteBefore
+Public RouteAfter As New cHttpServerRouterAfter
+Public Database As New cDataBase
+
+Public CrossDomain As New cHttpCrossDomain
+
+Public LastError As String
+
+' Session 持久化配置
+Public SessionStorageType As EnumSessionStorageType ' Session 存储类型
+Public SessionStoragePath As String ' 文件系统路径或数据库表名
+Public SessionCookieName As String ' Session Cookie 名称
+
+Dim HttpApp As cHttpServerApp
+Dim HttpSvr As cHttpServerSvr
+
+'支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
+
+【第10页】═══════════════════════════════════════════════════════════════════════
+Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
+    If IsRunning = True Then LastError = "服务器正在运行中": Exit Function
+    Set m_oServer = New cTlsReMaster
+    With m_oServer
+        .Protocol = RemasterProtocolConstants.sckTCPProtocol
+        .Bind Port, IP
+        .Listen
+    End With
+    '    Shell "cmd /c start http://localhost:8088/"
+    Set HttpApp = New cHttpServerApp
+    Set HttpSvr = New cHttpServerSvr
+    With HttpSvr
+        .IP = IP
+        .Port = Port
+        .WebRoot = WebRoot
+    End With
+    IsRunning = True
+    Start = True
+End Function
+
+Public Function StopMe() As Boolean
+    On Error GoTo EH
+    m_oServer.CloseSck
+    IsRunning = False
+    ' 逐一释放所有连接，断开循环引用
+    Dim i As Long
+    For i = m_cConnPool.Count To 1 Step -1
+        Dim oCallback As cClientCallback
+        Set oCallback = m_cConnPool.Item(i)
+        If Not oCallback Is Nothing Then
+            oCallback.Release
+        End If
+    Next
+    Set m_cConnPool = Nothing
+    Set HttpApp = Nothing
+    Set HttpSvr = Nothing
+    Set m_oServer = Nothing
+    
+    Set SSE = Nothing
+    Set ScriptEngine = Nothing
+    
+    Set Router = Nothing
+    Set RouteBefore = Nothing
+    Set RouteAfter = Nothing
+    Set Database = Nothing
+    
+    Set CrossDomain = Nothing
+    
+    StopMe = True
+    Exit Function
+EH:
+    LastError = ERR.Number & "#" & ERR.Description
+End Function
+
+Private Sub Class_Initialize()
+    ' 默认配置
+    SessionStorageType = SessionStorageMemory ' 默认内存存储
+    SessionCookieName = "VBMAN_SESSIONID"
+End Sub
+
+Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
+    
+    ' requestID 就是客户端的句柄 hSocket
+    '    Debug.Print "m_oServer_ConnectionRequest, requestID=" & requestID & ", RemoteHostIP=" & m_oServer.RemoteHostIP & ", RemotePort=" & m_oServer.RemotePort, Timer
+    'todo 实现 Disconnect,
+    Dim CI As New cHttpServerClientInfo, IsDiss As Boolean
+    With CI
+        .IP = m_oServer.RemoteHostIP
+        .Port = m_oServer.RemotePort
+        .ConnectAt = Now()
+    End With
+    RaiseEvent OnAccept(CI, IsDiss)
+    If IsDiss = True Then
+        Disconnect = True
+        Exit Sub
+    End If
+    Dim oCallback           As New cClientCallback
+    m_cConnPool.Add oCallback
+    With oCallback
+        Set .Socket = New cTlsReMaster
+        Set .Context = New cHttpServerContext
+        .Index = m_cConnPool.Count
+        Set .Parent = Me
+        'todo 这里可以优化为对象池子, 并发请求的时候处理更快
+        Set .Context.Server = HttpSvr
+        .Socket.Accept requestID
+        '
+        CI.hSocket = .Socket.SocketHandle
+        Set .ClientInfo = CI
+        Set .Context.ClientInfo = CI
+        .hSocket = .Socket.SocketHandle
+    End With
+    '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
+End Sub
+
+【第11页】═══════════════════════════════════════════════════════════════════════
+Friend Sub OnDataArrival(Index As Long)
+    
+    On Error GoTo EH
+    Dim oCallback As cClientCallback
+    Set oCallback = m_cConnPool.Item(Index)
+    
+    ' 1. 获取新数据并追加到接收缓冲区（解决粘包问题）
+    Dim newData() As Byte
+    oCallback.Socket.GetData newData, vbArray + vbByte
+    
+    ' 追加数据到缓冲区
+    oCallback.AppendToBuffer newData
+    
+    ' 2. 循环处理缓冲区中的完整请求（解决粘包问题）
+    Do While ContainsCompleteRequest(oCallback)
+        ' 3. 提取一个完整的 HTTP 请求
+        Dim completeRequest As Variant
+        completeRequest = ExtractOneRequest(oCallback)
+        
+        ' 4. 处理该请求
+        ProcessHttpRequest Index, completeRequest
+        
+        ' 5. 从缓冲区移除已处理的数据
+        RemoveProcessedData oCallback, completeRequest
+    Loop
+    Exit Sub
+EH:
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "OnDataArrival: " & ErrInfo)
+    ' 发生错误时清空缓冲区，避免一直累积错误数据
+    oCallback.GetRecvBufferLen = 0
+End Sub
+
+' 判断是否包含完整的 HTTP 请求（用于解决粘包问题）
+Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolean
+    Dim bufferLen As Long
+    bufferLen = oCallback.GetRecvBufferLen
+    
+    ' 如果缓冲区为空，直接返回 False
+    If bufferLen = 0 Then
+        ContainsCompleteRequest = False
+        Exit Function
+    End If
+    
+    ' 获取缓冲区数据
+    Dim buffer() As Byte
+    buffer = oCallback.GetRecvBuffer
+    
+    ' 查找请求头结束标记 CRLFCRLF
+    Dim headerEnd As Long
+    headerEnd = FindCRLFCRLF(buffer, bufferLen)
+    
+    If headerEnd = 0 Then
+        ' 未找到完整的请求头
+        ContainsCompleteRequest = False
+        Exit Function
+    End If
+    
+    ' 将请求头部分转换为字符串
+    Dim headerBytes() As Byte
+    ReDim headerBytes(0 To headerEnd - 1)
+    CopyMemory headerBytes(0), buffer(0), headerEnd
+    
+    Dim headerStr As String
+    headerStr = ToolsUtf8.Decode(headerBytes)
+    
+    ' 解析 Content-Length
+    Dim contentLength As Long
+    contentLength = ParseContentLengthFromHeader(headerStr)
+    
+    ' 计算已接收的体部长度
+    Dim bodyStart As Long
+    bodyStart = headerEnd + 4  ' \r\n\r\n 的长度（4个字节）
+    
+    ' 如果是 GET、HEAD、OPTIONS 等没有 body 的请求，contentLength 为 0
+    If contentLength = 0 Then
+        ' 检查是否是这些没有 body 的请求方法
+        If IsMethodWithoutBody(headerStr) Then
+            ContainsCompleteRequest = True
+            Exit Function
+        End If
+    End If
+    
+    ' 判断缓冲区是否包含完整的请求（头部 + 体部）
+    Dim totalRequired As Long
+    totalRequired = bodyStart + contentLength
+    
+    ContainsCompleteRequest = (bufferLen >= totalRequired)
+End Function
+
+【第12页】═══════════════════════════════════════════════════════════════════════
+' 查找 CRLFCRLF 标记
+Private Function FindCRLFCRLF(buffer() As Byte, bufLen As Long) As Long
+    Dim i As Long
+    For i = 0 To bufLen - 4
+        If buffer(i) = 13 And buffer(i + 1) = 10 And _
+           buffer(i + 2) = 13 And buffer(i + 3) = 10 Then
+            FindCRLFCRLF = i
+            Exit Function
+        End If
+    Next
+    FindCRLFCRLF = 0
+End Function
+
+' 提取一个完整的请求
+Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
+    Dim buffer() As Byte
+    buffer = oCallback.GetRecvBuffer
+    
+    Dim bufferLen As Long
+    bufferLen = oCallback.GetRecvBufferLen
+    
+    ' 返回 Variant 数组：Array(headerBytes, bodyBytes, totalLength)
+    Dim result(2) As Variant
+    
+    ' 查找请求头结束位置
+    Dim headerEnd As Long
+    headerEnd = FindCRLFCRLF(buffer, bufferLen)
+    
+    ' 提取请求头
+    Dim headerBytes() As Byte
+    ReDim headerBytes(0 To headerEnd - 1)
+    CopyMemory headerBytes(0), buffer(0), headerEnd
+    result(0) = headerBytes
+    
+    ' 将请求头转换为字符串以解析 Content-Length
+    Dim headerStr As String
+    headerStr = ToolsUtf8.Decode(headerBytes)
+    Dim contentLength As Long
+    contentLength = ParseContentLengthFromHeader(headerStr)
+    
+    ' 提取请求体
+    Dim bodyStart As Long
+    bodyStart = headerEnd + 4
+    
+    If contentLength > 0 Then
+        Dim bodyBytes() As Byte
+        ReDim bodyBytes(0 To contentLength - 1)
+        CopyMemory bodyBytes(0), buffer(bodyStart), contentLength
+        result(1) = bodyBytes
+    Else
+        ' 没有 body
+        result(1) = vbNullString
+    End If
+    
+    ' 返回总长度
+    result(2) = bodyStart + contentLength
+    
+    ExtractOneRequest = result
+End Function
+
+' 从缓冲区移除已处理的数据
+Private Sub RemoveProcessedData(oCallback As cClientCallback, extractedRequest As Variant)
+    Dim processedLen As Long
+    processedLen = extractedRequest(2)
+    
+    oCallback.RemoveFromBuffer processedLen
+End Sub
+
+【第13页】═══════════════════════════════════════════════════════════════════════
+' 从请求头字符串中解析 Content-Length
+Private Function ParseContentLengthFromHeader(headerStr As String) As Long
+    On Error GoTo EH
+    Dim lines As Variant
+    lines = Split(headerStr, vbCrLf)
+    
+    Dim i As Long
+    For i = 0 To UBound(lines)
+        Dim line As String
+        line = lines(i)
+        
+        ' 查找 Content-Length 头（不区分大小写）
+        If InStr(1, line, "Content-Length:", vbTextCompare) > 0 Then
+            Dim parts As Variant
+            parts = Split(line, ":", 2)
+            If UBound(parts) >= 1 Then
+                ParseContentLengthFromHeader = CLng(Trim(parts(1)))
+                Exit Function
+            End If
+        End If
+    Next
+    
+    ' 如果没有找到 Content-Length，返回 0
+    ParseContentLengthFromHeader = 0
+    Exit Function
+EH:
+    ParseContentLengthFromHeader = 0
+End Function
+
+' 判断请求方法是否没有 Body
+Private Function IsMethodWithoutBody(headerStr As String) As Boolean
+    On Error GoTo EH
+    ' 获取第一行
+    Dim firstLine As String
+    Dim lines As Variant
+    lines = Split(headerStr, vbCrLf)
+    If UBound(lines) >= 0 Then
+        firstLine = lines(0)
+        
+        ' 检查请求方法
+        If InStr(1, firstLine, "GET ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "HEAD ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "OPTIONS ", vbTextCompare) = 1 Or _
+           InStr(1, firstLine, "DELETE ", vbTextCompare) = 1 Then
+            IsMethodWithoutBody = True
+            Exit Function
+        End If
+    End If
+    IsMethodWithoutBody = False
+    Exit Function
+EH:
+    IsMethodWithoutBody = False
+End Function
+
+' 处理一个完整的 HTTP 请求
+Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
+    On Error GoTo EH
+    
+    Dim oCallback As cClientCallback
+    Set oCallback = m_cConnPool.Item(Index)
+    
+    Dim Request As New cHttpServerRequest
+    Dim response As New cHttpServerResponse
+    
+    ' 传入Client给输出对象
+    Set response.fClient = oCallback
+    
+    Dim aReqHead() As Byte
+    Dim aReqBody() As Byte
+    Dim sRequestHead As String
+    Dim sessionFile As String
+    Dim sessionTable As String
+    
+    aReqHead = completeRequest(0)
+    aReqBody = completeRequest(1)
+    
+    ' 请求头转为字符串
+    sRequestHead = ToolsUtf8.Decode(aReqHead)
+
+【第14页】═══════════════════════════════════════════════════════════════════════
+    ' 解析请求头
+    If Request.ParseHeader(sRequestHead) = False Then
+        ERR.Raise 500, "REQUEST", Request.LastError
+    End If
+    
+    ' 开始 sse 流程
+    If Request.HeaderAccept = "text/event-stream" Then
+        oCallback.IsSSE = True
+        Set oCallback.Context.Request = Request
+        Call SSE.Entry(oCallback)
+        Exit Sub
+    End If
+    
+    ' 是否 options 查询
+    If Request.Method = ReqOptions Then
+        If CrossDomain.Enable = True Then
+            response.Text ""
+        Else
+            response.State403
+        End If
+        Exit Sub
+    End If
+    
+    ' 开始 http 流程
+    Dim Session As New cHttpServerSession
+    Dim Cookies As New cHttpServerCookies
+    
+    ' 从请求头解析 Cookie
+    If Request.Header.Exists("Cookie") = True Then
+        Cookies.Decode Request.Header("Cookie")
+    End If
+    
+    ' 从 Cookie 读取 SessionID 并加载 Session
+    Dim sessionID As String
+    Dim sessionCookieName As String
+    sessionCookieName = IIf(Me.SessionCookieName = "", "VBMAN_SESSIONID", Me.SessionCookieName)
+    
+    If Cookies.Exists(sessionCookieName) Then
+        sessionID = Cookies.Cookie(sessionCookieName).Value
+        If sessionID <> "" Then
+            Session.SessionID = sessionID
+            ' 根据配置加载 Session
+            If SessionStorageType = SessionStorageFileSystem Then
+                ' 文件系统
+                If SessionStoragePath = "" Then
+                    sessionFile = Environ("TEMP") & "\vbman\sessions\" & sessionID & ".json"
+                Else
+                    sessionFile = SessionStoragePath & "\" & sessionID & ".json"
+                End If
+                Session.LoadFromFile sessionFile
+            ElseIf SessionStorageType = SessionStorageDatabase Then
+                ' 数据库
+                sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+                Session.LoadFromDatabase Database, sessionID, sessionTable
+            End If
+        End If
+    End If
+    
+    With oCallback.Context
+        Set .Request = Request
+        Set .response = response
+        Set .Session = Session
+        Set .Cookies = Cookies
+        Set .Db = oCallback.Parent.Database
+        Set .SSE.flsSSEInst = SSE
+    End With
+    
+    ' 解析请求体
+    If Request.ParseBody(aReqBody) = False Then
+        ERR.Raise 500, "REQUEST", Request.LastError
+    End If
+    
+    ' 开始路由
+    Call Router.Entry(oCallback)
+
+【第15页】═══════════════════════════════════════════════════════════════════════
+    ' 保存 Session 到持久化存储
+    If Session.SessionID <> "" Then
+        ' 将 SessionID 写入 Cookie
+        With Cookies.Cookie(sessionCookieName)
+            .Value = Session.SessionID
+            .Path = "/"
+            .HttpOnly = True
+            If Session.Timeout > 0 Then
+                .Expires = DateAdd("n", Session.Timeout, Now)
+            End If
+        End With
+        
+        ' 根据配置保存 Session
+        If SessionStorageType = SessionStorageFileSystem Then
+            ' 文件系统
+            If SessionStoragePath = "" Then
+                sessionFile = Environ("TEMP") & "\vbman\sessions\" & Session.SessionID & ".json"
+            Else
+                sessionFile = SessionStoragePath & "\" & Session.SessionID & ".json"
+            End If
+            Session.SaveToFile sessionFile
+        ElseIf SessionStorageType = SessionStorageDatabase Then
+            ' 数据库
+            sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+            Session.SaveToDatabase Database, sessionTable
+        End If
+    End If
+    Exit Sub
+EH:
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "ProcessHttpRequest: " & ErrInfo)
+    response.State500 ErrInfo
+End Sub
+
+Friend Sub OnCloseSck(Index As Long)
+    On Error GoTo EH
+    Dim oCallback           As cClientCallback
+    Set oCallback = m_cConnPool.Item(Index)
+    If Not oCallback Is Nothing Then
+        If oCallback.IsSSE = True Then
+            SSE.CloseClient oCallback.hSocket
+        End If
+        ' 主动断开所有循环引用
+        oCallback.Release
+    End If
+    
+    m_cConnPool.Remove Index
+    ' 清理尾部空位
+    Do While m_cConnPool.Count > 0
+        If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
+            Exit Do
+        End If
+        m_cConnPool.Remove m_cConnPool.Count
+    Loop
+    Exit Sub
+EH:
+    ' 出错时仍尝试清理集合
+    On Error Resume Next
+    m_cConnPool.Remove Index
+    Do While m_cConnPool.Count > 0
+        If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
+            Exit Do
+        End If
+        m_cConnPool.Remove m_cConnPool.Count
+    Loop
+End Sub
+
+【第16页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cJson.cls
+'# 描述：JSON处理类
+'# 功能：JSON数据解析和生成
+'# 作者：邓伟，QQ:215879458
+'#############################################################################
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cJson"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+'作者: 邓伟, QQ:215879458
+
+Public RootText As String
+Public RootItem As New Scripting.Dictionary
+Public RootItems As New Collection
+'    【20241014】
+'           由于 ToolsJsonVba.ConvertToJson 函数对数字类型值没有判断
+'           导致返回的数字值可能超过 js 可识别长度, 无法正常使用,
+'           因此应该修改源代码, 在 数字类型 的处理过程中把溢出值转字符串
+
+'Dim AllNewItem As New Scripting.Dictionary
+
+Public WhiteSpaceSet As Variant
+
+Dim Fso As New Scripting.FileSystemObject
+
+Public LastError As String
+Public Property Get LastSuccess() As Boolean
+    LastSuccess = LastError = ""
+End Property
+
+'---------------------------------Property
+Public Property Get Self() As cJson
+    Set Self = Me
+End Property
+
+Public Property Get Root() As Object
+Attribute Root.VB_UserMemId = 0
+    If RootItems.Count > 0 Then Set Root = RootItems: Exit Property
+    Set Root = RootItem
+End Property
+
+Public Property Get RootIsEmpty() As Boolean
+    If RootItems.Count = 0 And RootItem.Count = 0 Then RootIsEmpty = True
+End Property
+
+【第17页】═══════════════════════════════════════════════════════════════════════
+Public Property Get RootIsArray() As Boolean
+    If RootItems.Count > 0 Then RootIsArray = True: Exit Property
+End Property
+
+Public Property Get Item(ByVal Key As String) As Variant
+    If RootItem.Exists(Key) = False Then Exit Property
+    If IsObject(RootItem(Key)) = True Then Set Item = RootItem(Key): Exit Property
+    Item = RootItem(Key)
+End Property
+
+Public Property Get Items(ByVal Index As Long) As Variant
+    If RootItems.Count < Index Then Exit Property
+    If IsObject(RootItems(Index)) = True Then Set Items = RootItems(Index): Exit Property
+    Items = RootItems(Index)
+End Property
+
+Public Property Set Item(ByVal Key As String, Dat As Variant)
+    Set RootItem(Key) = Dat
+End Property
+
+Public Property Set Items(ByVal Index As Long, Dat As Variant)
+    If RootItems.Count < Index Then GoTo Assets
+    If Index = 0 Then GoTo Assets
+Assets:
+    RootItems.Add Dat
+End Property
+
+Public Property Let Item(ByVal Key As String, Dat As Variant)
+    RootItem(Key) = Dat
+End Property
+
+Public Property Let Items(ByVal Index As Long, Dat As Variant)
+    If RootItems.Count < Index Then GoTo Assets
+    If Index = 0 Then GoTo Assets
+Assets:
+    RootItems.Add Dat
+End Property
+
+'--------------------------------Property end
+
+Public Sub Clear()
+    RootText = ""
+    Set RootItem = Nothing
+    Set RootItems = Nothing
+    LastError = ""
+End Sub
+
+【第18页】═══════════════════════════════════════════════════════════════════════
+Public Function NewItem(Optional ParentKey As String) As cJson
+    Set NewItem = New cJson
+    If ParentKey = "" Then
+        RootItems.Add NewItem.RootItem
+    Else
+        Set RootItem(ParentKey) = NewItem.RootItem
+    End If
+End Function
+
+Public Function NewItems(Optional ParentKey As String) As cJson
+    Set NewItems = New cJson
+    If ParentKey = "" Then
+        RootItems.Add NewItems.RootItems
+    Else
+        Set RootItem(ParentKey) = NewItems.RootItems
+    End If
+End Function
+
+Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As String
+    ' [using]: ToolsJsonVba.ConvertToJson from
+    ' VBA-JSON v2.3.1
+    ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
+    LastError = ""
+    Dim TmpO As Variant
+    If IsMissing(Obj) = True Then
+        If RootItems.Count > 0 Then Set TmpO = RootItems: GoTo Start
+        If RootItem.Count > 0 Then Set TmpO = RootItem: GoTo Start
+        Exit Function
+    Else
+        If IsObject(Obj) = False Then RootText = Obj: GoTo ret
+        Set TmpO = Obj
+    End If
+Start:
+    If TypeOf TmpO Is ADODB.Recordset Then
+        Set TmpO = ToolsList.RsToCollection(TmpO)
+    End If
+    If TypeOf TmpO Is cJson Then
+        Set TmpO = TmpO.Root
+    End If
+    If TypeOf TmpO Is cCollection Then
+        Set TmpO = TmpO.RawCollection
+    End If
+    '
+    If TmpO.Count = 0 Then GoTo ret
+    '
+    If IsEmpty(WhiteSpaceSet) = False Then
+        If IsMissing(Whitespace) = True Then Whitespace = WhiteSpaceSet
+    End If
+    RootText = ConvertToJson(TmpO, Whitespace)
+ret:
+    If FromUnicode = True Then
+        Encode = ToolsStr.UnicodeDecode(RootText)
+    Else
+        Encode = RootText
+    End If
+End Function
+
+【第19页】═══════════════════════════════════════════════════════════════════════
+Public Function Decode(ByRef Source As Variant) As cJson
+    ' [using]: ToolsJsonVba.ParseJson from
+    ' VBA-JSON v2.3.1
+    ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
+    Set Decode = Me
+    On Error GoTo EH
+    LastError = ""
+    
+    ' 支持多种类型转换（类似 Encode）
+    If IsObject(Source) = True Then
+        If TypeOf Source Is ADODB.Recordset Then
+            Set RootItems = ToolsList.RsToCollection(Source).RawCollection
+            Exit Function
+        ElseIf TypeOf Source Is cCollection Then
+            If TypeOf Source.RawCollection Is Collection Then
+                Set RootItems = Source.RawCollection
+            Else
+                Set RootItem = Source.RawCollection
+            End If
+            Exit Function
+        ElseIf TypeOf Source Is cJson Then
+            Set RootItem = Source.RootItem
+            Set RootItems = Source.RootItems
+            RootText = Source.RootText
+            Exit Function
+        ElseIf TypeOf Source Is Collection Then
+            Set RootItems = Source
+            Exit Function
+        ElseIf TypeOf Source Is Scripting.Dictionary Then
+            Set RootItem = Source
+            Exit Function
+        End If
+    End If
+    
+    RootText = ToolsStr.TrimEx(CStr(Source))
+Start:
+    If RootText = "" Then ERR.Raise 1, "", "No JSON data."
+    If Left(RootText, 1) = "[" Then
+        Set RootItems = ParseJson(RootText)
+    ElseIf Left(RootText, 1) = "{" Then
+        Set RootItem = ParseJson(RootText)
+    Else
+        ' check if JSONP / Var
+        GoSub CheckJSONP
+        GoSub CheckVar
+        'error data
+        ERR.Raise 1, "", "Not stand JSON data."
+    End If
+    Exit Function
+CheckJSONP:
+    Dim LeftK As Long: LeftK = ToolsStr.HasStr("(", RootText)
+    Dim RightK As Long: RightK = ToolsStr.HasStrFromRight(");", RootText & ";")
+    If LeftK > 0 And RightK > 0 Then
+        Dim LastChar As String: LastChar = Right(RootText, 1)
+        If LastChar = ";" Then LastChar = ");"
+        RootText = ToolsStr.SubStr(RootText, "(", LastChar, False, vbBinaryCompare, True)
+        GoTo Start
+    End If
+    Return
+CheckVar:
+    Dim LeftWord As String: LeftWord = ToolsStr.GetFirstChar(RootText, 3)
+    If LeftWord = "var" Then
+        RootText = ToolsStr.SubStr(RootText, "=")
+        GoTo Start
+    End If
+    Return
+EH:
+    ERR.Raise ERR.Number, "DECODE", ERR.Description & "#" & CStr(Source)
+End Function
+
+【第20页】═══════════════════════════════════════════════════════════════════════
+Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF-8") As cJson
+    Dim Txt As String: Txt = ToolsStream.LoadFileAsText(Path, CharSet)
+    Set LoadFrom = Decode(Txt)
+End Function
+
+Public Function SaveTo( _
+    ByVal FileName As String, _
+    Optional CharSet As String = "UTF-8", _
+    Optional Whitespace As Variant, _
+    Optional FromUnicode As Boolean) As String
+    FileName = ToolsFso.AutoCompleteFullPath(FileName, True)
+    Call ToolsFso.AutoMakeDir(FileName, True)
+    Dim Content As String: Content = Encode(Root, Whitespace, FromUnicode)
+    ToolsStream.SaveFileAsText FileName, Content, CharSet
+    SaveTo = Content
+End Function
+
+Public Function ToArray() As Variant
+    If RootItems.Count > 0 Then
+        
+    End If
+    If RootItem.Count > 0 Then ToArray = Array(RootItem)
+End Function
+
+Private Sub Class_Initialize()
+    RootItem.CompareMode = TextCompare
+End Sub
+
+【第21页】═══════════════════════════════════════════════════════════════════════
+'#############################################################################
+'# 文件：cWebSocketServer.cls
+'# 描述：WebSocket服务器类
+'# 功能：提供WebSocket服务器功能，支持多客户端连接和消息广播
+'# 作者：Claude (Anthropic)
+'#############################################################################
+'=========================================================================
+'
+' cWebSocketServer - WebSocket Server for VB6
+'
+' Purpose: Provides WebSocket server functionality
+'          - Listen for client connections
+'          - Handle multiple clients
+'          - Broadcast messages
+'          - Per-client messaging
+'
+' Author: Claude (Anthropic)
+' Date: 2026-01-10
+'
+'=========================================================================
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cWebSocketServer"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+
+'=========================================================================
+' Events
+'=========================================================================
+
+' Client connected (after successful handshake)
+Event OnClientConnect(ByVal ClientID As String, ByVal RemoteAddress As String, ByVal RemotePort As Long)
+
+' Client disconnected
+Event OnClientDisconnect(ByVal ClientID As String, ByVal Reason As String)
+
+' Text message received from client
+Event OnClientTextMessage(ByVal ClientID As String, ByVal Message As String)
+
+' Binary message received from client
+Event OnClientBinaryMessage(ByVal ClientID As String, Data() As Byte)
+
+' Error occurred
+Event OnError(ByVal Description As String)
+
+' Server started
+Event OnStart(ByVal Port As Long)
+
+' Server stopped
+Event OnStop()
+
+【第22页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' Member Variables
+'=========================================================================
+
+Private WithEvents m_ListenSocket As cWinsock
+Attribute m_ListenSocket.VB_VarHelpID = -1
+
+Private m_Clients As Collection                                                 ' Key: ClientID, Value: cWebSocketServerClient
+Private m_ClientCounter As Long
+Private m_ListenPort As Long
+Private m_IsListening As Boolean
+
+' Frame builder (shared for efficiency)
+Private m_FrameBuilder As cWebSocketFrame
+
+'=========================================================================
+' Properties
+'=========================================================================
+
+' Listening port
+Public Property Get Port() As Long
+    Port = m_ListenPort
+End Property
+
+' Is server listening
+Public Property Get IsListening() As Boolean
+    IsListening = m_IsListening
+End Property
+
+' Connected client count
+Public Property Get ClientCount() As Long
+    On Error Resume Next
+    If Not m_Clients Is Nothing Then
+        ClientCount = m_Clients.Count
+    End If
+End Property
+
+' Get client IDs as array
+Public Property Get ClientIDs() As Variant
+    Dim vResult() As String
+    Dim oClient As cWebSocketServerClient
+    Dim i As Long
+
+    On Error Resume Next
+    If m_Clients Is Nothing Or m_Clients.Count = 0 Then
+        ClientIDs = vResult
+        Exit Property
+    End If
+
+    ReDim vResult(m_Clients.Count - 1)
+    i = 0
+    For Each oClient In m_Clients
+        vResult(i) = oClient.ID
+        i = i + 1
+    Next
+
+    ClientIDs = vResult
+End Property
+
+【第23页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' Public Methods - Server Control
+'=========================================================================
+
+' Start listening on specified port
+Public Sub Listen(Optional ByVal Port As Long = 8080)
+    On Error GoTo ErrorHandler
+    
+    ' Stop if already listening
+    If m_IsListening Then
+        StopServer
+    End If
+    
+    m_ListenPort = Port
+    
+    ' Create listening socket
+    Set m_ListenSocket = New cWinsock
+    m_ListenSocket.Protocol = wskTCPProtocol
+    m_ListenSocket.Listen Port
+    
+    ' Initialize clients collection
+    Set m_Clients = New Collection
+    m_ClientCounter = 0
+    
+    m_IsListening = True
+    RaiseEvent OnStart(Port)
+    
+    Exit Sub
+ErrorHandler:
+    m_IsListening = False
+    RaiseError "Listen failed: " & ERR.Description
+End Sub
+
+' Stop server
+Public Sub StopServer()
+    On Error Resume Next
+
+    ' Close all client connections
+    If Not m_Clients Is Nothing Then
+        Dim oClient As cWebSocketServerClient
+        For Each oClient In m_Clients
+            oClient.SendClose WS_CLOSE_GOING_AWAY, "Server shutting down"
+            oClient.CloseSocket
+        Next
+        Set m_Clients = Nothing
+    End If
+
+    ' Close listening socket
+    If Not m_ListenSocket Is Nothing Then
+        m_ListenSocket.Close_
+        Set m_ListenSocket = Nothing
+    End If
+
+    m_IsListening = False
+    RaiseEvent OnStop
+End Sub
+
+【第24页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' Public Methods - Messaging
+'=========================================================================
+
+' Send text message to specific client
+Public Sub SendText(ByVal ClientID As String, ByVal Message As String)
+    On Error GoTo ErrorHandler
+
+    Dim oClient As cWebSocketServerClient
+    Set oClient = GetClient(ClientID)
+
+    If Not oClient Is Nothing Then
+        If oClient.State = WS_CLIENT_CONNECTED Then
+            oClient.SendText Message
+        End If
+    End If
+
+    Exit Sub
+ErrorHandler:
+    RaiseError "SendText failed: " & ERR.Description
+End Sub
+
+' Send binary message to specific client
+Public Sub SendBinary(ByVal ClientID As String, Data() As Byte)
+    On Error GoTo ErrorHandler
+
+    Dim oClient As cWebSocketServerClient
+    Set oClient = GetClient(ClientID)
+
+    If Not oClient Is Nothing Then
+        If oClient.State = WS_CLIENT_CONNECTED Then
+            oClient.SendBinary Data
+        End If
+    End If
+
+    Exit Sub
+ErrorHandler:
+    RaiseError "SendBinary failed: " & ERR.Description
+End Sub
+
+' Broadcast text message to all connected clients
+Public Sub BroadcastText(ByVal Message As String, Optional ByVal ExcludeClientID As String = "")
+    On Error Resume Next
+
+    Dim oClient As cWebSocketServerClient
+    Dim baFrame() As Byte
+
+    ' Build frame once
+    baFrame = m_FrameBuilder.BuildTextFrame(Message, False)
+
+    For Each oClient In m_Clients
+        If oClient.State = WS_CLIENT_CONNECTED Then
+            If LenB(ExcludeClientID) = 0 Or oClient.ID <> ExcludeClientID Then
+                oClient.SendFrame baFrame
+            End If
+        End If
+    Next
+End Sub
+
+【第25页】═══════════════════════════════════════════════════════════════════════
+' Broadcast binary message to all connected clients
+Public Sub BroadcastBinary(Data() As Byte, Optional ByVal ExcludeClientID As String = "")
+    On Error Resume Next
+
+    Dim oClient As cWebSocketServerClient
+    Dim baFrame() As Byte
+
+    ' Build frame once
+    baFrame = m_FrameBuilder.BuildBinaryFrame(Data, False)
+
+    For Each oClient In m_Clients
+        If oClient.State = WS_CLIENT_CONNECTED Then
+            If LenB(ExcludeClientID) = 0 Or oClient.ID <> ExcludeClientID Then
+                oClient.SendFrame baFrame
+            End If
+        End If
+    Next
+End Sub
+
+' Disconnect specific client
+Public Sub DisconnectClient(ByVal ClientID As String, _
+                           Optional ByVal Code As WsCloseCode = WS_CLOSE_NORMAL, _
+                           Optional ByVal Reason As String = "")
+    On Error Resume Next
+
+    Dim oClient As cWebSocketServerClient
+    Set oClient = GetClient(ClientID)
+
+    If Not oClient Is Nothing Then
+        oClient.SendClose Code, Reason
+        oClient.CloseSocket
+    End If
+End Sub
+
+'=========================================================================
+' Private Methods - Client Management
+'=========================================================================
+
+Private Function GetClient(ByVal ClientID As String) As cWebSocketServerClient
+    On Error Resume Next
+    Set GetClient = m_Clients(ClientID)
+End Function
+
+Private Function FindClientBySocket(ByVal Socket As cWinsock) As cWebSocketServerClient
+    Dim oClient As cWebSocketServerClient
+
+    On Error Resume Next
+    For Each oClient In m_Clients
+        If oClient.Socket Is Socket Then
+            Set FindClientBySocket = oClient
+            Exit Function
+        End If
+    Next
+End Function
+
+Private Sub RemoveClient(ByVal ClientID As String, ByVal Reason As String)
+    On Error Resume Next
+
+    Dim oClient As cWebSocketServerClient
+    Set oClient = m_Clients(ClientID)
+
+    If Not oClient Is Nothing Then
+        oClient.CloseSocket
+        m_Clients.Remove ClientID
+        RaiseEvent OnClientDisconnect(ClientID, Reason)
+    End If
+End Sub
+
+【第26页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' Private Methods - Handshake
+'=========================================================================
+
+Private Function HandleHandshake(ByVal Client As cWebSocketServerClient, ByVal Request As String) As Boolean
+    Dim sKey As String
+    Dim sAccept As String
+    Dim sResponse As String
+
+    On Error GoTo ErrorHandler
+
+    ' Check for WebSocket upgrade request
+    If InStr(1, Request, "Upgrade: websocket", vbTextCompare) = 0 Then
+        HandleHandshake = False
+        Exit Function
+    End If
+
+    ' Get Sec-WebSocket-Key
+    sKey = GetHeaderValue(Request, "Sec-WebSocket-Key")
+    If LenB(sKey) = 0 Then
+        HandleHandshake = False
+        Exit Function
+    End If
+
+    ' Compute accept key
+    sAccept = ComputeAcceptKey(sKey)
+    If LenB(sAccept) = 0 Then
+        HandleHandshake = False
+        Exit Function
+    End If
+
+    ' Build response
+    sResponse = "HTTP/1.1 101 Switching Protocols" & vbCrLf
+    sResponse = sResponse & "Upgrade: websocket" & vbCrLf
+    sResponse = sResponse & "Connection: Upgrade" & vbCrLf
+    sResponse = sResponse & "Sec-WebSocket-Accept: " & sAccept & vbCrLf
+    sResponse = sResponse & vbCrLf
+
+    ' Send response
+    Client.Socket.SendData sResponse, wcpUtf8
+
+    HandleHandshake = True
+    Exit Function
+
+ErrorHandler:
+    HandleHandshake = False
+End Function
+
+'=========================================================================
+' Private Methods - Frame Processing
+'=========================================================================
+
+Private Sub ProcessClientData(ByVal Client As cWebSocketServerClient)
+    Dim oParser As cWebSocketFrame
+    Dim baPayload() As Byte
+
+    On Error GoTo ErrorHandler
+
+    Set oParser = Client.FrameParser
+
+    Do While Client.RecvBuffer.Size >= 2
+        ' Parse frame header
+        If Not oParser.ParseHeader(Client.RecvBuffer) Then
+            Exit Do  ' Need more data
+        End If
+
+        ' Check if complete frame available
+        If Not oParser.IsCompleteFrame(Client.RecvBuffer) Then
+            Exit Do  ' Need more data
+        End If
+
+        ' Extract payload
+        baPayload = oParser.ExtractPayload(Client.RecvBuffer)
+
+        ' Process by opcode
+        Select Case oParser.OpCode
+            Case WS_OPCODE_TEXT, WS_OPCODE_BINARY
+                ProcessDataFrame Client, baPayload, oParser.OpCode, oParser.FIN
+
+            Case WS_OPCODE_CONTINUATION
+                ProcessContinuationFrame Client, baPayload, oParser.FIN
+
+            Case WS_OPCODE_CLOSE
+                ProcessCloseFrame Client, baPayload
+
+            Case WS_OPCODE_PING
+                ProcessPingFrame Client, baPayload
+
+            Case WS_OPCODE_PONG
+                ' Ignore pong
+        End Select
+    Loop
+
+    Exit Sub
+ErrorHandler:
+    RaiseError "ProcessClientData: " & ERR.Description
+End Sub
+
+【第27页】═══════════════════════════════════════════════════════════════════════
+Private Sub ProcessDataFrame(ByVal Client As cWebSocketServerClient, _
+                            ByRef Payload() As Byte, _
+                            ByVal OpCode As WsOpCode, _
+                            ByVal IsFinal As Boolean)
+    If IsFinal And Not Client.IsFragmented Then
+        ' Complete standalone message
+        DeliverClientMessage Client, Payload, OpCode
+    Else
+        ' Start fragmented message
+        Client.IsFragmented = True
+        Client.FragmentOpCode = OpCode
+        Client.FragmentBuffer.Clear
+
+        On Error Resume Next
+        If UBound(Payload) >= 0 Then
+            Client.FragmentBuffer.Append Payload
+        End If
+        On Error GoTo 0
+
+        If IsFinal Then
+            DeliverFragmentedMessage Client
+        End If
+    End If
+End Sub
+
+Private Sub ProcessContinuationFrame(ByVal Client As cWebSocketServerClient, _
+                                    ByRef Payload() As Byte, _
+                                    ByVal IsFinal As Boolean)
+    If Not Client.IsFragmented Then
+        RaiseError "Unexpected continuation frame from " & Client.ID
+        Exit Sub
+    End If
+
+    On Error Resume Next
+    If UBound(Payload) >= 0 Then
+        Client.FragmentBuffer.Append Payload
+    End If
+    On Error GoTo 0
+
+    If IsFinal Then
+        DeliverFragmentedMessage Client
+    End If
+End Sub
+
+Private Sub DeliverFragmentedMessage(ByVal Client As cWebSocketServerClient)
+    Dim baData() As Byte
+    baData = Client.GetFragmentedData
+
+    DeliverClientMessage Client, baData, Client.FragmentOpCode
+
+    Client.ClearFragmentBuffer
+End Sub
+
+Private Sub DeliverClientMessage(ByVal Client As cWebSocketServerClient, _
+                                ByRef Data() As Byte, _
+                                ByVal OpCode As WsOpCode)
+    On Error Resume Next
+
+    If OpCode = WS_OPCODE_TEXT Then
+        Dim sText As String
+        If UBound(Data) >= 0 Then
+            sText = UTF8ToString(Data)
+        Else
+            sText = ""
+        End If
+        RaiseEvent OnClientTextMessage(Client.ID, sText)
+    Else
+        RaiseEvent OnClientBinaryMessage(Client.ID, Data)
+    End If
+End Sub
+
+【第28页】═══════════════════════════════════════════════════════════════════════
+Private Sub ProcessCloseFrame(ByVal Client As cWebSocketServerClient, ByRef Payload() As Byte)
+    Dim sReason As String
+
+    On Error Resume Next
+    sReason = "Client initiated close"
+
+    ' Parse reason if available
+    If UBound(Payload) >= 3 Then
+        Dim baReason() As Byte
+        ReDim baReason(UBound(Payload) - 2) As Byte
+        Dim i As Long
+        For i = 2 To UBound(Payload)
+            baReason(i - 2) = Payload(i)
+        Next i
+        sReason = UTF8ToString(baReason)
+    End If
+
+    On Error GoTo 0
+
+    RemoveClient Client.ID, sReason
+End Sub
+
+Private Sub ProcessPingFrame(ByVal Client As cWebSocketServerClient, ByRef Payload() As Byte)
+    ' Auto-reply with pong
+    Client.SendPong Payload
+End Sub
+
+'=========================================================================
+' Private Methods - Helpers
+'=========================================================================
+
+Private Sub RaiseError(ByVal Description As String)
+    Debug.Print "[cWebSocketServer] Error: " & Description
+    RaiseEvent OnError(Description)
+End Sub
+
+'=========================================================================
+' Socket Event Handlers
+'=========================================================================
+
+Private Sub m_ListenSocket_ConnectionRequest(Client As cWinsock, ByRef DisConnect As Boolean)
+    On Error GoTo ErrorHandler
+
+    ' Create new client
+    Dim oClient As cWebSocketServerClient
+    Set oClient = New cWebSocketServerClient
+
+    ' Generate client ID
+    m_ClientCounter = m_ClientCounter + 1
+    oClient.ID = "Client#" & m_ClientCounter
+
+    ' Set client properties
+    Set oClient.Socket = Client
+    oClient.RemoteAddress = Client.RemoteHostIP
+    oClient.RemotePort = Client.RemotePort
+    oClient.State = WS_CLIENT_PENDING
+
+    ' Add to collection
+    m_Clients.Add oClient, oClient.ID
+
+    ' Accept connection
+    DisConnect = False
+
+    Exit Sub
+ErrorHandler:
+    DisConnect = True
+    RaiseError "ConnectionRequest: " & ERR.Description
+End Sub
+
+【第29页】═══════════════════════════════════════════════════════════════════════
+Private Sub m_ListenSocket_DataArrival(Client As cWinsock, ByVal bytesTotal As Long)
+    Dim oClient As cWebSocketServerClient
+    Dim baData() As Byte
+    Dim sData As String
+
+    On Error GoTo ErrorHandler
+
+    ' Find client
+    Set oClient = FindClientBySocket(Client)
+    If oClient Is Nothing Then Exit Sub
+
+    If oClient.State = WS_CLIENT_PENDING Then
+        ' Expecting handshake
+        Client.GetData sData, vbString, , wcpUtf8
+
+        If HandleHandshake(oClient, sData) Then
+            oClient.State = WS_CLIENT_CONNECTED
+            RaiseEvent OnClientConnect(oClient.ID, oClient.RemoteAddress, oClient.RemotePort)
+        Else
+            ' Handshake failed
+            Client.Close_
+            m_Clients.Remove oClient.ID
+            RaiseError "Handshake failed for " & oClient.ID
+        End If
+
+    ElseIf oClient.State = WS_CLIENT_CONNECTED Then
+        ' Receive WebSocket data
+        Client.GetData baData, vbByte + vbArray
+
+        On Error Resume Next
+        If UBound(baData) >= 0 Then
+            oClient.AppendRecvData baData
+        End If
+        On Error GoTo ErrorHandler
+
+        ProcessClientData oClient
+    End If
+
+    Exit Sub
+ErrorHandler:
+    RaiseError "DataArrival: " & ERR.Description
+End Sub
+
+Private Sub m_ListenSocket_CloseEvent(Client As cWinsock)
+    Dim oClient As cWebSocketServerClient
+
+    On Error Resume Next
+
+    Set oClient = FindClientBySocket(Client)
+    If Not oClient Is Nothing Then
+        RemoveClient oClient.ID, "Connection closed"
+    End If
+End Sub
+
+Private Sub m_ListenSocket_Error(Client As cWinsock, ByVal Number As Long, Description As String, ByVal Scode As Long)
+    Dim oClient As cWebSocketServerClient
+
+    On Error Resume Next
+
+    Set oClient = FindClientBySocket(Client)
+    If Not oClient Is Nothing Then
+        RemoveClient oClient.ID, "Socket error: " & Description
+    Else
+        RaiseError "Socket error: " & Description
+    End If
+End Sub
+
+【第30页】═══════════════════════════════════════════════════════════════════════
+'=========================================================================
+' Class Events
+'=========================================================================
+
+Private Sub Class_Initialize()
+    m_IsListening = False
+    m_ClientCounter = 0
+    Set m_FrameBuilder = New cWebSocketFrame
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    StopServer
+    Set m_FrameBuilder = Nothing
+End Sub
+
+'#############################################################################
+'# 文件：cWebSocketFrame.cls
+'# 描述：WebSocket帧处理类
+'# 功能：处理WebSocket协议的帧编解码
+'#############################################################################
+Public Enum WsOpCode
+    WS_OPCODE_CONTINUATION = 0
+    WS_OPCODE_TEXT = 1
+    WS_OPCODE_BINARY = 2
+    WS_OPCODE_CLOSE = 8
+    WS_OPCODE_PING = 9
+    WS_OPCODE_PONG = 10
+End Enum
+
+Public Enum WsCloseCode
+    WS_CLOSE_NORMAL = 1000
+    WS_CLOSE_GOING_AWAY = 1001
+    WS_CLOSE_PROTOCOL_ERROR = 1002
+    WS_CLOSE_UNSUPPORTED_DATA = 1003
+    WS_CLOSE_NO_STATUS = 1005
+    WS_CLOSE_ABNORMAL = 1006
+    WS_CLOSE_INVALID_PAYLOAD = 1007
+    WS_CLOSE_POLICY_VIOLATION = 1008
+    WS_CLOSE_MESSAGE_TOO_BIG = 1009
+    WS_CLOSE_MANDATORY_EXTENSION = 1010
+    WS_CLOSE_INTERNAL_ERROR = 1011
+    WS_CLOSE_SERVICE_RESTART = 1012
+    WS_CLOSE_TRY_AGAIN_LATER = 1013
+    WS_CLOSE_TLS_HANDSHAKE_FAILED = 1015
+End Enum
+
+Public Enum WsClientState
+    WS_CLIENT_PENDING = 0
+    WS_CLIENT_CONNECTED = 1
+    WS_CLIENT_CLOSING = 2
+    WS_CLIENT_CLOSED = 3
+End Enum
+
+'#############################################################################
+'# 文件：cHttpClient.cls
+'# 描述：HTTP客户端类
+'# 功能：发送HTTP请求，支持GET/POST/PUT/DELETE等方法
+'#############################################################################
+Public Enum HTTPRequestMethod
+    ReqGet = 0
+    ReqPost = 1
+    ReqPut = 2
+    ReqDelete = 3
+    ReqHead = 4
+    ReqOptions = 5
+    ReqPatch = 6
+End Enum
+
+Public Enum HTTPPostDataType
+    PostDataForm = 0
+    PostDataJson = 1
+    PostDataXml = 2
+    PostDataText = 3
+    PostDataBinary = 4
+End Enum
+
+════════════════════════════════════════════════════════════════════════════════
+                              【前30页源代码结束】
+════════════════════════════════════════════════════════════════════════════════

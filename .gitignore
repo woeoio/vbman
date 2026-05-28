@@ -9,3 +9,4 @@ src/Demos/Modbus2/*.lnk
 docs/
 src/Aliyun/Captcha/Src/go/
 config/
+.playwright-mcp

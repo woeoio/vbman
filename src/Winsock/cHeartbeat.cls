@@ -53,6 +53,7 @@ Private m_baData() As Byte              ' Heartbeat packet content
 
 ' Internal cTimer for automatic timing
 Private WithEvents m_oTimer As cTimer
+Attribute m_oTimer.VB_VarHelpID = -1
 
 '=========================================================================
 ' Properties
@@ -217,7 +218,7 @@ Public Sub RecordHeartbeatSent()
 End Sub
 
 ' Stop heartbeat
-Public Sub [Stop]()
+Public Sub StopMe()
     m_bEnabled = False
     StopTimer
 End Sub
@@ -262,6 +263,6 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    [Stop]
+    Stop
     Set m_oTimer = Nothing
 End Sub

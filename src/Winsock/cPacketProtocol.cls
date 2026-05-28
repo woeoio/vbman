@@ -30,32 +30,32 @@ Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination
 
 '--- Protocol Type Enum ---
 Public Enum PacketProtocolType
-    ppNone = 0                ' No protocol (raw data)
-    ppDelimiter = 1           ' Delimiter-based protocol
-    ppFixedLength = 2         ' Fixed-length protocol
-    ppLengthHeader = 3        ' Length-header protocol
+    ppNone = 0                                                                  ' No protocol (raw data)
+    ppDelimiter = 1                                                             ' Delimiter-based protocol
+    ppFixedLength = 2                                                           ' Fixed-length protocol
+    ppLengthHeader = 3                                                          ' Length-header protocol
 End Enum
 
 '--- Endian Enum ---
 Public Enum EndianEnum
-    eeLittleEndian = 0        ' Little-endian (x86 default)
-    eeBigEndian = 1           ' Big-endian (network byte order)
+    eeLittleEndian = 0                                                          ' Little-endian (x86 default)
+    eeBigEndian = 1                                                             ' Big-endian (network byte order)
 End Enum
 
 '--- Member Variables ---
 Private m_eProtocol As PacketProtocolType
-Private m_baRecvBuffer() As Byte       ' Internal receive buffer
+Private m_baRecvBuffer() As Byte                                                ' Internal receive buffer
 
 ' Delimiter protocol params
-Private m_sDelimiter As String         ' Delimiter string (e.g. vbCrLf, vbNullChar)
-Private m_baDelimiter() As Byte        ' Delimiter as byte array (for binary matching)
+Private m_sDelimiter As String                                                  ' Delimiter string (e.g. vbCrLf, vbNullChar)
+Private m_baDelimiter() As Byte                                                 ' Delimiter as byte array (for binary matching)
 
 ' Fixed-length protocol params
-Private m_lFixedLength As Long         ' Fixed message length
+Private m_lFixedLength As Long                                                  ' Fixed message length
 
 ' Length-header protocol params
-Private m_nHeaderBytes As Long         ' Header size: 2 or 4 bytes
-Private m_eEndian As EndianEnum        ' Byte order for header
+Private m_nHeaderBytes As Long                                                  ' Header size: 2 or 4 bytes
+Private m_eEndian As EndianEnum                                                 ' Byte order for header
 
 '=========================================================================
 ' Properties

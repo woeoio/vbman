@@ -46,7 +46,7 @@ Event CloseEvent(Client As cWinsock)
 
 ' New connection request on listening socket
 ' DisConnect: Set to True to reject the connection and clean up resources
-Event ConnectionRequest(Client As cWinsock, ByRef DisConnect As Boolean)
+Event ConnectionRequest(Client As cWinsock, ByRef Disconnect As Boolean)
 
 ' Data received - directly get the client socket object
 Event DataArrival(Client As cWinsock, ByVal bytesTotal As Long)
@@ -156,6 +156,7 @@ Private m_lClientCounter            As Long
 Private m_bCloseEventRaised         As Boolean                                  ' Prevent duplicate CloseEvent
 Private m_oPacketProtocol           As cPacketProtocol                          ' Packet protocol handler
 Private WithEvents m_oHeartbeat     As cHeartbeat                               ' Heartbeat manager
+Attribute m_oHeartbeat.VB_VarHelpID = -1
 
 Private m_Users As New Dictionary
 Private m_Groups As New Dictionary                                              ' GroupName -> Dictionary(UserName -> True)
@@ -1263,9 +1264,9 @@ Public Sub Close_()
     
     ' Stop heartbeat
     If Not m_oHeartbeat Is Nothing Then
-        m_oHeartbeat.[Stop]
+        m_oHeartbeat.StopMe
     End If
-
+End Sub
 ' Bind to local address/port (for UDP)
 Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
     On Error GoTo EH

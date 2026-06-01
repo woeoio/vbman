@@ -1,0 +1,47 @@
+# VB6 项目换行符规范配置
+# 所有 VB6 源码文件使用 CRLF 换行符
+
+# VB6 源码文件
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.frm text eol=crlf
+*.vbp text eol=crlf
+*.vbw text eol=crlf
+*.ctl text eol=crlf
+*.ctx text eol=crlf
+*.pag text eol=crlf
+*.frx binary
+
+# 配置文件
+*.ini text eol=crlf
+*.json text eol=crlf
+*.xml text eol=crlf
+*.md text eol=crlf
+
+# 明确声明二进制文件（防止被 Git 误判）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.cur binary
+*.dll binary
+*.exe binary
+*.lib binary
+*.exp binary
+*.ocx binary
+*.tlb binary
+*.res binary
+*.zip binary
+*.rar binary
+*.7z binary
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+
+# 其他可能的二进制文件
+*.frx binary
+*.ctx binary

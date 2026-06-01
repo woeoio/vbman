@@ -129,7 +129,7 @@ vbman/
 
 VBMAN2 早期是基于 TwinBasic 的 WebView2 控件（感谢 TwinBasic wayen）封装给 VB6/VBA 使用的纯 WebView2 控件库，相对于 VBMAN 是个独立库，编译产物是 OCX 控件文件，存在不少问题。
 
-**2026.05.25 重大更新**：将 TwinBasic WebView2 控件重写为 DLL 对象，通过渲染到任何有句柄的原生控件（如 `Form1.hWnd`、`Picture1.hWnd`）即可显示网页，解决了 OCX 控件文件的烦恼，并且为升级 VBMAN 打下了最好的基础。
+**2026.05.25 重大更新**：将 TwinBasic WebView2 控件重写为 DLL 对象，通过渲染到任何有句柄的原生控件（如 `Form1.hWnd`、`Picture1.hWnd`）即可显示网页，解决了 OCX 控件文件的烦恼，并且为升级 VBMAN 打下了最好的基础。vbman2 不再和 vbman 相对独立，而是会成为最好的 vbman 升级版。（vbman2没有开源计划，但同样的，永久免费使用二进制dll）
 
 #### VBMAN2 未来规划
 

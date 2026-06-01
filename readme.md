@@ -1,3 +1,7 @@
+> 🌐 **English Version Available** → [README_EN.md](./README_EN.md)
+
+---
+
 # VBMAN - BASIC 网络应用开发框架
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)

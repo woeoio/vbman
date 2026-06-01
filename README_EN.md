@@ -131,6 +131,35 @@ VBMAN2 was originally a pure WebView2 control library based on TwinBasic's WebVi
 
 **Major Update on 2026.05.25**: Rewrote the TwinBasic WebView2 control as a DLL object, rendering to any native control with a handle (such as `Form1.hWnd`, `Picture1.hWnd`) to display web pages, solving the OCX control file issues and laying the best foundation for upgrading VBMAN. VBMAN2 will no longer be relatively independent from VBMAN, but will become the best upgraded version of VBMAN. (VBMAN2 has no open-source plan, but likewise, the binary DLL is permanently free to use.)
 
+#### VBMAN2 Core Features
+
+##### Two-way Data Binding
+
+VBMAN2 provides Vue-like two-way data binding, enabling seamless interaction between the VB6/VBA host and WebView2 UI:
+
+| Direction | API | Description |
+|-----------|-----|-------------|
+| UI → VB6/VBA | `BindUI` / `UnbindUI` | DOM events trigger callbacks to host methods |
+| VB6/VBA → UI | `BindData` / `SetData` | Host sets values → DOM properties auto-update |
+
+**Core Design**: Explicit composition over implicit hijacking. Unlike Vue's automatic data hijacking via ES6 Proxy, VBMAN2 uses explicit `BindUI` + `BindData` composition, better suited for cross-process WebView2 scenarios, and is fully compatible with VB6/VBA:
+
+```vb
+' One-way binding: VB6/VBA → UI
+wv.BindData "username", "#user-name", "textContent"
+wv.SetData "username", "John"   ' UI updates automatically
+
+' Two-way binding: input ↔ VB6/VBA
+wv.BindData "search", "#search-input", "value"   ' data → UI
+wv.BindUI Me, "OnSearch", "#search-input", EventName:="input"   ' UI event → VB6/VBA
+
+Public Sub OnSearch(ByVal EventName As String, ByVal Detail As String)
+    wv.SetData "search", JsonParser.GetValue(Detail, "value")   ' write back
+End Sub
+```
+
+**Supported DOM Properties**: `textContent` / `innerHTML` / `value` / `checked` / `disabled` / `visible` / `className` / `src` / `href` / `style`, plus batch updates via `SetDataBatch` to reduce IPC calls.
+
 #### VBMAN2 Future Roadmap
 
 - High-performance IOCP network library

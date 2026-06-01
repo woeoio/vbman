@@ -132,6 +132,35 @@ VBMAN2 早期是基于 TwinBasic 的 WebView2 控件（感谢 TwinBasic wayen）
 
 **2026.05.25 重大更新**：将 TwinBasic WebView2 控件重写为 DLL 对象，通过渲染到任何有句柄的原生控件（如 `Form1.hWnd`、`Picture1.hWnd`）即可显示网页，解决了 OCX 控件文件的烦恼，并且为升级 VBMAN 打下了最好的基础。vbman2 不再和 vbman 相对独立，而是会成为最好的 vbman 升级版。（vbman2没有开源计划，但同样的，永久免费使用二进制dll）
 
+#### VBMAN2 核心特性
+
+##### 双向数据绑定
+
+VBMAN2 提供类似 Vue 的双向数据绑定能力，实现 VB6/VBA 宿主与 WebView2 网页 UI 的无缝联动：
+
+| 方向 | API | 说明 |
+|------|-----|------|
+| UI → VB6/VBA | `BindUI` / `UnbindUI` | DOM 事件触发 → 回调宿主方法 |
+| VB6/VBA → UI | `BindData` / `SetData` | 宿主设值 → 自动更新 DOM 属性 |
+
+**核心设计**：显式组合而非隐式劫持。不同于 Vue 依赖 ES6 Proxy 的自动数据劫持，VBMAN2 采用 `BindUI` + `BindData` 显式组合，更适合跨进程 WebView2 场景，且完全兼容 VB6/VBA：
+
+```vb
+' 单向绑定：VB6/VBA → UI
+wv.BindData "username", "#user-name", "textContent"
+wv.SetData "username", "张三"   ' UI 自动更新
+
+' 双向绑定：输入框 ↔ VB6/VBA
+wv.BindData "search", "#search-input", "value"   ' 数据 → UI
+wv.BindUI Me, "OnSearch", "#search-input", EventName:="input"   ' UI 事件 → VB6/VBA
+
+Public Sub OnSearch(ByVal EventName As String, ByVal Detail As String)
+    wv.SetData "search", JsonParser.GetValue(Detail, "value")   ' 回写数据
+End Sub
+```
+
+**支持的 DOM 属性**：`textContent` / `innerHTML` / `value` / `checked` / `disabled` / `visible` / `className` / `src` / `href` / `style` 等，同时支持批量更新 `SetDataBatch` 减少 IPC 调用。
+
 #### VBMAN2 未来规划
 
 - 高性能的 IOCP 网络库

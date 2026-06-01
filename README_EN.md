@@ -131,6 +131,8 @@ VBMAN2 was originally a pure WebView2 control library based on TwinBasic's WebVi
 
 **Major Update on 2026.05.25**: Rewrote the TwinBasic WebView2 control as a DLL object, rendering to any native control with a handle (such as `Form1.hWnd`, `Picture1.hWnd`) to display web pages, solving the OCX control file issues and laying the best foundation for upgrading VBMAN. VBMAN2 will no longer be relatively independent from VBMAN, but will become the best upgraded version of VBMAN. (VBMAN2 has no open-source plan, but likewise, the binary DLL is permanently free to use.)
 
+**Important**: VBMAN2 **includes all capabilities of VBMAN**, plus advanced features like WebView2. VBMAN users can seamlessly upgrade to VBMAN2.
+
 #### VBMAN2 Core Features
 
 ##### Two-way Data Binding

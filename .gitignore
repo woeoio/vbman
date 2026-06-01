@@ -10,3 +10,4 @@ docs/
 src/Aliyun/Captcha/Src/go/
 config/
 .playwright-mcp
+private

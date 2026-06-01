@@ -58,6 +58,8 @@ BSMAN 旗下规划了一系列子项目：
 
 本项目采用 **GNU General Public License v3.0 (GPL-3.0)** 开源协议。
 
+📖 **快速了解许可证要求**：[LICENSE_GUIDE.md](LICENSE_GUIDE.md) | **完整法律文本**：[LICENSE](LICENSE)
+
 ### 使用规则
 
 1. **二进制分发**：本项目编译后的二进制文件永久免费，无任何使用限制

@@ -57,6 +57,8 @@ BSMAN planned a series of sub-projects:
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
+For detailed licensing information, see [LICENSE_GUIDE_EN.md](LICENSE_GUIDE_EN.md).
+
 ### Usage Rules
 
 1. **Binary Distribution**: Compiled binary files are permanently free with no usage restrictions

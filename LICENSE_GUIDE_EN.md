@@ -8,7 +8,7 @@ This document helps you quickly understand the licensing requirements of the VBM
 
 ### Base License: GPL-3.0
 
-VBMAN is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+VBMAN is licensed under the **GNU General Public License v3.0 (GPL-3.0)** open source license.
 
 ## One-Sentence Summary
 
@@ -64,33 +64,35 @@ Common scenarios:
 
 ```
 ┌─────────────────────────────────────┐
-│     Do you want to use VBMAN?       │
+│   Do you want to use VBMAN for      │
+│        commercial purposes?         │
 └──────────────────┬──────────────────┘
                    │
          ┌─────────┴─────────┐
          ▼                   ▼
    ┌──────────┐        ┌──────────┐
-   │  Use DLL │        │ Use Source │
+   │ Use DLL  │        │ Use Source │
+   │   Only   │        │   Code    │
    └────┬─────┘        └────┬─────┘
         │                   │
         ▼                   ▼
    ┌──────────┐        ┌──────────────┐
-   │ Free     │        │ Distribute?  │
-   │ No License│       └──────┬───────┘
-   └──────────┘               │
-                      ┌───────┴───────┐
-                      ▼               ▼
-                ┌──────────┐    ┌──────────┐
-                │Closed    │    │Open      │
-                │Source    │    │Source    │
-                └────┬─────┘    └────┬─────┘
-                     │               │
-                     ▼               ▼
-               ┌──────────┐    ┌──────────┐
-               │Purchase  │    │Completely│
-               │Commercial│    │Free      │
-               │License   │    │GPL       │
-               └──────────┘    └──────────┘
+   │  Free    │        │ Distribute?  │
+   │  No      │        └──────┬───────┘
+   │ License  │               │
+   │ Required │        ┌──────┴──────┐
+   └──────────┘        ▼             ▼
+                 ┌──────────┐  ┌──────────┐
+                 │Closed    │  │  Open    │
+                 │Source    │  │  Source  │
+                 └────┬─────┘  └────┬─────┘
+                      │             │
+                      ▼             ▼
+                ┌──────────┐  ┌──────────┐
+                │Purchase  │  │Completely│
+                │Commercial│  │  Free    │
+                │License   │  │  GPL     │
+                └──────────┘  └──────────┘
 ```
 
 ## Summary
@@ -111,12 +113,13 @@ Common scenarios:
   - Modified works must also be open-sourced under GPL-compatible license
 
 **3. Source Code Usage - Commercial Scenarios**
+
 There are two situations here:
 
 **Scenario A: Open Source Commercial Use (Free)**
 
 - If your commercial project is based on modifications or secondary development of this project
-- And **when distributing/selling**, you **open-source the entire project's source code** under a GPL-compatible license
+- And when **distributing/selling**, you **open-source the entire project's source code** under a GPL-compatible license
 - In this case, **no payment is required**
 
 **Scenario B: Closed Source Commercial Use (Requires Payment)**
@@ -138,7 +141,55 @@ There are two situations here:
 3. Projects based on source code development that are willing to open-source modified code
 4. Any project following GPL open-source license
 
-The core of commercial licensing lies in how the source code is used, not the deployment of binary files. The developer provides flexible usage paths, ensuring both open-source spirit and legal avenues for commercial applications. The key is whether the user is willing to bear the open-source obligation or choose to purchase a license for closed-source use.
+The core of commercial licensing lies in how the source code is used, rather than the deployment of binary files. The developer provides flexible usage paths, ensuring both open-source spirit and legal avenues for commercial applications. The key is whether the user is willing to bear the open-source obligation, or choose to purchase a license for closed-source use.
+
+According to the content of `LICENSE` and `readme.md`, here is a summary of the existing license definitions:
+
+---
+
+## Core Points of the Existing License
+
+### Base License: GPL-3.0
+
+VBMAN is licensed under the **GNU General Public License v3.0 (GPL-3.0)** open source license.
+
+---
+
+## Definition of Payment Situations
+
+### 1. Binary Files (Permanently Free)
+
+```
+Compiled binary files (DLL, EXE, etc.) of this project are permanently free with no usage restrictions.
+```
+
+Whether for personal or commercial purposes, **using the compiled DLL directly is completely free**, no payment is required.
+
+---
+
+### 2. Source Code Usage (Scenario-Based)
+
+| Usage Scenario | Requires Payment | Conditions |
+| ------------------- | ------------ | --------------------------------------------------------------------------------- |
+| **Personal Use** | Free | Comply with GPL license (include LICENSE, open-source after modifications) |
+| **Commercial Use + Open Source** | Free | When **distributing/selling** after modifying this project, **must open-source the entire project's source code** (GPL-compatible license) |
+| **Commercial Use + Closed Source** | **Requires Payment** | Want to use source code in **closed-source commercial project**, not open-source your own code |
+
+---
+
+## When Do You Need to Pay?
+
+**Only one condition**: You want to use VBMAN source code in a **closed-source commercial software** and do not want to open-source your own code.
+
+Specific scenario examples:
+
+| Scenario | Requires Commercial License |
+| ---------------------------------------------------- | ---------------- |
+| Using VBMAN DLL to develop tools internally within the company | Free |
+| Developing commercial software, directly referencing VBMAN DLL | Free |
+| Modified VBMAN source code, distributing modified DLL to customers (open-source) | Free |
+| Modified VBMAN source code, distributing modified DLL to customers (closed-source) | **Requires Payment** |
+| SaaS service using VBMAN source code but closed-source deployment | **Requires Payment** |
 
 ---
 

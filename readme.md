@@ -36,9 +36,10 @@ BSMAN 旗下规划了一系列子项目：
 - **数据库支持** - 简化的数据库连接和操作接口
 - **JSON 处理** - 内置 JSON 序列化/反序列化功能
 - **HTTP 客户端** - 便捷的 HTTP 请求封装
+- **HTTP 服务器** - 轻量级 HTTP 服务器功能
 - **日志系统** - 分级日志记录功能
 - **注册表操作** - 简化的 Windows 注册表读写接口
-- **更多功能** - 持续迭代中...
+- **更多功能** - 请参考开发文档...
 
 ## 快速开始
 
@@ -144,6 +145,7 @@ VBMAN2 早期是基于 TwinBasic 的 WebView2 控件（感谢 TwinBasic wayen）
 
 - 项目作者：邓伟
 - 个人网站：https://a-vi.com
+- 开发文档：https://doc.vb6.pro
 - 项目仓库：https://gitcode.com/woeoio/vbman
 
 ---

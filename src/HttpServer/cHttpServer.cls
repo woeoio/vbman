@@ -29,6 +29,7 @@ Dim IsRunning  As Boolean
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
+Dim m_Sessions                  As New Scripting.Dictionary
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 Public Event OnLogs(ByVal Level As String, ByVal Content As String)
@@ -49,6 +50,7 @@ Public LastError As String
 Public SessionStorageType As EnumSessionStorageType ' Session 存储类型
 Public SessionStoragePath As String ' 文件系统路径或数据库表名
 Public SessionCookieName As String ' Session Cookie 名称
+Public SessionAutoCleanup As Boolean ' 是否自动清理过期 Session
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -104,6 +106,12 @@ Public Function StopMe() As Boolean
     
     Set CrossDomain = Nothing
     
+    ' 清理内存 Session
+    If Not m_Sessions Is Nothing Then
+        m_Sessions.RemoveAll
+        Set m_Sessions = Nothing
+    End If
+    
     StopMe = True
     Exit Function
 EH:
@@ -114,6 +122,8 @@ Private Sub Class_Initialize()
     ' 默认配置
     SessionStorageType = SessionStorageMemory ' 默认内存存储
     SessionCookieName = "VBMAN_SESSIONID"
+    SessionAutoCleanup = True
+    m_Sessions.CompareMode = TextCompare
 End Sub
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
@@ -412,38 +422,74 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
     End If
     
     ' 开始 http 流程
-    Dim Session As New cHttpServerSession
+    Dim Session As cHttpServerSession
     Dim Cookies As New cHttpServerCookies
     
-    ' 从请求头解析 Cookie
+    ' 从请求头解析 Cookie（请求 Cookie 存入 m_RequestCookies，响应 Cookie 通过 Cookie() 设置）
     If Request.Header.Exists("Cookie") = True Then
         Cookies.Decode Request.Header("Cookie")
     End If
     
-    ' 从 Cookie 读取 SessionID 并加载 Session
+    ' 从请求 Cookie 读取 SessionID 并加载 Session
     Dim sessionID As String
     Dim sessionCookieName As String
     sessionCookieName = IIf(Me.SessionCookieName = "", "VBMAN_SESSIONID", Me.SessionCookieName)
     
-    If Cookies.Exists(sessionCookieName) Then
-        sessionID = Cookies.Cookie(sessionCookieName).Value
-        If sessionID <> "" Then
-            Session.SessionID = sessionID
-            ' 根据配置加载 Session
-            If SessionStorageType = SessionStorageFileSystem Then
-                ' 文件系统
-                If SessionStoragePath = "" Then
-                    sessionFile = Environ("TEMP") & "\vbman\sessions\" & sessionID & ".json"
+    ' 使用 GetValue 读取请求 Cookie（不创建响应 Cookie）
+    sessionID = Cookies.GetValue(sessionCookieName)
+    
+    If sessionID <> "" Then
+        ' 根据配置加载 Session
+        If SessionStorageType = SessionStorageMemory Then
+            ' 内存模式：直接引用存储的 Session 对象
+            If m_Sessions.Exists(sessionID) Then
+                Set Session = m_Sessions(sessionID)
+                If Session.IsExpired Then
+                    m_Sessions.Remove sessionID
+                    Set Session = Nothing
                 Else
-                    sessionFile = SessionStoragePath & "\" & sessionID & ".json"
+                    Session.Touch
                 End If
-                Session.LoadFromFile sessionFile
-            ElseIf SessionStorageType = SessionStorageDatabase Then
-                ' 数据库
-                sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
-                Session.LoadFromDatabase Database, sessionID, sessionTable
+            End If
+        ElseIf SessionStorageType = SessionStorageFileSystem Then
+            ' 文件系统
+            Set Session = New cHttpServerSession
+            Session.sessionID = sessionID
+            If SessionStoragePath = "" Then
+                sessionFile = Environ("TEMP") & "\vbman\sessions\" & sessionID & ".json"
+            Else
+                sessionFile = SessionStoragePath & "\" & sessionID & ".json"
+            End If
+            If Session.LoadFromFile(sessionFile) = False Or Session.IsExpired Then
+                ' 加载失败或已过期，清理过期文件
+                If Session.IsExpired Then
+                    On Error Resume Next
+                    Kill sessionFile
+                    On Error GoTo EH
+                End If
+                Set Session = Nothing
+            End If
+        ElseIf SessionStorageType = SessionStorageDatabase Then
+            ' 数据库
+            Set Session = New cHttpServerSession
+            sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+            If Session.LoadFromDatabase(Database, sessionID, sessionTable) = False Or Session.IsExpired Then
+                ' 加载失败或已过期，清理过期记录
+                If Session.IsExpired Then
+                    On Error Resume Next
+                    Database.Sql("DELETE FROM " & sessionTable & " WHERE SessionID=?") _
+                        .Param("SessionID", sessionID, adVarWChar) _
+                        .ExecParam
+                    On Error GoTo EH
+                End If
+                Set Session = Nothing
             End If
         End If
+    End If
+    
+    ' 如果 Session 未加载（新用户或会话过期），创建空 Session
+    If Session Is Nothing Then
+        Set Session = New cHttpServerSession
     End If
     
     With oCallback.Context
@@ -463,32 +509,44 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
     ' 开始路由
     Call Router.Entry(oCallback)
     
-    ' 保存 Session 到持久化存储
-    If Session.SessionID <> "" Then
-        ' 将 SessionID 写入 Cookie
+    ' 保存 Session（仅在有 SessionID 时，Item 写入会自动生成 SessionID）
+    If Session.sessionID <> "" Then
+        ' 将 SessionID 写入响应 Cookie
         With Cookies.Cookie(sessionCookieName)
-            .Value = Session.SessionID
+            .Value = Session.sessionID
             .Path = "/"
             .HttpOnly = True
-            If Session.Timeout > 0 Then
-                .Expires = DateAdd("n", Session.Timeout, Now)
+            .SameSite = "Lax"
+            If Session.TimeOut > 0 Then
+                .Expires = DateAdd("n", Session.TimeOut, Now)
             End If
         End With
         
-        ' 根据配置保存 Session
-        If SessionStorageType = SessionStorageFileSystem Then
-            ' 文件系统
-            If SessionStoragePath = "" Then
-                sessionFile = Environ("TEMP") & "\vbman\sessions\" & Session.SessionID & ".json"
-            Else
-                sessionFile = SessionStoragePath & "\" & Session.SessionID & ".json"
+        ' 根据配置保存 Session 到存储
+        If SessionStorageType = SessionStorageMemory Then
+            ' 内存模式：更新或添加到字典（对象引用，无需额外保存）
+            Set m_Sessions(Session.sessionID) = Session
+        ElseIf Session.Dirty Then
+            ' 文件/数据库模式：仅数据变更时持久化，避免不必要的 I/O
+            If SessionStorageType = SessionStorageFileSystem Then
+                ' 文件系统
+                If SessionStoragePath = "" Then
+                    sessionFile = Environ("TEMP") & "\vbman\sessions\" & Session.sessionID & ".json"
+                Else
+                    sessionFile = SessionStoragePath & "\" & Session.sessionID & ".json"
+                End If
+                Session.SaveToFile sessionFile
+            ElseIf SessionStorageType = SessionStorageDatabase Then
+                ' 数据库
+                sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+                Session.SaveToDatabase Database, sessionTable
             End If
-            Session.SaveToFile sessionFile
-        ElseIf SessionStorageType = SessionStorageDatabase Then
-            ' 数据库
-            sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
-            Session.SaveToDatabase Database, sessionTable
         End If
+    End If
+    
+    ' 概率性自动清理过期 Session（约 1% 概率）
+    If SessionAutoCleanup Then
+        If Rnd < 0.01 Then CleanupExpiredSessions
     End If
     Exit Sub
 EH:
@@ -528,6 +586,63 @@ EH:
         End If
         m_cConnPool.Remove m_cConnPool.Count
     Loop
+End Sub
+
+' 清理过期的 Session
+Public Sub CleanupExpiredSessions()
+    On Error GoTo EH
+    Dim k As Variant
+    Dim Session As cHttpServerSession
+    Dim keysToRemove As New Collection
+    
+    If SessionStorageType = SessionStorageMemory Then
+        ' 内存模式：遍历字典清理过期 Session
+        For Each k In m_Sessions.Keys
+            Set Session = m_Sessions(k)
+            If Session.IsExpired Then
+                keysToRemove.Add k
+            End If
+        Next
+        Dim i As Long
+        For i = 1 To keysToRemove.Count
+            m_Sessions.Remove keysToRemove(i)
+        Next
+    ElseIf SessionStorageType = SessionStorageFileSystem Then
+        ' 文件系统模式：删除过期的 Session 文件
+        Dim sessionPath As String
+        If SessionStoragePath = "" Then
+            sessionPath = Environ("TEMP") & "\vbman\sessions\"
+        Else
+            sessionPath = SessionStoragePath & "\"
+        End If
+        If Dir(sessionPath, vbDirectory) <> "" Then
+            Dim f As String
+            f = Dir(sessionPath & "*.json")
+            Do While f <> ""
+                Dim sess As New cHttpServerSession
+                If sess.LoadFromFile(sessionPath & f) Then
+                    If sess.IsExpired Then
+                        On Error Resume Next
+                        Kill sessionPath & f
+                        On Error GoTo EH
+                    End If
+                End If
+                f = Dir()
+            Loop
+        End If
+    ElseIf SessionStorageType = SessionStorageDatabase Then
+        ' 数据库模式：删除过期的 Session 记录
+        Dim tblName As String
+        tblName = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
+        On Error Resume Next
+        Database.Sql("DELETE FROM " & tblName & " WHERE ExpiresAt<?") _
+            .Param("ExpiresAt", Now, adDate) _
+            .ExecParam
+        On Error GoTo EH
+    End If
+    Exit Sub
+EH:
+    ' 忽略清理错误
 End Sub
 
 

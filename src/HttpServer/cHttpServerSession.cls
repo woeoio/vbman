@@ -24,6 +24,8 @@ Private pvCreatedAt As Date
 Private pvLastAccessedAt As Date
 ' 过期时间（分钟），0 表示不过期
 Private pvTimeout As Long
+' 脏标记，数据变更时置 True，用于优化持久化
+Private pvDirty As Boolean
 
 ' 获取或设置会话数据
 Public Property Get Item(ByVal Key As String) As Variant
@@ -34,13 +36,27 @@ Attribute Item.VB_UserMemId = 0
 End Property
 
 Public Property Let Item(ByVal Key As String, v As Variant)
+    ' 首次写入数据时自动生成 SessionID
+    If pvSessionID = "" Then
+        pvSessionID = GenerateSessionID
+        pvCreatedAt = Now
+        pvLastAccessedAt = Now
+    End If
     Data(Key) = v
     pvLastAccessedAt = Now
+    pvDirty = True
 End Property
 
 Public Property Set Item(ByVal Key As String, v As Variant)
+    ' 首次写入数据时自动生成 SessionID
+    If pvSessionID = "" Then
+        pvSessionID = GenerateSessionID
+        pvCreatedAt = Now
+        pvLastAccessedAt = Now
+    End If
     Set Data(Key) = v
     pvLastAccessedAt = Now
+    pvDirty = True
 End Property
 
 ' SessionID
@@ -77,6 +93,15 @@ Public Property Let TimeOut(v As Long)
     pvTimeout = v
 End Property
 
+' 脏标记
+Public Property Get Dirty() As Boolean
+    Dirty = pvDirty
+End Property
+
+Public Property Let Dirty(v As Boolean)
+    pvDirty = v
+End Property
+
 ' 检查会话是否过期
 Public Function IsExpired() As Boolean
     If pvTimeout <= 0 Then
@@ -97,13 +122,14 @@ End Function
 Public Sub Remove(ByVal Key As String)
     If Data.Exists(Key) Then
         Data.Remove Key
+        pvDirty = True
     End If
 End Sub
 
-' 清空所有会话数据
+' 清空所有会话数据（保留 SessionID）
 Public Sub Clear()
     Data.RemoveAll
-    pvSessionID = ""
+    pvDirty = True
 End Sub
 
 ' 放弃会话（清空并重新生成 SessionID）
@@ -112,6 +138,7 @@ Public Sub Abandon()
     pvSessionID = GenerateSessionID
     pvCreatedAt = Now
     pvLastAccessedAt = Now
+    pvDirty = True
 End Sub
 
 ' 更新最后访问时间
@@ -119,16 +146,18 @@ Public Sub Touch()
     pvLastAccessedAt = Now
 End Sub
 
-' 生成 SessionID
+' 生成 SessionID（去掉花括号，更紧凑）
 Private Function GenerateSessionID() As String
-    ' 使用 GUID 生成 SessionID
-    GenerateSessionID = ToolsStr.GetGUID(False)
+    Dim s As String
+    s = ToolsStr.GetGUID(False)
+    GenerateSessionID = Replace(Replace(s, "{", ""), "}", "")
 End Function
 
 Private Sub Class_Initialize()
     pvTimeout = 20 ' 默认 20 分钟超时
     pvCreatedAt = Now
     pvLastAccessedAt = Now
+    pvDirty = False
     Data.CompareMode = TextCompare
 End Sub
 
@@ -139,13 +168,24 @@ Public Function Serialize() As String
     On Error GoTo EH
     Dim Json As New cJson
     Dim SessionData As New Scripting.Dictionary
+    Dim DataCopy As New Scripting.Dictionary
+    
+    ' 复制 Data 字典，跳过 Object 类型（JSON 无法序列化）
+    Dim k As Variant
+    For Each k In Data.Keys
+        If IsObject(Data(k)) Then
+            ' 跳过对象类型，避免序列化失败
+        Else
+            DataCopy.Add k, Data(k)
+        End If
+    Next
     
     With SessionData
         .Add "SessionID", pvSessionID
         .Add "CreatedAt", pvCreatedAt
         .Add "LastAccessedAt", pvLastAccessedAt
         .Add "Timeout", pvTimeout
-        .Add "Data", Data
+        .Add "Data", DataCopy
     End With
     
     Serialize = Json.Encode(SessionData)
@@ -175,6 +215,7 @@ Public Function Deserialize(ByVal JsonString As String) As Boolean
         Set Data = SessionData("Data")
     End If
     
+    pvDirty = False
     Deserialize = True
     Exit Function
 EH:
@@ -195,6 +236,7 @@ Public Function SaveToFile(ByVal FilePath As String) As Boolean
     Call ToolsFso.AutoMakeDir(FilePath, True)
     Call ToolsStream.SaveFileAsText(FilePath, JsonString, "UTF-8")
     
+    pvDirty = False
     SaveToFile = True
     Exit Function
 EH:
@@ -236,11 +278,7 @@ Public Function SaveToDatabase(ByVal Db As cDataBase, Optional ByVal TableName A
         dtExpires = DateAdd("yyyy", 1, Now)                                     ' 默认1年后过期
     End If
     
-    ' 使用 INSERT OR REPLACE 或 UPDATE 语句
-    Dim Sql As String
-    Sql = "INSERT OR REPLACE INTO " & TableName & " (SessionID, SessionData, CreatedAt, LastAccessedAt, ExpiresAt) VALUES (?, ?, ?, ?, ?)"
-    
-    ' 如果数据库不支持 INSERT OR REPLACE，先尝试 UPDATE，失败则 INSERT
+    ' 先查询是否存在，再决定 INSERT 或 UPDATE
     If Db.Sql("SELECT SessionID FROM " & TableName & " WHERE SessionID=?") _
         .Param("SessionID", pvSessionID, adVarWChar) _
         .QueryParam Then
@@ -277,6 +315,7 @@ Public Function SaveToDatabase(ByVal Db As cDataBase, Optional ByVal TableName A
         Exit Function
     End If
     
+    pvDirty = False
     SaveToDatabase = True
     Exit Function
 EH:

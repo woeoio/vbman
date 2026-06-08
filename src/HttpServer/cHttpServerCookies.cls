@@ -13,11 +13,14 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-' 使用 Scripting.Dictionary 存储
+' 响应 Cookie 存储（用于生成 Set-Cookie 头）
 ' 需要在工程中引用 Microsoft Scripting Runtime
 Dim Data As New Scripting.Dictionary
 
-' 获取或创建 Cookie
+' 请求 Cookie 存储（来自 Cookie 头，只读键值对）
+Private m_RequestCookies As New Scripting.Dictionary
+
+' 获取或创建响应 Cookie（用于 Set-Cookie）
 Public Property Get Cookie(ByVal Key As String) As cHttpServerCookieAttr
 Attribute Cookie.VB_UserMemId = 0
     If Data.Exists(Key) = False Then
@@ -30,25 +33,52 @@ Attribute Cookie.VB_UserMemId = 0
     End If
 End Property
 
-' 检查 Cookie 是否存在
-Public Function Exists(ByVal Key As String) As Boolean
-    Exists = Data.Exists(Key)
+' 读取请求 Cookie 的值（浏览器发送的 Cookie）
+Public Function GetValue(ByVal Key As String) As String
+    If m_RequestCookies.Exists(Key) Then
+        GetValue = m_RequestCookies(Key)
+    End If
 End Function
 
-' 删除指定的 Cookie
+' 检查 Cookie 是否存在（同时检查请求和响应）
+Public Function Exists(ByVal Key As String) As Boolean
+    Exists = Data.Exists(Key) Or m_RequestCookies.Exists(Key)
+End Function
+
+' 检查请求 Cookie 是否存在（浏览器发送的）
+Public Function RequestExists(ByVal Key As String) As Boolean
+    RequestExists = m_RequestCookies.Exists(Key)
+End Function
+
+' 检查响应 Cookie 是否存在（已设置 Set-Cookie 的）
+Public Function ResponseExists(ByVal Key As String) As Boolean
+    ResponseExists = Data.Exists(Key)
+End Function
+
+' 删除指定的响应 Cookie
 Public Sub Remove(ByVal Key As String)
     If Data.Exists(Key) Then
         Data.Remove Key
     End If
 End Sub
 
-' 清空所有 Cookie
+' 通知浏览器删除 Cookie（设置过期时间为过去）
+Public Sub ExpireCookie(ByVal Key As String)
+    With Cookie(Key)
+        .Value = ""
+        .Expires = DateAdd("d", -1, Now)
+        .Path = "/"
+    End With
+End Sub
+
+' 清空所有响应 Cookie
 Public Sub Clear()
     Data.RemoveAll
 End Sub
 
-' 从 Cookie 字符串解析到字典的函数
+' 从 Cookie 头字符串解析请求 Cookie
 ' 用于解析请求头中的 Cookie: name1=value1; name2=value2
+' 解析结果存入 m_RequestCookies，不影响响应 Cookie（Data）
 Public Function Decode(ByVal cookieString As String) As Boolean
     On Error GoTo EH
     Dim keyValuePairs() As String
@@ -57,7 +87,7 @@ Public Function Decode(ByVal cookieString As String) As Boolean
     Dim Key As String
     Dim value As String
     
-    Data.RemoveAll
+    m_RequestCookies.RemoveAll
     If cookieString = "" Then
         Decode = True
         Exit Function
@@ -78,9 +108,9 @@ Public Function Decode(ByVal cookieString As String) As Boolean
                 value = Trim(keyValue(1))
                 ' URL 解码
                 value = ToolsHttp.UrlDecodeUtf8(value)
-                ' 添加到字典
+                ' 添加到请求字典
                 If Key <> "" Then
-                    Cookie(Key).Value = value
+                    m_RequestCookies(Key) = value
                 End If
             End If
         End If
@@ -92,9 +122,9 @@ EH:
     Decode = False
 End Function
 
-' 将字典内容编码为 Cookie 字符串的函数
-' 用于生成响应头中的 Set-Cookie: name=value; Path=/; Domain=example.com
-' 注意：响应头中每个 Cookie 需要单独发送 Set-Cookie 头
+' 将响应 Cookie 编码为 Set-Cookie 头字符串
+' 每个 Cookie 单独一行，每行对应一个 Set-Cookie 头
+' 仅输出 Data（响应 Cookie），不包含 m_RequestCookies（请求 Cookie）
 Public Function Encode() As String
     Dim cookieString As String
     Dim Key As Variant
@@ -102,7 +132,7 @@ Public Function Encode() As String
     
     cookieString = ""
     
-    ' 遍历字典中的键值对
+    ' 仅遍历响应 Cookie（Data），不包含请求 Cookie
     For Each Key In Data.Keys
         Set CK = Data(Key)
         If cookieString <> "" Then
@@ -169,4 +199,5 @@ End Function
 
 Private Sub Class_Initialize()
     Data.CompareMode = TextCompare
+    m_RequestCookies.CompareMode = TextCompare
 End Sub

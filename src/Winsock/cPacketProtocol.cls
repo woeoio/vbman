@@ -57,6 +57,10 @@ Private m_lFixedLength As Long                                                  
 Private m_nHeaderBytes As Long                                                  ' Header size: 2 or 4 bytes
 Private m_eEndian As EndianEnum                                                 ' Byte order for header
 
+' Size limits
+Private m_lMaxPacketSize As Long                                                ' Max single packet size (0 = no limit)
+Private m_lMaxBufferSize As Long                                                ' Max buffer accumulation (0 = no limit)
+
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -118,6 +122,26 @@ Public Property Get PendingBytes() As Long
     PendingBytes = UBound(m_baRecvBuffer) + 1
 End Property
 
+' Max single packet size in bytes (0 = no limit, default 1048576 = 1MB)
+' Packets exceeding this size will be discarded and an error raised
+Public Property Get MaxPacketSize() As Long
+    MaxPacketSize = m_lMaxPacketSize
+End Property
+
+Public Property Let MaxPacketSize(ByVal Value As Long)
+    m_lMaxPacketSize = Value
+End Property
+
+' Max internal buffer accumulation in bytes (0 = no limit, default 4194304 = 4MB)
+' Prevents memory exhaustion from incomplete packets
+Public Property Get MaxBufferSize() As Long
+    MaxBufferSize = m_lMaxBufferSize
+End Property
+
+Public Property Let MaxBufferSize(ByVal Value As Long)
+    m_lMaxBufferSize = Value
+End Property
+
 '=========================================================================
 ' Public Methods
 '=========================================================================
@@ -146,27 +170,35 @@ Public Function Encode(ByRef baData() As Byte) As Byte()
         CopyMemory baResult(lDataLen), m_baDelimiter(0), lDelimLen
         
     Case ppFixedLength
-        ' Pad or truncate to fixed length
-        If lDataLen >= m_lFixedLength Then
-            ReDim baResult(0 To m_lFixedLength - 1) As Byte
-            CopyMemory baResult(0), baData(0), m_lFixedLength
-        Else
-            ReDim baResult(0 To m_lFixedLength - 1) As Byte
-            CopyMemory baResult(0), baData(0), lDataLen
-            ' Remaining bytes are zero (padding)
+        ' Data must not exceed fixed length (truncation is an error)
+        If lDataLen > m_lFixedLength Then
+            ERR.Raise vbObjectError, MODULE_NAME, "Data length (" & lDataLen & ") exceeds FixedLength (" & m_lFixedLength & ")"
         End If
+        ReDim baResult(0 To m_lFixedLength - 1) As Byte
+        CopyMemory baResult(0), baData(0), lDataLen
+        ' Remaining bytes are zero (padding)
         
     Case ppLengthHeader
+        ' Validate data length for header type
+        If m_nHeaderBytes = 2 Then
+            If lDataLen > 65535 Then
+                ERR.Raise vbObjectError, MODULE_NAME, "Data too long for 2-byte header: " & lDataLen & " bytes (max 65535)"
+            End If
+        End If
         ' Prepend length header
         ReDim baResult(0 To m_nHeaderBytes + lDataLen - 1) As Byte
         If m_nHeaderBytes = 2 Then
             Dim nLen As Integer
-            nLen = CInt(lDataLen)
+            If lDataLen > 32767 Then
+                nLen = lDataLen - 65536   ' Map to signed Integer range
+            Else
+                nLen = CInt(lDataLen)
+            End If
             If m_eEndian = eeLittleEndian Then
                 CopyMemory baResult(0), nLen, 2
             Else
-                baResult(0) = (nLen And &HFF00&) \ &H100&
-                baResult(1) = nLen And &HFF&
+                baResult(0) = (lDataLen And &HFF00&) \ &H100&
+                baResult(1) = lDataLen And &HFF&
             End If
         Else ' 4 bytes
             If m_eEndian = eeLittleEndian Then
@@ -213,6 +245,14 @@ Public Function Decode(ByRef baData() As Byte) As Collection
             Dim lOldLen As Long
             lOldLen = UBound(m_baRecvBuffer) + 1
             lWorkLen = lOldLen + UBound(baData) + 1
+            ' Check buffer size limit
+            Dim lMaxBuf As Long
+            lMaxBuf = m_lMaxBufferSize
+            If lMaxBuf <= 0 Then lMaxBuf = 4194304  ' Default 4MB
+            If lWorkLen > lMaxBuf Then
+                m_baRecvBuffer = vbNullString
+                ERR.Raise vbObjectError, MODULE_NAME, "Buffer overflow: " & lWorkLen & " bytes exceeds MaxBufferSize (" & lMaxBuf & ")"
+            End If
             ReDim Preserve m_baRecvBuffer(0 To lWorkLen - 1) As Byte
             CopyMemory m_baRecvBuffer(lOldLen), baData(0), UBound(baData) + 1
         Else
@@ -356,10 +396,14 @@ Private Sub ExtractLengthHeaderMessages(colResult As Collection)
         ' Parse length from header
         lMsgLen = ParseLengthHeader()
         
-        ' Validate length
-        If lMsgLen < 0 Or lMsgLen > 10485760 Then  ' Max 10MB sanity check
-            ' Invalid header, discard buffer
+        ' Validate length against MaxPacketSize (default 1MB)
+        Dim lMaxAllowed As Long
+        lMaxAllowed = m_lMaxPacketSize
+        If lMaxAllowed <= 0 Then lMaxAllowed = 1048576  ' Default 1MB
+        If lMsgLen < 0 Or lMsgLen > lMaxAllowed Then
+            ' Invalid header, discard buffer and raise error
             m_baRecvBuffer = vbNullString
+            ERR.Raise vbObjectError, MODULE_NAME, "Invalid packet length in header: " & lMsgLen & " (max " & lMaxAllowed & ")"
             Exit Do
         End If
         
@@ -450,10 +494,17 @@ Private Function ParseLengthHeader() As Long
                 ParseLengthHeader = lVal4
             End If
         Else
-            ParseLengthHeader = CLng(m_baRecvBuffer(0)) * &H1000000 + _
-                                CLng(m_baRecvBuffer(1)) * &H10000 + _
-                                CLng(m_baRecvBuffer(2)) * &H100& + _
-                                CLng(m_baRecvBuffer(3))
+            ' Big-endian 4 bytes: handle high bit to avoid signed overflow
+            Dim lHighPart As Long
+            lHighPart = (CLng(m_baRecvBuffer(0) And &H7F) * &H1000000) Or _
+                        (CLng(m_baRecvBuffer(1)) * &H10000) Or _
+                        (CLng(m_baRecvBuffer(2)) * &H100&) Or _
+                        CLng(m_baRecvBuffer(3))
+            If (m_baRecvBuffer(0) And &H80) <> 0 Then
+                ParseLengthHeader = lHighPart Or &H80000000
+            Else
+                ParseLengthHeader = lHighPart
+            End If
         End If
     End If
     
@@ -473,6 +524,8 @@ Private Sub Class_Initialize()
     m_lFixedLength = 0
     m_nHeaderBytes = 4
     m_eEndian = eeLittleEndian
+    m_lMaxPacketSize = 1048576    ' 1MB default
+    m_lMaxBufferSize = 4194304    ' 4MB default
     m_baRecvBuffer = vbNullString
 End Sub
 

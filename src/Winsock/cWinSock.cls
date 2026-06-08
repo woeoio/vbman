@@ -64,8 +64,8 @@ Event Error(Client As cWinsock, ByVal Number As Long, Description As String, ByV
 Event ClientCountChange(Client As cWinsock, ByVal ClientCount As Long, ByVal Action As WinsockClientAction)
 
 ' Complete message received (only fires when PacketProtocol is set)
-' Unlike DataArrival which fires on any raw data, this fires only when
-' a complete protocol-framed message is available
+' In protocol mode, this is the PRIMARY event for receiving data.
+' DataArrival is NOT raised in protocol mode to avoid double-read issues.
 Event MessageArrival(Client As cWinsock, ByVal bytesTotal As Long)
 
 ' Client heartbeat timeout (server-side, fires when client idle exceeds HeartbeatTimeout)
@@ -450,6 +450,40 @@ Public Property Let HeaderEndian(ByVal Value As EndianEnum)
         m_oPacketProtocol.ProtocolType = ppLengthHeader
     End If
     m_oPacketProtocol.Endian = Value
+End Property
+
+' Max single packet size (default 1MB, 0 = no limit)
+' Packets exceeding this are discarded with error
+Public Property Let MaxPacketSize(ByVal Value As Long)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+    End If
+    m_oPacketProtocol.MaxPacketSize = Value
+End Property
+
+Public Property Get MaxPacketSize() As Long
+    If m_oPacketProtocol Is Nothing Then
+        MaxPacketSize = 1048576
+    Else
+        MaxPacketSize = m_oPacketProtocol.MaxPacketSize
+    End If
+End Property
+
+' Max protocol buffer accumulation (default 4MB, 0 = no limit)
+' Prevents memory exhaustion from incomplete packets
+Public Property Let MaxBufferSize(ByVal Value As Long)
+    If m_oPacketProtocol Is Nothing Then
+        Set m_oPacketProtocol = New cPacketProtocol
+    End If
+    m_oPacketProtocol.MaxBufferSize = Value
+End Property
+
+Public Property Get MaxBufferSize() As Long
+    If m_oPacketProtocol Is Nothing Then
+        MaxBufferSize = 4194304
+    Else
+        MaxBufferSize = m_oPacketProtocol.MaxBufferSize
+    End If
 End Property
 
 '--- Heartbeat Properties (auto-driven by internal cTimer) ---
@@ -1024,12 +1058,12 @@ Private Sub m_oHeartbeat_Tick()
     If Not m_bIsServer Then
         If m_oHeartbeat.ClientInterval > 0 Then
             If m_oHeartbeat.ShouldSendHeartbeat() Then
-                ' Send heartbeat data
+                ' Send heartbeat data through SendData to ensure protocol encoding
                 Dim baHB() As Byte
                 baHB = m_oHeartbeat.HeartbeatData
                 On Error Resume Next
                 If UBound(baHB) >= 0 Then
-                    m_oSocket.SendArray baHB
+                    Me.SendData baHB
                     m_oHeartbeat.RecordHeartbeatSent
                     RaiseEvent HeartbeatSent(Me)
                 End If
@@ -1429,6 +1463,9 @@ Private Sub m_oSocket_OnAccept()
                     oClient.HeaderBytes = m_oPacketProtocol.HeaderBytes
                     oClient.HeaderEndian = m_oPacketProtocol.Endian
                 End Select
+                ' Inherit size limits
+                oClient.MaxPacketSize = m_oPacketProtocol.MaxPacketSize
+                oClient.MaxBufferSize = m_oPacketProtocol.MaxBufferSize
             End If
         End If
         
@@ -1497,6 +1534,25 @@ Private Sub m_oSocket_OnReceive()
                 oClient.Protocol = wskUDPProtocol
                 Set oClient.ParentServer = Me
                 oClient.Tag = sKey
+                
+                ' Inherit packet protocol configuration from server
+                If Not m_oPacketProtocol Is Nothing Then
+                    If m_oPacketProtocol.ProtocolType <> ppNone Then
+                        oClient.PacketProtocol = m_oPacketProtocol.ProtocolType
+                        Select Case m_oPacketProtocol.ProtocolType
+                        Case ppDelimiter
+                            oClient.Delimiter = m_oPacketProtocol.Delimiter
+                        Case ppFixedLength
+                            oClient.FixedLength = m_oPacketProtocol.FixedLength
+                        Case ppLengthHeader
+                            oClient.HeaderBytes = m_oPacketProtocol.HeaderBytes
+                            oClient.HeaderEndian = m_oPacketProtocol.Endian
+                        End Select
+                        oClient.MaxPacketSize = m_oPacketProtocol.MaxPacketSize
+                        oClient.MaxBufferSize = m_oPacketProtocol.MaxBufferSize
+                    End If
+                End If
+                
                 m_cClients.Add oClient, sKey
                 
                 ' Raise event to notify user - allow rejection
@@ -1514,9 +1570,40 @@ Private Sub m_oSocket_OnReceive()
                 RaiseEvent ClientCountChange(oClient, m_cClients.count, wskClientConnected)
             End If
             
-            ' Store data and raise event
-            oClient.UserData = baBuffer
-            RaiseEvent DataArrival(oClient, UBound(baBuffer) + 1)
+            ' Check if client has packet protocol enabled
+            If Not oClient.PacketHandler Is Nothing Then
+                If oClient.PacketProtocol <> ppNone Then
+                    ' Decode through protocol handler
+                    Dim colUdpMsgs As Collection
+                    Dim vUdpMsg As Variant
+                    Dim baUdpMsg() As Byte
+                    Dim lUdpBytes As Long
+                    
+                    Set colUdpMsgs = oClient.PacketHandler.Decode(baBuffer)
+                    
+                    If Not colUdpMsgs Is Nothing Then
+                        For Each vUdpMsg In colUdpMsgs
+                            baUdpMsg = vUdpMsg
+                            oClient.RecvBuffer = baUdpMsg
+                            
+                            On Error Resume Next
+                            lUdpBytes = UBound(baUdpMsg) + 1
+                            If ERR.Number <> 0 Then lUdpBytes = 0
+                            On Error GoTo EH
+                            
+                            RaiseEvent MessageArrival(oClient, lUdpBytes)
+                        Next
+                    End If
+                Else
+                    ' No protocol: store raw data
+                    oClient.UserData = baBuffer
+                    RaiseEvent DataArrival(oClient, UBound(baBuffer) + 1)
+                End If
+            Else
+                ' No protocol: store raw data
+                oClient.UserData = baBuffer
+                RaiseEvent DataArrival(oClient, UBound(baBuffer) + 1)
+            End If
         End If
     Else
         ' TCP or client socket
@@ -1549,18 +1636,11 @@ Private Sub m_oSocket_OnReceive()
                                 If ERR.Number <> 0 Then lBytes = 0
                                 On Error GoTo EH
                                 
-                                ' Raise MessageArrival event
+                                ' Raise MessageArrival event (protocol mode only)
                                 If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
                                     m_oParentServer.RaiseMessageArrivalEvent Me, lBytes
                                 Else
                                     RaiseEvent MessageArrival(Me, lBytes)
-                                End If
-                                
-                                ' Also raise DataArrival for backward compatibility
-                                If m_bIsAcceptedClient And Not m_oParentServer Is Nothing Then
-                                    m_oParentServer.RaiseDataArrivalEvent Me, lBytes
-                                Else
-                                    RaiseEvent DataArrival(Me, lBytes)
                                 End If
                             Next
                         End If

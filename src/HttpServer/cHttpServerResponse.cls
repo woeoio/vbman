@@ -57,6 +57,13 @@ End Sub
 Public Sub Html(Data As String)
     Call SendBodyText(Data, "text/html")
 End Sub
+
+' 302 重定向
+Public Sub Redirect(Url As String)
+    Header("Location") = Url
+    SendBodyText "", "text/html", 302, "Found"
+    Header.RemoveAll
+End Sub
 Public Sub View(TplPath As String)
     '
 End Sub
@@ -85,6 +92,26 @@ End Sub
 Public Sub File(Path As String)
     '自动判断是否ajax请求，决定返回页面还是json
     Dim sPath As String: sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
+    
+    ' 如果路径对应目录，尝试查找默认文档
+    If ToolsFso.Inst.FolderExists(sPath) = True Then
+        Dim defaultDocs As Collection
+        Set defaultDocs = Client.Context.Server.GetDefaultDocuments()
+        Dim doc As Variant
+        For Each doc In defaultDocs
+            Dim tryPath As String
+            tryPath = sPath & "\" & doc
+            If ToolsFso.Inst.FileExists(tryPath) = True Then
+                sPath = tryPath
+                GoTo SendFile
+            End If
+        Next
+        ' 目录存在但无默认文档，返回 403
+        State403 "Directory listing not allowed"
+        Exit Sub
+    End If
+    
+SendFile:
     If ToolsFso.Inst.FileExists(sPath) = False Then Call State404: Exit Sub
     Dim Data() As Byte
     If ToolsStream.LoadFileAsBinary(sPath, Data) = False Then Call State404: Exit Sub

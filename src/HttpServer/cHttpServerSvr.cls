@@ -22,6 +22,9 @@ Dim Fso As New Scripting.FileSystemObject
 Public IP As String
 Public Port As Long
 
+' 默认文档列表
+Dim m_DefaultDocuments As New Collection
+
 
 Public Property Get WebRoot() As String
     WebRoot = pWebRoot
@@ -51,6 +54,8 @@ Friend Function IsStaticFile(Path As String) As Boolean
     Dim AppendFix As String: AppendFix = LCase(Right(Path, 4))
     If AppendFix = ".asp" Then Exit Function
     If AppendFix = ".vbs" Then Exit Function
+    ' 根路径视为静态文件（用于默认文档查找）
+    If Path = "/" Then IsStaticFile = True: Exit Function
     If rootFiles.Exists(Path) = True Then IsStaticFile = True: Exit Function
     Dim x, p, l As Long
     For Each x In rootDirs.Keys()
@@ -64,4 +69,25 @@ Private Sub Class_Initialize()
     '设置大小写不敏感
     rootFiles.CompareMode = TextCompare
     rootDirs.CompareMode = TextCompare
+    ' 默认文档列表
+    With m_DefaultDocuments
+        .Add "index.html"
+        .Add "index.htm"
+        .Add "default.html"
+        .Add "default.htm"
+    End With
 End Sub
+
+' 添加自定义默认文档
+Public Sub AddDefaultDocument(FileName As String)
+    Dim i As Long
+    For i = 1 To m_DefaultDocuments.Count
+        If LCase(m_DefaultDocuments(i)) = LCase(FileName) Then Exit Sub
+    Next
+    m_DefaultDocuments.Add FileName
+End Sub
+
+' 获取默认文档列表
+Friend Function GetDefaultDocuments() As Collection
+    Set GetDefaultDocuments = m_DefaultDocuments
+End Function

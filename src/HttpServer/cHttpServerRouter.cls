@@ -14,10 +14,14 @@ Attribute VB_Exposed = True
 Option Explicit
 
 '路由才是开发者和框架之间的桥梁
-'路由流程：
-'1，如果没有自动路由，则先从方法字典匹配
-'2，如果开了自动路由，则尝试执行路由方法
-'3，如果没有路由成功，则判读是否静态文件
+'路由流程（按扩展名分流）：
+'1，路径最后一段含点号（如 /css/style.css）→ 静态文件快速通道，跳过路由
+'2，路径最后一段无点号（如 /api/users）→ 路由优先通道：
+'   a. 前置中间件
+'   b. 匹配用户路由
+'   c. 自动路由（CallByName）
+'   d. 静态文件兜底（目录重定向 + 默认文档）
+'   e. 404
 
 
 Dim RouteBefore As cHttpServerRouteBefore
@@ -74,21 +78,38 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If App.LogMode <> 0 Then On Error GoTo EH
     Dim Request As cHttpServerRequest
     Dim Response As cHttpServerResponse
-    '    Dim Session As cHttpServerSession
-    '    Dim Cookies As cHttpServerCookies
     With Client.Context
         Set Request = .Request
         Set Response = .Response
     End With
     Set RouteBefore = Client.Parent.RouteBefore
     Set RouteAfter = Client.Parent.RouteAfter
-    '判断是否静态文件
-    If Client.Context.Server.WebRoot <> "" Then
-        If Client.Context.Server.IsStaticFile(Request.PathInfo) = True Then
+    
+    ' ========== 按扩展名分流 ==========
+    ' 路径最后一段含点号 → 静态文件快速通道（跳过所有路由）
+    ' 路径最后一段无点号 → 路由优先通道（路由不匹配才走静态文件）
+    Dim lastSlash As Long
+    lastSlash = InStrRev(Request.PathInfo, "/")
+    Dim lastSegment As String
+    lastSegment = Mid(Request.PathInfo, lastSlash + 1)
+    
+    If InStr(lastSegment, ".") > 0 Then
+        ' ===== 快速通道：含点号，视为静态文件 =====
+        If Client.Context.Server.WebRoot <> "" Then
+            If Client.Context.Server.IsStaticFile(Request.PathInfo) = True Then
+                Response.File Request.PathInfo
+                GoTo QH
+            End If
+        End If
+        ' 不是已知静态文件，也尝试直接发送（可能是深层子目录的文件）
+        If Client.Context.Server.WebRoot <> "" Then
             Response.File Request.PathInfo
             GoTo QH
         End If
+        ' 无 WebRoot 则走路由
     End If
+    
+    ' ===== 路由优先通道：无点号，先路由后静态文件 =====
     '执行路由前置
     If RouteBefore.Entry(Client.Context) = False Then GoTo EH
     If Client.Context.fIsAbort = True Then GoTo QH
@@ -109,6 +130,25 @@ Friend Function Entry(Client As cClientCallback) As Boolean
             If RunHandlerController(Request.PathInfoController, Request.PathInfoAction, Client.Context) = True Then GoTo QH
         End If
     End If
+    
+    ' 所有路由均未匹配，尝试静态文件兜底（目录重定向 + 默认文档）
+    If Client.Context.Server.WebRoot <> "" Then
+        ' 目录重定向：路径不以 / 结尾且对应物理目录，302 到带 / 的路径
+        If Right(Request.PathInfo, 1) <> "/" And Request.PathInfo <> "/" Then
+            Dim checkPath As String
+            checkPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Request.PathInfo, False)
+            If ToolsFso.Inst.FolderExists(checkPath) = True Then
+                Response.Redirect Request.PathInfo & "/"
+                GoTo QH
+            End If
+        End If
+        ' 尝试作为静态文件/目录处理（含默认文档查找）
+        If Client.Context.Server.IsStaticFile(Request.PathInfo) = True Then
+            Response.File Request.PathInfo
+            GoTo QH
+        End If
+    End If
+    
     '输出
     Response.State404 "404 Not Found"
     Exit Function

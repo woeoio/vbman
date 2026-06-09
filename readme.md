@@ -7,6 +7,10 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows-orange.svg)](https://www.microsoft.com/windows)
 
+**示例代码和编译DLL下载**：https://vb6.pro/bsman/
+
+**Demo仓库**：https://gitcode.com/woeoio/vbman-demo
+
 ## 项目简介
 
 VBMAN 是一个使用 BASIC 语言构建的网络应用开发框架，旨在为开发者提供简洁、高效的服务器端和客户端开发工具集。
@@ -146,9 +150,9 @@ VBMAN2 早期是基于 TwinBasic 的 WebView2 控件（感谢 TwinBasic wayen）
 
 VBMAN2 提供类似 Vue 的双向数据绑定能力，实现 VB6/VBA 宿主与 WebView2 网页 UI 的无缝联动：
 
-| 方向 | API | 说明 |
-|------|-----|------|
-| UI → VB6/VBA | `BindUI` / `UnbindUI` | DOM 事件触发 → 回调宿主方法 |
+| 方向         | API                    | 说明                         |
+| ------------ | ---------------------- | ---------------------------- |
+| UI → VB6/VBA | `BindUI` / `UnbindUI`  | DOM 事件触发 → 回调宿主方法  |
 | VB6/VBA → UI | `BindData` / `SetData` | 宿主设值 → 自动更新 DOM 属性 |
 
 **核心设计**：显式组合而非隐式劫持。不同于 Vue 依赖 ES6 Proxy 的自动数据劫持，VBMAN2 采用 `BindUI` + `BindData` 显式组合，更适合跨进程 WebView2 场景，且完全兼容 VB6/VBA：

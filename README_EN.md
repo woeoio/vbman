@@ -3,12 +3,17 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows-orange.svg)](https://www.microsoft.com/windows)
 
+**Sample Code & Compiled DLL Download**: https://vb6.pro/bsman/
+
+**Demo Repository**: https://gitcode.com/woeoio/vbman-demo
+
 ## Project Overview
 
 VBMAN is a network application development framework built with BASIC language, designed to provide developers with concise and efficient server-side and client-side development tools.
 
 ## Project History
-### Origin (2017)
+
+### Origin (2017)
 
 This project originated from an idea in 2017 - to build a series of network application development frameworks using BASIC language. The project was initially named **BSMAN**, short for **Basic Server Man**.
 
@@ -22,12 +27,12 @@ BSMAN planned a series of sub-projects:
 
 ### Development Timeline
 
-| Date       | Milestone                                                                  |
-| ---------- | -------------------------------------------------------------------------- |
-| 2023-10-26 | First **ASPMAN** sub-project written                                       |
-| 2024-09-30 | Officially started developing the **VBMAN** sub-project                    |
-| 2025       | Began migrating VBMAN to **TwinBasic** platform, named **TBMAN**           |
-| 2026-06-01 | **VBMAN officially open-sourced**                                          |
+| Date       | Milestone                                                        |
+| ---------- | ---------------------------------------------------------------- |
+| 2023-10-26 | First **ASPMAN** sub-project written                             |
+| 2024-09-30 | Officially started developing the **VBMAN** sub-project          |
+| 2025       | Began migrating VBMAN to **TwinBasic** platform, named **TBMAN** |
+| 2026-06-01 | **VBMAN officially open-sourced**                                |
 
 ## Features
 
@@ -85,8 +90,8 @@ If you wish to use this project's source code in closed-source commercial projec
 
 This project uses the following open-source projects:
 
-| Project                                                          | License | Purpose                              |
-| ---------------------------------------------------------------- | ------- | ------------------------------------ |
+| Project                                                         | License | Purpose                              |
+| --------------------------------------------------------------- | ------- | ------------------------------------ |
 | [wqweto/VbAsyncSocket](https://github.com/wqweto/VbAsyncSocket) | MIT     | All `Socket` objects are based on it |
 | [Tim Hall/VBA-JSON](https://github.com/VBA-tools/VBA-JSON)      | MIT     | `cJson` object backend               |
 | [Jason Peter Brown/HttpMimeType](mailto://jason@bitspaces.com)  | MIT     | Uses `HttpMimeType`                  |
@@ -141,9 +146,9 @@ VBMAN2 was originally a pure WebView2 control library based on TwinBasic's WebVi
 
 VBMAN2 provides Vue-like two-way data binding, enabling seamless interaction between the VB6/VBA host and WebView2 UI:
 
-| Direction | API | Description |
-|-----------|-----|-------------|
-| UI → VB6/VBA | `BindUI` / `UnbindUI` | DOM events trigger callbacks to host methods |
+| Direction    | API                    | Description                                   |
+| ------------ | ---------------------- | --------------------------------------------- |
+| UI → VB6/VBA | `BindUI` / `UnbindUI`  | DOM events trigger callbacks to host methods  |
 | VB6/VBA → UI | `BindData` / `SetData` | Host sets values → DOM properties auto-update |
 
 **Core Design**: Explicit composition over implicit hijacking. Unlike Vue's automatic data hijacking via ES6 Proxy, VBMAN2 uses explicit `BindUI` + `BindData` composition, better suited for cross-process WebView2 scenarios, and is fully compatible with VB6/VBA:

@@ -2020,6 +2020,12 @@ QH:
     #End If
 End Function
 
+Public Sub SyncCancelWait()
+    If Not m_oSocket Is Nothing Then
+        m_oSocket.SyncCancelWait
+    End If
+End Sub
+
 '= private ===============================================================
 
 #If ImplTlsServer Then

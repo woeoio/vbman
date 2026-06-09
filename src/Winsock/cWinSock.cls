@@ -1969,7 +1969,7 @@ Public Function SyncReceiveText( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceiveText = m_oSocket.SyncReceiveText(NeedLen, Timeout, HostAddress, HostPort, CodePage)
+    SyncReceiveText = m_oSocket.SyncReceiveText(NeedLen, Timeout, CodePage)
 
     Exit Function
 EH:
@@ -1991,7 +1991,7 @@ Public Function SyncReceiveArray( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceiveArray = m_oSocket.SyncReceiveArray(Buffer, NeedLen, Timeout, HostAddress, HostPort, flags)
+    SyncReceiveArray = m_oSocket.SyncReceiveArray(Buffer, NeedLen, Timeout)
 
     Exit Function
 EH:
@@ -2014,7 +2014,14 @@ Public Function SyncReceive( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncReceive = m_oSocket.SyncReceive(BufPtr, bufLen, Received, Timeout, HostAddress, HostPort, flags)
+    Dim baBuffer() As Byte
+    If m_oSocket.SyncReceiveArray(baBuffer, bufLen, Timeout) Then
+        Received = UBound(baBuffer) + 1
+        If Received > 0 Then
+            CopyMemory ByVal BufPtr, baBuffer(0), Received
+        End If
+        SyncReceive = True
+    End If
 
     Exit Function
 EH:
@@ -2035,7 +2042,7 @@ Public Function SyncSendText( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSendText = m_oSocket.SyncSendText(Text, Timeout, HostAddress, HostPort, CodePage)
+    SyncSendText = m_oSocket.SyncSendText(Text, Timeout, CodePage)
 
     Exit Function
 EH:
@@ -2056,7 +2063,7 @@ Public Function SyncSendArray( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSendArray = m_oSocket.SyncSendArray(Buffer, Timeout, HostAddress, HostPort, flags)
+    SyncSendArray = m_oSocket.SyncSendArray(Buffer, Timeout)
 
     Exit Function
 EH:
@@ -2078,7 +2085,12 @@ Public Function SyncSend( _
         ERR.Raise vbObjectError, MODULE_NAME, "Socket not connected"
     End If
 
-    SyncSend = m_oSocket.SyncSend(BufPtr, bufLen, Timeout, HostAddress, HostPort, flags)
+    Dim baBuffer() As Byte
+    If bufLen > 0 Then
+        ReDim baBuffer(bufLen - 1)
+        CopyMemory baBuffer(0), ByVal BufPtr, bufLen
+        SyncSend = m_oSocket.SyncSendArray(baBuffer, Timeout)
+    End If
 
     Exit Function
 EH:

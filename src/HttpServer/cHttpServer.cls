@@ -29,6 +29,34 @@ Dim IsRunning  As Boolean
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 Private m_cConnPool             As New Collection
+
+' TLS 模式枚举
+Private Enum EnumTlsMode
+    TlsNone          ' 未启用 TLS（默认）
+    TlsModeCertFile  ' 证书文件
+    TlsModeSubject   ' Windows 证书存储
+    TlsModeMemory    ' 内存证书集合
+End Enum
+
+' TLS 状态
+Private m_TlsMode As EnumTlsMode
+
+' TlsCertFile 参数
+Private m_TlsCertFile As String
+Private m_TlsPassword As String
+
+' TlsCertSubject 参数
+Private m_TlsCertSubject As String
+
+' TlsCertMemory 参数
+Private m_TlsCertificates As Collection
+Private m_TlsPrivateKey As Collection
+
+' 公共 TLS 参数
+Private m_TlsAlpnProtocols As String
+
+' WebRoot
+Private m_WebRoot As String
 Dim m_Sessions                  As New Scripting.Dictionary
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
@@ -57,22 +85,91 @@ Dim HttpSvr As cHttpServerSvr
 
 '支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
 
+'=========================================================================
+' TLS 链式函数
+'=========================================================================
 
-Public Function Start(Optional Port As Long = 80, Optional WebRoot As String = "", Optional IP As String = "0.0.0.0") As Boolean
+' 证书文件模式（最常用）
+' CertFile: PFX/P12 或 PEM 格式证书路径，PEM 支持用 | 分隔多文件
+Public Function TlsCertFile( _
+    ByVal CertFile As String, _
+    Optional ByVal Password As String, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cHttpServer
+
+    m_TlsMode = TlsModeCertFile
+    m_TlsCertFile = CertFile
+    m_TlsPassword = Password
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertFile = Me
+End Function
+
+' Windows 证书存储模式
+' CertSubject: 证书主题（如 "www.example.com"）
+Public Function TlsCertSubject( _
+    ByVal CertSubject As String, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cHttpServer
+
+    m_TlsMode = TlsModeSubject
+    m_TlsCertSubject = CertSubject
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertSubject = Me
+End Function
+
+' 内存证书集合模式（高级）
+Public Function TlsCertMemory( _
+    ByVal Certificates As Collection, _
+    ByVal PrivateKey As Collection, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cHttpServer
+
+    m_TlsMode = TlsModeMemory
+    Set m_TlsCertificates = Certificates
+    Set m_TlsPrivateKey = PrivateKey
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertMemory = Me
+End Function
+
+'=========================================================================
+' WebRoot 链式函数
+'=========================================================================
+
+Public Function WebRoot(ByVal Path As String) As cHttpServer
+    m_WebRoot = Path
+    Set WebRoot = Me
+End Function
+
+'=========================================================================
+' Start / StopMe
+'=========================================================================
+
+Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0.0") As Boolean
     If IsRunning = True Then LastError = "服务器正在运行中": Exit Function
     Set m_oServer = New cTlsReMaster
     With m_oServer
-        .Protocol = RemasterProtocolConstants.sckTCPProtocol
-        .Bind Port, IP
-        .Listen
+        If m_TlsMode = TlsNone Then
+            ' --- 纯 HTTP ---
+            .Protocol = RemasterProtocolConstants.sckTCPProtocol
+            .Bind Port, IP
+            .Listen
+        Else
+            ' --- HTTPS ---
+            .Protocol = RemasterProtocolConstants.sckTLSProtocol
+            .Bind Port, IP
+            Select Case m_TlsMode
+                Case TlsModeCertFile
+                    .Listen m_TlsCertFile, m_TlsPassword, , , , m_TlsAlpnProtocols
+                Case TlsModeSubject
+                    .Listen , , m_TlsCertSubject, , , m_TlsAlpnProtocols
+                Case TlsModeMemory
+                    .Listen , , , m_TlsCertificates, m_TlsPrivateKey, m_TlsAlpnProtocols
+            End Select
+        End If
     End With
-    '    Shell "cmd /c start http://localhost:8088/"
     Set HttpApp = New cHttpServerApp
     Set HttpSvr = New cHttpServerSvr
     With HttpSvr
         .IP = IP
         .Port = Port
-        .WebRoot = WebRoot
+        .WebRoot = m_WebRoot
     End With
     IsRunning = True
     Start = True
@@ -111,6 +208,16 @@ Public Function StopMe() As Boolean
         m_Sessions.RemoveAll
         Set m_Sessions = Nothing
     End If
+    
+    ' 重置 TLS 状态
+    m_TlsMode = TlsNone
+    m_TlsCertFile = ""
+    m_TlsPassword = ""
+    m_TlsCertSubject = ""
+    Set m_TlsCertificates = Nothing
+    Set m_TlsPrivateKey = Nothing
+    m_TlsAlpnProtocols = ""
+    m_WebRoot = ""
     
     StopMe = True
     Exit Function

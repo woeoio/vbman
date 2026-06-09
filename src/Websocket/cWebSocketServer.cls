@@ -67,6 +67,22 @@ Private m_IsListening As Boolean
 ' Frame builder (shared for efficiency)
 Private m_FrameBuilder As cWebSocketFrame
 
+'--- TLS ---
+Private Enum EnumWsTlsMode
+    WsTlsNone          ' 未启用（默认，ws://）
+    WsTlsModeCertFile  ' 证书文件
+    WsTlsModeSubject   ' Windows 证书存储
+    WsTlsModeMemory    ' 内存证书集合
+End Enum
+
+Private m_TlsMode As EnumWsTlsMode
+Private m_TlsCertFile As String
+Private m_TlsPassword As String
+Private m_TlsCertSubject As String
+Private m_TlsCertificates As Collection
+Private m_TlsPrivateKey As Collection
+Private m_TlsAlpnProtocols As String
+
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -112,6 +128,49 @@ Public Property Get ClientIDs() As Variant
 End Property
 
 '=========================================================================
+' TLS 链式函数
+'=========================================================================
+
+' 证书文件模式（最常用）
+' CertFile: PFX/P12 或 PEM 格式证书路径，PEM 支持用 | 分隔多文件
+Public Function TlsCertFile( _
+    ByVal CertFile As String, _
+    Optional ByVal Password As String, _
+    Optional ByVal AlpnProtocols As String = "") As cWebSocketServer
+
+    m_TlsMode = WsTlsModeCertFile
+    m_TlsCertFile = CertFile
+    m_TlsPassword = Password
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertFile = Me
+End Function
+
+' Windows 证书存储模式
+' CertSubject: 证书主题（如 "ws.example.com"）
+Public Function TlsCertSubject( _
+    ByVal CertSubject As String, _
+    Optional ByVal AlpnProtocols As String = "") As cWebSocketServer
+
+    m_TlsMode = WsTlsModeSubject
+    m_TlsCertSubject = CertSubject
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertSubject = Me
+End Function
+
+' 内存证书集合模式（高级）
+Public Function TlsCertMemory( _
+    ByVal Certificates As Collection, _
+    ByVal PrivateKey As Collection, _
+    Optional ByVal AlpnProtocols As String = "") As cWebSocketServer
+
+    m_TlsMode = WsTlsModeMemory
+    Set m_TlsCertificates = Certificates
+    Set m_TlsPrivateKey = PrivateKey
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertMemory = Me
+End Function
+
+'=========================================================================
 ' Public Methods - Server Control
 '=========================================================================
 
@@ -129,6 +188,17 @@ Public Sub Listen(Optional ByVal Port As Long = 8080)
     ' Create listening socket
     Set m_ListenSocket = New cWinsock
     m_ListenSocket.Protocol = wskTCPProtocol
+    
+    ' 配置 TLS
+    Select Case m_TlsMode
+        Case WsTlsModeCertFile
+            m_ListenSocket.TlsCertFile m_TlsCertFile, m_TlsPassword, m_TlsAlpnProtocols
+        Case WsTlsModeSubject
+            m_ListenSocket.TlsCertSubject m_TlsCertSubject, m_TlsAlpnProtocols
+        Case WsTlsModeMemory
+            m_ListenSocket.TlsCertMemory m_TlsCertificates, m_TlsPrivateKey, m_TlsAlpnProtocols
+    End Select
+    
     m_ListenSocket.Listen Port
     
     ' Initialize clients collection
@@ -165,6 +235,16 @@ Public Sub StopServer()
     End If
 
     m_IsListening = False
+    
+    ' 重置 TLS 状态
+    m_TlsMode = WsTlsNone
+    m_TlsCertFile = ""
+    m_TlsPassword = ""
+    m_TlsCertSubject = ""
+    Set m_TlsCertificates = Nothing
+    Set m_TlsPrivateKey = Nothing
+    m_TlsAlpnProtocols = ""
+    
     RaiseEvent OnStop
 End Sub
 

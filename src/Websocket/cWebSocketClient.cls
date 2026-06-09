@@ -151,10 +151,7 @@ Public Sub Connect(ByVal WebSocketURL As String, Optional ByVal SubProtocol As S
     End If
     
     ' Check for secure WebSocket (not implemented)
-    If m_IsSecure Then
-        RaiseError "Secure WebSocket (wss://) is not yet supported"
-        Exit Sub
-    End If
+    ' wss:// 现在已支持，通过 cWinsock.Tls 启用加密
     
     m_SubProtocol = SubProtocol
     m_SecretKey = GenerateWebSocketKey()
@@ -170,6 +167,12 @@ Public Sub Connect(ByVal WebSocketURL As String, Optional ByVal SubProtocol As S
     ' Create and connect socket
     Set m_Socket = New cWinsock
     m_Socket.Protocol = wskTCPProtocol
+    
+    ' wss:// 自动启用 TLS
+    If m_IsSecure Then
+        m_Socket.Tls
+    End If
+    
     m_Socket.Connect m_Host, m_Port
     
     Exit Sub

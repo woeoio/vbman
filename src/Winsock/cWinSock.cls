@@ -74,6 +74,9 @@ Event ClientTimeout(Client As cWinsock)
 ' Heartbeat sent (client-side)
 Event HeartbeatSent(Client As cWinsock)
 
+' Server certificate verification (client-side, for TLS connections)
+Event ServerCertificateVerify(Client As cWinsock, Issuers As Object, ByRef Confirmed As Boolean)
+
 Public Enum WinsockClientAction
     wskServerStoped = -1
     wskServerStarted = 0
@@ -137,7 +140,7 @@ Private Const DEF_REMOTEPORT        As Long = 0
 ' Member Variables
 '=========================================================================
 
-Private WithEvents m_oSocket        As cAsyncSocket
+Private WithEvents m_oSocket        As cTlsSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_eState                    As WinsockState
 Private m_eProtocol                 As WinsockProtocol
@@ -160,6 +163,23 @@ Attribute m_oHeartbeat.VB_VarHelpID = -1
 
 Private m_Users As New Dictionary
 Private m_Groups As New Dictionary                                              ' GroupName -> Dictionary(UserName -> True)
+
+'--- TLS ---
+Private Enum EnumTlsMode
+    TlsNone          ' 未启用 TLS（默认，纯 TCP）
+    TlsModeClient    ' 客户端 TLS（Connect 时启用加密，无需证书）
+    TlsModeCertFile  ' 证书文件（Listen 时需出示证书）
+    TlsModeSubject   ' Windows 证书存储
+    TlsModeMemory    ' 内存证书集合
+End Enum
+
+Private m_TlsMode As EnumTlsMode
+Private m_TlsCertFile As String
+Private m_TlsPassword As String
+Private m_TlsCertSubject As String
+Private m_TlsCertificates As Collection
+Private m_TlsPrivateKey As Collection
+Private m_TlsAlpnProtocols As String
 
 'For Client of tcp server
 Public CurrentUser As Variant
@@ -348,7 +368,7 @@ Public Property Get ClientCount() As Long
 End Property
 
 ' Internal socket reference
-Friend Property Get Socket() As cAsyncSocket
+Friend Property Get Socket() As cTlsSocket
     Set Socket = m_oSocket
 End Property
 
@@ -570,7 +590,57 @@ Public Property Get IdleSeconds() As Long
 End Property
 
 '=========================================================================
-' Public Methods
+' Public Methods - TLS
+'=========================================================================
+
+' 客户端 TLS（Connect 时启用加密，无需证书）
+' 用途：连接 wss:// 服务器、TLS TCP 服务器等
+Public Function Tls() As cWinsock
+    m_TlsMode = TlsModeClient
+    Set Tls = Me
+End Function
+
+' 证书文件模式（最常用，服务端 Listen 时出示证书）
+' CertFile: PFX/P12 或 PEM 格式证书路径，PEM 支持用 | 分隔多文件
+Public Function TlsCertFile( _
+    ByVal CertFile As String, _
+    Optional ByVal Password As String, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cWinsock
+
+    m_TlsMode = TlsModeCertFile
+    m_TlsCertFile = CertFile
+    m_TlsPassword = Password
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertFile = Me
+End Function
+
+' Windows 证书存储模式（服务端 Listen 时出示证书）
+' CertSubject: 证书主题（如 "www.example.com"）
+Public Function TlsCertSubject( _
+    ByVal CertSubject As String, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cWinsock
+
+    m_TlsMode = TlsModeSubject
+    m_TlsCertSubject = CertSubject
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertSubject = Me
+End Function
+
+' 内存证书集合模式（高级，服务端 Listen 时出示证书）
+Public Function TlsCertMemory( _
+    ByVal Certificates As Collection, _
+    ByVal PrivateKey As Collection, _
+    Optional ByVal AlpnProtocols As String = "http/1.1") As cWinsock
+
+    m_TlsMode = TlsModeMemory
+    Set m_TlsCertificates = Certificates
+    Set m_TlsPrivateKey = PrivateKey
+    m_TlsAlpnProtocols = AlpnProtocols
+    Set TlsCertMemory = Me
+End Function
+
+'=========================================================================
+' Public Methods - User Management
 '=========================================================================
 
 Public Sub BindUser(ByVal User As Variant, Client As cWinsock, Optional ByVal Token As String, Optional Info As cJson)
@@ -864,7 +934,7 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
     eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
     
     ' Create socket
-    Set m_oSocket = New cAsyncSocket
+    Set m_oSocket = New cTlsSocket
     If Not m_oSocket.Create(SocketType:=eSocketType) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
@@ -873,9 +943,18 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
     m_eState = sckResolvingHost
     
     ' Connect
-    If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort) Then
-        pvRaiseError m_oSocket.LastError
-        Exit Sub
+    If m_TlsMode <> TlsNone Then
+        ' TLS 连接
+        If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort, UseTls:=True) Then
+            pvRaiseError m_oSocket.LastError
+            Exit Sub
+        End If
+    Else
+        ' 普通 TCP 连接
+        If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort) Then
+            pvRaiseError m_oSocket.LastError
+            Exit Sub
+        End If
     End If
     
     Exit Sub
@@ -901,10 +980,31 @@ Public Sub Listen(Optional ByVal Port As Long, Optional ByVal LocalAddress As St
     eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
     
     ' Create socket
-    Set m_oSocket = New cAsyncSocket
+    Set m_oSocket = New cTlsSocket
     If Not m_oSocket.Create(SocketPort:=m_lLocalPort, SocketType:=eSocketType, SocketAddress:=LocalAddress) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
+    End If
+    
+    ' TLS 服务端：在 Listen 前初始化证书
+    If m_TlsMode <> TlsNone And m_TlsMode <> TlsModeClient Then
+        Select Case m_TlsMode
+            Case TlsModeCertFile
+                If Not m_oSocket.InitServerTls(CertFile:=m_TlsCertFile, Password:=m_TlsPassword, AlpnProtocols:=m_TlsAlpnProtocols) Then
+                    pvRaiseError m_oSocket.LastError
+                    Exit Sub
+                End If
+            Case TlsModeSubject
+                If Not m_oSocket.InitServerTls(CertSubject:=m_TlsCertSubject, AlpnProtocols:=m_TlsAlpnProtocols) Then
+                    pvRaiseError m_oSocket.LastError
+                    Exit Sub
+                End If
+            Case TlsModeMemory
+                If Not m_oSocket.InitServerTls(Certificates:=m_TlsCertificates, PrivateKey:=m_TlsPrivateKey, AlpnProtocols:=m_TlsAlpnProtocols) Then
+                    pvRaiseError m_oSocket.LastError
+                    Exit Sub
+                End If
+        End Select
     End If
     
     ' For TCP, start listening
@@ -947,13 +1047,13 @@ Public Sub SendData(Data As Variant, Optional ByVal CodePage As EnumScpCodePage 
             Select Case varType(Data)
             Case vbString
                 ' Convert string to bytes using specified CodePage
-                Dim oConvSocket As cAsyncSocket
+                Dim oConvSocket As cTlsSocket
                 If Not m_oSocket Is Nothing Then
                     Set oConvSocket = m_oSocket
                 ElseIf Not m_oParentServer Is Nothing And Not m_oParentServer.Socket Is Nothing Then
                     Set oConvSocket = m_oParentServer.Socket
                 Else
-                    Set oConvSocket = New cAsyncSocket
+                    Set oConvSocket = New cTlsSocket
                 End If
                 baRaw = oConvSocket.ToTextArray(CStr(Data), CodePage)
             Case vbByte + vbArray
@@ -1126,7 +1226,7 @@ End Function
 Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional ByVal maxLen As Long = -1, Optional ByVal CodePage As EnumScpCodePage = wcpAcp)
     Dim baBuffer() As Byte
     Dim lIdx As Long
-    Dim oSocket As cAsyncSocket
+    Dim oSocket As cTlsSocket
     
     On Error GoTo EH
     
@@ -1195,7 +1295,7 @@ Public Sub GetData(Data As Variant, Optional ByVal VarType_ As Long, Optional By
             ElseIf Not m_oParentServer Is Nothing And Not m_oParentServer.Socket Is Nothing Then
                 Set oSocket = m_oParentServer.Socket
             Else
-                Set oSocket = New cAsyncSocket
+                Set oSocket = New cTlsSocket
             End If
             ' Use specified encoding (default ACP for backward compatibility with UDP)
             Data = oSocket.FromTextArray(baBuffer, CodePage)
@@ -1240,13 +1340,13 @@ Public Sub PeekData(Data As Variant, Optional ByVal VarType_ As Long, Optional B
     Case vbString
         If UBound(baBuffer) >= 0 Then
             ' Use specified encoding (default ACP for backward compatibility with UDP)
-            Dim oSocket As cAsyncSocket
+            Dim oSocket As cTlsSocket
             If Not m_oSocket Is Nothing Then
                 Set oSocket = m_oSocket
             ElseIf Not m_oParentServer Is Nothing And Not m_oParentServer.Socket Is Nothing Then
                 Set oSocket = m_oParentServer.Socket
             Else
-                Set oSocket = New cAsyncSocket
+                Set oSocket = New cTlsSocket
             End If
             Data = oSocket.FromTextArray(baBuffer, CodePage)
         Else
@@ -1300,7 +1400,23 @@ Public Sub Close_()
     If Not m_oHeartbeat Is Nothing Then
         m_oHeartbeat.StopMe
     End If
+    
+    ' 重置 TLS 状态
+    m_TlsMode = TlsNone
+    m_TlsCertFile = ""
+    m_TlsPassword = ""
+    m_TlsCertSubject = ""
+    Set m_TlsCertificates = Nothing
+    Set m_TlsPrivateKey = Nothing
+    m_TlsAlpnProtocols = ""
 End Sub
+
+'--- TLS 内部属性 ---
+
+' 获取 TLS 模式（Friend，供 AcceptFrom 判断父级是否启用 TLS）
+Friend Property Get TlsModeInternal() As Long
+    TlsModeInternal = m_TlsMode
+End Property
 ' Bind to local address/port (for UDP)
 Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
     On Error GoTo EH
@@ -1311,7 +1427,7 @@ Public Sub Bind(Optional ByVal LocalPort As Long, Optional LocalIP As String)
         m_lLocalPort = LocalPort
     End If
     
-    Set m_oSocket = New cAsyncSocket
+    Set m_oSocket = New cTlsSocket
     If Not m_oSocket.Create(SocketPort:=m_lLocalPort, SocketType:=ucsSckDatagram) Then
         pvRaiseError m_oSocket.LastError
         Exit Sub
@@ -1335,8 +1451,8 @@ Public Function GetErrorDescription(ByVal ErrorCode As Long) As String
     If Not m_oSocket Is Nothing Then
         GetErrorDescription = m_oSocket.GetErrorDescription(ErrorCode)
     Else
-        Dim oTempSocket As cAsyncSocket
-        Set oTempSocket = New cAsyncSocket
+        Dim oTempSocket As cTlsSocket
+        Set oTempSocket = New cTlsSocket
         GetErrorDescription = oTempSocket.GetErrorDescription(ErrorCode)
     End If
 End Function
@@ -1346,14 +1462,22 @@ End Function
 '=========================================================================
 
 ' Accept a new client connection (called internally)
-Friend Sub AcceptFrom(oListenSocket As cAsyncSocket, oParent As cWinsock)
+Friend Sub AcceptFrom(oListenSocket As cTlsSocket, oParent As cWinsock)
     On Error GoTo EH
 
-    Set m_oSocket = New cAsyncSocket
-    If Not oListenSocket.Accept(m_oSocket) Then
+    Set m_oSocket = New cTlsSocket
+    
+    ' 根据父级是否启用 TLS 决定 Accept 参数
+    Dim bUseTls As Boolean
+    bUseTls = (oParent.TlsModeInternal <> TlsNone)
+    
+    If Not oListenSocket.Accept(m_oSocket, UseTls:=bUseTls) Then
         pvRaiseError oListenSocket.LastError
         Exit Sub
     End If
+
+    ' 继承父级的 TLS 模式（仅用于状态标识）
+    If bUseTls Then m_TlsMode = TlsModeClient
 
     m_eState = sckConnected
     m_eProtocol = wskTCPProtocol
@@ -1695,6 +1819,12 @@ Private Sub m_oSocket_OnError(ByVal ErrorCode As Long, ByVal EventMask As UcsAsy
     pvRaiseError ErrorCode
 End Sub
 
+Private Sub m_oSocket_OnCertificate(Issuers As Object, Confirmed As Boolean)
+    ' 默认信任服务器证书
+    Confirmed = True
+    RaiseEvent ServerCertificateVerify(Me, Issuers, Confirmed)
+End Sub
+
 '=========================================================================
 ' Friend Methods
 '=========================================================================
@@ -1795,7 +1925,7 @@ Public Function SyncConnect(HostAddress As String, ByVal HostPort As Long, Optio
     eSocketType = IIf(m_eProtocol = wskTCPProtocol, ucsSckStream, ucsSckDatagram)
 
     ' Create socket
-    Set m_oSocket = New cAsyncSocket
+    Set m_oSocket = New cTlsSocket
     If Not m_oSocket.Create(SocketType:=eSocketType) Then
         pvRaiseError m_oSocket.LastError
         Exit Function
@@ -1804,7 +1934,11 @@ Public Function SyncConnect(HostAddress As String, ByVal HostPort As Long, Optio
     m_eState = sckResolvingHost
 
     ' Sync connect
-    SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout)
+    If m_TlsMode <> TlsNone Then
+        SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout, UseTls:=True)
+    Else
+        SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout)
+    End If
 
     ' Update state on success
     If SyncConnect Then

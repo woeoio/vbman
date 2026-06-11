@@ -37,6 +37,7 @@ Public PathInfo As String
 Public PathInfoController As String
 Public PathInfoAction As String
 Public QueryInfo As String
+Public RouteParams As New Scripting.Dictionary
 Public QueryString As New Scripting.Dictionary
 Public Form As New Scripting.Dictionary
 Public Json As New cJson
@@ -145,6 +146,7 @@ End Function
 
 Private Sub Class_Initialize()
     Header.CompareMode = TextCompare
+    RouteParams.CompareMode = TextCompare
     QueryString.CompareMode = TextCompare
     Form.CompareMode = TextCompare
 End Sub

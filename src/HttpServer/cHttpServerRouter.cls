@@ -66,9 +66,9 @@ End Function
 '开发者定义的路由处理，如果没有用户路由，则执行自动路由
 Public Function Add(RouteName As String, Handler As String, Optional MethodLimit As EnumRouteMethod = Any_) As Boolean
     Dim n  As String: n = ToolsHttp.MapMethodName(MethodLimit)
-    '    If Dic(n).Exists(RouteName) = True Then Err.Raise 1, , "RouteName Exists：" & RouteName
-    Dic(n)(RouteName) = Handler
-    '    Dic(n).Add RouteName, Handler
+    Dim item As New cHttpServerRouteItem
+    Call item.Init(RouteName, Handler)
+    Set Dic(n)(RouteName) = item
     Add = True
 End Function
 
@@ -115,12 +115,61 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If Client.Context.fIsAbort = True Then GoTo QH
     '开始路由
     If Request.PathInfo = "/_dev" Then Response.test: Exit Function
-    '匹配用户路由
+    '匹配用户路由（支持参数路由 {param}）
     If Dic.Exists(Request.MethodName) = True Then
         Dim RD As Scripting.Dictionary, Handler As String
         Set RD = Dic(Request.MethodName)
-        If RD.Exists(Request.PathInfo) = True Then Handler = RD(Request.PathInfo): GoTo MatchController
-        If DicAny.Exists(Request.PathInfo) = True Then Handler = DicAny(Request.PathInfo): GoTo MatchController
+        
+        '1.精确匹配优先（O(1)，性能最高）
+        If RD.Exists(Request.PathInfo) = True Then
+            Dim exactItem As cHttpServerRouteItem
+            Set exactItem = RD(Request.PathInfo)
+            If Not exactItem.HasParams Then
+                Handler = exactItem.Handler
+                GoTo MatchController
+            End If
+        End If
+        'ANY 字典精确匹配
+        If DicAny.Exists(Request.PathInfo) = True Then
+            Set exactItem = DicAny(Request.PathInfo)
+            If Not exactItem.HasParams Then
+                Handler = exactItem.Handler
+                GoTo MatchController
+            End If
+        End If
+        
+        '2.参数路由模式匹配（遍历含参数的路由项）
+        Dim RouteKey As Variant
+        Dim routeItem As cHttpServerRouteItem
+        Dim routeParams As Scripting.Dictionary
+        
+        '在当前方法字典中匹配
+        For Each RouteKey In RD.Keys
+            Set routeItem = RD(RouteKey)
+            If routeItem.HasParams Then
+                Set routeParams = New Scripting.Dictionary
+                routeParams.CompareMode = TextCompare
+                If routeItem.Match(Request.PathInfo, routeParams) = True Then
+                    Set Request.RouteParams = routeParams
+                    Handler = routeItem.Handler
+                    GoTo MatchController
+                End If
+            End If
+        Next RouteKey
+        
+        '在 ANY 字典中匹配
+        For Each RouteKey In DicAny.Keys
+            Set routeItem = DicAny(RouteKey)
+            If routeItem.HasParams Then
+                Set routeParams = New Scripting.Dictionary
+                routeParams.CompareMode = TextCompare
+                If routeItem.Match(Request.PathInfo, routeParams) = True Then
+                    Set Request.RouteParams = routeParams
+                    Handler = routeItem.Handler
+                    GoTo MatchController
+                End If
+            End If
+        Next RouteKey
     End If
     '自动路由（不如手动路由性能高）
     If AutoRoute = True Then

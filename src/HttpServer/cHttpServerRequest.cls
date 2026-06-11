@@ -34,6 +34,7 @@ Public MethodName As String
 Public HttpVersion As String
 Public url As String
 Public PathInfo As String
+Public PathInfoList As New cCollection
 Public PathInfoController As String
 Public PathInfoAction As String
 Public QueryInfo As String
@@ -82,6 +83,14 @@ Private Function ParseUri(sRequest As String) As Boolean
         Dim p: p = Split(PathInfo & "///", "/", 4)
         PathInfoController = p(1)
         PathInfoAction = p(2)
+        '解析路径段到 PathParts（键值对都是段名，方便按索引和键访问）
+        Dim segs As Variant, si As Long
+        segs = Split(Mid(PathInfo, 2), "/")
+        For si = 0 To UBound(segs)
+            If CStr(segs(si)) <> "" Then
+                PathInfoList.Add CStr(segs(si)), CStr(segs(si))
+            End If
+        Next si
     End If
     If QueryInfo <> "" Then Call ToolsHttp.ParseContent(QueryInfo, QueryString)
 QH:

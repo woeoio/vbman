@@ -29,6 +29,10 @@ Dim IsRunning  As Boolean
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
 
+' 内置定时清理器：定期清理空闲连接和过期 Session
+Private WithEvents m_oCleanupTimer As cTimer
+Attribute m_oCleanupTimer.VB_VarHelpID = -1
+
 ' BUG-1 修复：用 Dictionary 替代 Collection，以 hSocket 为 Key 彻底消除索引漂移
 Private m_cConnPool             As New Scripting.Dictionary
 
@@ -88,6 +92,8 @@ Public MaxConnections As Long
 Public MaxRequestSize As Long
 ' BUG-2 修复：空闲连接超时秒数（默认 120 秒）
 Public IdleTimeoutSeconds As Long
+' 内置清理定时器间隔（毫秒，默认 30000 = 30秒）
+Private m_CleanupTimerInterval As Long
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -181,6 +187,12 @@ Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0
         .WebRoot = m_WebRoot
     End With
     IsRunning = True
+    
+    ' 启动内置定时清理器
+    Set m_oCleanupTimer = New cTimer
+    m_oCleanupTimer.Interval = m_CleanupTimerInterval
+    m_oCleanupTimer.Enable
+    
     Start = True
 End Function
 
@@ -190,6 +202,13 @@ Public Function StopMe() As Boolean
         m_oServer.CloseSck
     End If
     IsRunning = False
+    
+    ' 停止内置定时清理器
+    If Not m_oCleanupTimer Is Nothing Then
+        m_oCleanupTimer.Disable
+        Set m_oCleanupTimer = Nothing
+    End If
+    
     ' 逐一释放所有连接，断开循环引用链
     Dim key As Variant
     Dim oCallback As cClientCallback
@@ -243,12 +262,37 @@ Private Sub Class_Initialize()
     MaxRequestSize = 10485760
     ' BUG-2 修复：默认空闲超时 120 秒
     IdleTimeoutSeconds = 120
+    ' 内置清理定时器默认 30 秒
+    m_CleanupTimerInterval = 30000
 End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
     StopMe
 End Sub
+
+' 内置清理定时器事件：定期清理空闲连接和过期 Session
+Private Sub m_oCleanupTimer_Timer()
+    On Error Resume Next
+    ' 定时清理空闲连接
+    If IdleTimeoutSeconds > 0 Then CleanupIdleConnections
+    ' 定时清理过期 Session
+    If SessionAutoCleanup Then CleanupExpiredSessions
+End Sub
+
+' 获取/设置内置清理定时器间隔（毫秒）
+Public Property Get CleanupTimerInterval() As Long
+    CleanupTimerInterval = m_CleanupTimerInterval
+End Property
+
+Public Property Let CleanupTimerInterval(ByVal value As Long)
+    m_CleanupTimerInterval = value
+    ' 如果定时器已在运行，更新间隔并重启
+    If Not m_oCleanupTimer Is Nothing Then
+        m_oCleanupTimer.Interval = value
+        m_oCleanupTimer.Reset
+    End If
+End Property
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
     
@@ -337,11 +381,6 @@ Friend Sub OnDataArrival(ByVal hSocket As Long)
         ' 5. 从缓冲区移除已处理的数据
         RemoveProcessedData oCallback, completeRequest
     Loop
-    
-    ' BUG-2 修复：定期清理空闲连接（每次数据到达时 1% 概率触发）
-    If IdleTimeoutSeconds > 0 Then
-        If Rnd < 0.01 Then CleanupIdleConnections
-    End If
     
     Exit Sub
 EH:
@@ -724,10 +763,6 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
         End If
     End If
     
-    ' 并根据概率自动清理过期 Session（约 1% 概率）
-    If SessionAutoCleanup Then
-        If Rnd < 0.01 Then CleanupExpiredSessions
-    End If
     Exit Sub
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
@@ -871,5 +906,3 @@ Public Property Get ConnectionCount() As Long
         ConnectionCount = m_cConnPool.Count
     End If
 End Property
-
-

@@ -46,16 +46,16 @@ Private Const C_METHOD_PUT As String = "PUT"
 Private Const C_METHOD_DELETE As String = "DELETE"
 
 '控制器字典
-Dim Controllers As New Scripting.Dictionary
+Dim Controllers As Scripting.Dictionary
 '方法字典
-Dim Dic As New Scripting.Dictionary
-Dim DicAny As New Scripting.Dictionary
-Dim DicGet As New Scripting.Dictionary
-Dim DicPost As New Scripting.Dictionary
-Dim DicPut As New Scripting.Dictionary
-Dim DicDelete As New Scripting.Dictionary
+Dim Dic As Scripting.Dictionary
+Dim DicAny As Scripting.Dictionary
+Dim DicGet As Scripting.Dictionary
+Dim DicPost As Scripting.Dictionary
+Dim DicPut As Scripting.Dictionary
+Dim DicDelete As Scripting.Dictionary
 '路由组
-Dim DicGroup As New Scripting.Dictionary
+Dim DicGroup As Scripting.Dictionary
 
 ''开发者定义的控制器字典注册函数
 Public Function Reg(ControllerName As String, Controller As Object) As Boolean
@@ -66,7 +66,8 @@ End Function
 '开发者定义的路由处理，如果没有用户路由，则执行自动路由
 Public Function Add(RouteName As String, Handler As String, Optional MethodLimit As EnumRouteMethod = Any_) As Boolean
     Dim n  As String: n = ToolsHttp.MapMethodName(MethodLimit)
-    Dim item As New cHttpServerRouteItem
+    Dim item As cHttpServerRouteItem
+    Set item = New cHttpServerRouteItem
     Call item.Init(RouteName, Handler)
     Set Dic(n)(RouteName) = item
     Add = True
@@ -253,6 +254,16 @@ Private Function RunHandlerVbs(Request As cHttpServerRequest) As Boolean
 End Function
 
 Private Sub Class_Initialize()
+    ' 显式创建子对象（替代 As New 隐式创建）
+    Set Controllers = New Scripting.Dictionary
+    Set Dic = New Scripting.Dictionary
+    Set DicAny = New Scripting.Dictionary
+    Set DicGet = New Scripting.Dictionary
+    Set DicPost = New Scripting.Dictionary
+    Set DicPut = New Scripting.Dictionary
+    Set DicDelete = New Scripting.Dictionary
+    Set DicGroup = New Scripting.Dictionary
+    
     With Dic
         .Add C_METHOD_ANY, DicAny
         .Add C_METHOD_GET, DicGet
@@ -262,8 +273,6 @@ Private Sub Class_Initialize()
     End With
     
     Controllers.CompareMode = TextCompare
-    '忽略大小写
-    '    Dic.CompareMode = TextCompare
     DicAny.CompareMode = TextCompare
     DicGet.CompareMode = TextCompare
     DicPost.CompareMode = TextCompare
@@ -271,4 +280,23 @@ Private Sub Class_Initialize()
     DicDelete.CompareMode = TextCompare
     DicGroup.CompareMode = TextCompare
     
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    Set Controllers = Nothing
+    If Not DicAny Is Nothing Then DicAny.RemoveAll
+    If Not DicGet Is Nothing Then DicGet.RemoveAll
+    If Not DicPost Is Nothing Then DicPost.RemoveAll
+    If Not DicPut Is Nothing Then DicPut.RemoveAll
+    If Not DicDelete Is Nothing Then DicDelete.RemoveAll
+    If Not Dic Is Nothing Then Dic.RemoveAll
+    If Not DicGroup Is Nothing Then DicGroup.RemoveAll
+    Set Dic = Nothing
+    Set DicAny = Nothing
+    Set DicGet = Nothing
+    Set DicPost = Nothing
+    Set DicPut = Nothing
+    Set DicDelete = Nothing
+    Set DicGroup = Nothing
 End Sub

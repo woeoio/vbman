@@ -34,7 +34,8 @@ Private WithEvents m_oCleanupTimer As cTimer
 Attribute m_oCleanupTimer.VB_VarHelpID = -1
 
 ' BUG-1 修复：用 Dictionary 替代 Collection，以 hSocket 为 Key 彻底消除索引漂移
-Private m_cConnPool             As New Scripting.Dictionary
+' As New→显式：改 As New 为显式创建，确保 Set = Nothing 时真正释放
+Private m_cConnPool             As Scripting.Dictionary
 
 ' TLS 模式枚举
 Private Enum EnumTlsMode
@@ -63,20 +64,22 @@ Private m_TlsAlpnProtocols As String
 
 ' WebRoot
 Private m_WebRoot As String
-Dim m_Sessions                  As New Scripting.Dictionary
+' As New→显式：Session 字典显式创建
+Dim m_Sessions                  As Scripting.Dictionary
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 Public Event OnLogs(ByVal Level As String, ByVal Content As String)
 
-Public SSE As New cSSE
-Public ScriptEngine As New cScriptEngine
+' As New→显式：所有共享对象改为显式创建
+Public SSE As cSSE
+Public ScriptEngine As cScriptEngine
 
-Public Router As New cHttpServerRouter
-Public RouteBefore As New cHttpServerRouteBefore
-Public RouteAfter As New cHttpServerRouterAfter
-Public Database As New cDataBase
+Public Router As cHttpServerRouter
+Public RouteBefore As cHttpServerRouteBefore
+Public RouteAfter As cHttpServerRouterAfter
+Public Database As cDataBase
 
-Public CrossDomain As New cHttpCrossDomain
+Public CrossDomain As cHttpCrossDomain
 
 Public LastError As String
 
@@ -230,6 +233,13 @@ Public Function StopMe() As Boolean
     
     ' 清理内存中 Session
     If Not m_Sessions Is Nothing Then
+        ' 先释放每个 Session 内部资源
+        Dim sk As Variant
+        For Each sk In m_Sessions.Keys
+            Dim sess As cHttpServerSession
+            Set sess = m_Sessions(sk)
+            If Not sess Is Nothing Then sess.Release
+        Next
         m_Sessions.RemoveAll
     End If
     
@@ -250,12 +260,23 @@ EH:
 End Function
 
 Private Sub Class_Initialize()
+    ' 显式创建所有子对象（替代 As New 隐式创建）
+    Set m_cConnPool = New Scripting.Dictionary
+    Set m_Sessions = New Scripting.Dictionary
+    m_Sessions.CompareMode = TextCompare
+    
+    Set SSE = New cSSE
+    Set ScriptEngine = New cScriptEngine
+    Set Router = New cHttpServerRouter
+    Set RouteBefore = New cHttpServerRouteBefore
+    Set RouteAfter = New cHttpServerRouterAfter
+    Set Database = New cDataBase
+    Set CrossDomain = New cHttpCrossDomain
+    
     ' 默认配置
     SessionStorageType = SessionStorageMemory ' 默认内存存储
     SessionCookieName = "VBMAN_SESSIONID"
     SessionAutoCleanup = True
-    m_Sessions.CompareMode = TextCompare
-    ' BUG-1 修复：Dictionary 用 hSocket 做 Key，不需要 CompareMode
     ' BUG-7 修复：默认最大连接数
     MaxConnections = 1000
     ' BUG-3 修复：默认最大请求体 10MB
@@ -269,6 +290,22 @@ End Sub
 Private Sub Class_Terminate()
     On Error Resume Next
     StopMe
+    ' 显式释放所有共享对象
+    Set SSE = Nothing
+    Set ScriptEngine = Nothing
+    Set Router = Nothing
+    Set RouteBefore = Nothing
+    Set RouteAfter = Nothing
+    Set Database = Nothing
+    Set CrossDomain = Nothing
+    If Not m_cConnPool Is Nothing Then
+        m_cConnPool.RemoveAll
+        Set m_cConnPool = Nothing
+    End If
+    If Not m_Sessions Is Nothing Then
+        m_Sessions.RemoveAll
+        Set m_Sessions = Nothing
+    End If
 End Sub
 
 ' 内置清理定时器事件：定期清理空闲连接和过期 Session
@@ -297,7 +334,8 @@ End Property
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
     
     ' requestID 就是客户端的句柄 hSocket
-    Dim CI As New cHttpServerClientInfo, IsDiss As Boolean
+    Dim CI As cHttpServerClientInfo, IsDiss As Boolean
+    Set CI = New cHttpServerClientInfo
     With CI
         .IP = m_oServer.RemoteHostIP
         .Port = m_oServer.RemotePort
@@ -316,7 +354,8 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
         Exit Sub
     End If
     
-    Dim oCallback           As New cClientCallback
+    Dim oCallback           As cClientCallback
+    Set oCallback = New cClientCallback
     Set oCallback.Socket = New cTlsReMaster
     Set oCallback.Context = New cHttpServerContext
     
@@ -593,8 +632,11 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     Dim oCallback As cClientCallback
     Set oCallback = m_cConnPool.Item(hSocket)
     
-    Dim Request As New cHttpServerRequest
-    Dim response As New cHttpServerResponse
+    ' As New→显式：本地变量用显式创建，不用 As New
+    Dim Request As cHttpServerRequest
+    Dim response As cHttpServerResponse
+    Set Request = New cHttpServerRequest
+    Set response = New cHttpServerResponse
     
     ' 设置Client回调引用
     Set response.fClient = oCallback
@@ -654,7 +696,8 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     
     ' 初始 http 会话
     Dim Session As cHttpServerSession
-    Dim Cookies As New cHttpServerCookies
+    Dim Cookies As cHttpServerCookies
+    Set Cookies = New cHttpServerCookies
     
     ' 解析请求头中的 Cookie，分离请求 Cookie（只解析到 m_RequestCookies，响应 Cookie 通过 Cookie() 设置）
     If Request.Header.Exists("Cookie") = True Then
@@ -740,8 +783,10 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     ' 开始路由
     Call Router.Entry(oCallback)
     
-    ' 处理 Session：如果写入过 Item 则自动生成 SessionID
-    If Session.sessionID <> "" Then
+    ' 关键修复：只有 Session.HasID（实际有数据被写入）时才写入 Cookie 和存储
+    ' 之前 sessionID Property Get 会自动生成 GUID，导致每个请求的空 Session 都被存入 m_Sessions
+    ' 造成 900 QPS × 20 分钟 = 1,080,000 个空 Session 永驻内存（约 1-2GB）
+    If Session.HasID Then
         ' 将 SessionID 写入响应 Cookie
         With Cookies.Cookie(sessionCookieName)
             .Value = Session.sessionID
@@ -780,6 +825,9 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     On Error Resume Next
     oCallback.Context.ReleaseRequest
     Request.ClearRequest
+    ' 显式释放本地变量引用（包括 Session 和 Cookies，不再等 Sub 退出才释放）
+    Set Session = Nothing
+    Set Cookies = Nothing
     Set response = Nothing: Set Request = Nothing
     On Error GoTo 0
     
@@ -793,6 +841,8 @@ EH:
     End If
     ' 错误路径也要清理请求对象
     oCallback.Context.ReleaseRequest
+    Set Session = Nothing
+    Set Cookies = Nothing
     Set response = Nothing: Set Request = Nothing
 End Sub
 
@@ -829,7 +879,8 @@ Public Sub CleanupIdleConnections()
     Dim oCallback As cClientCallback
     Dim cutoffTime As Date
     cutoffTime = DateAdd("s", -IdleTimeoutSeconds, Now)
-    Dim keysToClose As New Collection
+    Dim keysToClose As Collection
+    Set keysToClose = New Collection
     
     ' 先收集需要关闭的连接 Key（不能在遍历中修改 Dictionary）
     For Each key In m_cConnPool.Keys
@@ -869,7 +920,8 @@ Public Sub CleanupExpiredSessions()
     On Error GoTo EH
     Dim k As Variant
     Dim Session As cHttpServerSession
-    Dim keysToRemove As New Collection
+    Dim keysToRemove As Collection
+    Set keysToRemove = New Collection
     
     If SessionStorageType = SessionStorageMemory Then
         ' 内存模式：遍历字典，删除过期 Session
@@ -881,6 +933,9 @@ Public Sub CleanupExpiredSessions()
         Next
         Dim i As Long
         For i = 1 To keysToRemove.Count
+            ' 先释放 Session 内部资源
+            Set Session = m_Sessions(keysToRemove(i))
+            If Not Session Is Nothing Then Session.Release
             m_Sessions.Remove keysToRemove(i)
         Next
     ElseIf SessionStorageType = SessionStorageFileSystem Then
@@ -895,7 +950,8 @@ Public Sub CleanupExpiredSessions()
             Dim f As String
             f = Dir(sessionPath & "*.json")
             Do While f <> ""
-                Dim sess As New cHttpServerSession
+                Dim sess As cHttpServerSession
+                Set sess = New cHttpServerSession
                 If sess.LoadFromFile(sessionPath & f) Then
                     If sess.IsExpired Then
                         On Error Resume Next

@@ -14,16 +14,17 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Dim pWebRoot As String
-Dim rootFiles As New Scripting.Dictionary
-Dim rootDirs As New Scripting.Dictionary
+' As New→显式：改 As New 为显式创建
+Dim rootFiles As Scripting.Dictionary
+Dim rootDirs As Scripting.Dictionary
 
-Dim Fso As New Scripting.FileSystemObject
+Dim Fso As Scripting.FileSystemObject
 
 Public IP As String
 Public Port As Long
 
 ' 默认文档列表
-Dim m_DefaultDocuments As New Collection
+Dim m_DefaultDocuments As Collection
 
 
 Public Property Get WebRoot() As String
@@ -66,16 +67,35 @@ Friend Function IsStaticFile(Path As String) As Boolean
 End Function
 
 Private Sub Class_Initialize()
+    ' 显式创建子对象（替代 As New 隐式创建）
+    Set rootFiles = New Scripting.Dictionary
+    Set rootDirs = New Scripting.Dictionary
+    Set Fso = New Scripting.FileSystemObject
     '设置大小写不敏感
     rootFiles.CompareMode = TextCompare
     rootDirs.CompareMode = TextCompare
     ' 默认文档列表
+    Set m_DefaultDocuments = New Collection
     With m_DefaultDocuments
         .Add "index.html"
         .Add "index.htm"
         .Add "default.html"
         .Add "default.htm"
     End With
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    If Not rootFiles Is Nothing Then
+        rootFiles.RemoveAll
+        Set rootFiles = Nothing
+    End If
+    If Not rootDirs Is Nothing Then
+        rootDirs.RemoveAll
+        Set rootDirs = Nothing
+    End If
+    Set Fso = Nothing
+    Set m_DefaultDocuments = Nothing
 End Sub
 
 ' 添加自定义默认文档

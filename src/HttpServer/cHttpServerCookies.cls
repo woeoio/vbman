@@ -23,7 +23,8 @@ Private m_RequestCookies As Scripting.Dictionary
 Public Property Get Cookie(ByVal Key As String) As cHttpServerCookieAttr
 Attribute Cookie.VB_UserMemId = 0
     If Data.Exists(Key) = False Then
-        Dim CK As New cHttpServerCookieAttr
+        Dim CK As cHttpServerCookieAttr
+        Set CK = New cHttpServerCookieAttr
         Set Cookie = CK
         Data.Add Key, CK
         Set CK = Nothing

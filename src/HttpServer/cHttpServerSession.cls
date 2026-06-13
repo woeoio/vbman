@@ -13,8 +13,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-' 使用 Scripting.Dictionary 存储会话数据
-Dim Data As New Scripting.Dictionary
+' 使用 Scripting.Dictionary 存储会话数据（延迟创建，仅在首次写入时分配）
+Dim Data As Scripting.Dictionary
 
 ' SessionID
 Private pvSessionID As String
@@ -27,11 +27,21 @@ Private pvTimeout As Long
 ' 脏标记，数据变更时置 True，用于优化持久化
 Private pvDirty As Boolean
 
+' 确保 Data 字典已创建（内部辅助）
+Private Sub EnsureData()
+    If Data Is Nothing Then
+        Set Data = New Scripting.Dictionary
+        Data.CompareMode = TextCompare
+    End If
+End Sub
+
 ' 获取或设置会话数据
 Public Property Get Item(ByVal Key As String) As Variant
 Attribute Item.VB_UserMemId = 0
-    If Data.Exists(Key) Then
-        Item = Data(Key)
+    If Not Data Is Nothing Then
+        If Data.Exists(Key) Then
+            Item = Data(Key)
+        End If
     End If
 End Property
 
@@ -42,6 +52,7 @@ Public Property Let Item(ByVal Key As String, v As Variant)
         pvCreatedAt = Now
         pvLastAccessedAt = Now
     End If
+    EnsureData
     Data(Key) = v
     pvLastAccessedAt = Now
     pvDirty = True
@@ -54,24 +65,27 @@ Public Property Set Item(ByVal Key As String, v As Variant)
         pvCreatedAt = Now
         pvLastAccessedAt = Now
     End If
+    EnsureData
     Set Data(Key) = v
     pvLastAccessedAt = Now
     pvDirty = True
 End Property
 
-' SessionID
+' SessionID — 仅返回已有的 ID，不再自动生成
+' 关键修复：原 Property Get 在 pvSessionID 为空时自动生成 GUID，
+' 导致 ProcessHttpRequest 中 "If Session.sessionID <> "" Then" 永远为 True，
+' 每次请求都会把空 Session 存入 m_Sessions 造成大量累积和内存泄漏
 Public Property Get sessionID() As String
-    If pvSessionID = "" Then
-        ' 生成新的 SessionID
-        pvSessionID = GenerateSessionID
-        pvCreatedAt = Now
-        pvLastAccessedAt = Now
-    End If
     sessionID = pvSessionID
 End Property
 
 Public Property Let sessionID(v As String)
     pvSessionID = v
+End Property
+
+' 判断是否已有 SessionID（即是否有实际数据被写入）
+Public Property Get HasID() As Boolean
+    HasID = (pvSessionID <> "")
 End Property
 
 ' 创建时间
@@ -108,6 +122,10 @@ Public Function IsExpired() As Boolean
         IsExpired = False
         Exit Function
     End If
+    If pvLastAccessedAt = 0 Then
+        IsExpired = False
+        Exit Function
+    End If
     Dim dtExpire As Date
     dtExpire = DateAdd("n", pvTimeout, pvLastAccessedAt)
     IsExpired = (Now > dtExpire)
@@ -115,26 +133,34 @@ End Function
 
 ' 检查键是否存在
 Public Function Exists(ByVal Key As String) As Boolean
-    Exists = Data.Exists(Key)
+    If Not Data Is Nothing Then
+        Exists = Data.Exists(Key)
+    End If
 End Function
 
 ' 删除指定的键
 Public Sub Remove(ByVal Key As String)
-    If Data.Exists(Key) Then
-        Data.Remove Key
-        pvDirty = True
+    If Not Data Is Nothing Then
+        If Data.Exists(Key) Then
+            Data.Remove Key
+            pvDirty = True
+        End If
     End If
 End Sub
 
 ' 清空所有会话数据（保留 SessionID）
 Public Sub Clear()
-    Data.RemoveAll
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+    End If
     pvDirty = True
 End Sub
 
 ' 放弃会话（清空并重新生成 SessionID）
 Public Sub Abandon()
-    Data.RemoveAll
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+    End If
     pvSessionID = GenerateSessionID
     pvCreatedAt = Now
     pvLastAccessedAt = Now
@@ -144,6 +170,17 @@ End Sub
 ' 更新最后访问时间
 Public Sub Touch()
     pvLastAccessedAt = Now
+End Sub
+
+' 显式释放所有资源（用于连接关闭时彻底清理）
+Friend Sub Release()
+    On Error Resume Next
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+        Set Data = Nothing
+    End If
+    pvSessionID = ""
+    pvDirty = False
 End Sub
 
 ' 生成 SessionID（去掉花括号，更紧凑）
@@ -158,7 +195,15 @@ Private Sub Class_Initialize()
     pvCreatedAt = Now
     pvLastAccessedAt = Now
     pvDirty = False
-    Data.CompareMode = TextCompare
+    ' Data 延迟创建，仅在首次写入数据时分配，避免空 Session 浪费内存
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+        Set Data = Nothing
+    End If
 End Sub
 
 ' ========== Session 持久化相关方法 ==========
@@ -166,19 +211,30 @@ End Sub
 ' 序列化 Session 数据为 JSON 字符串
 Public Function Serialize() As String
     On Error GoTo EH
-    Dim Json As New cJson
-    Dim SessionData As New Scripting.Dictionary
-    Dim DataCopy As New Scripting.Dictionary
+    ' 如果没有实际数据，不序列化
+    If pvSessionID = "" Then
+        Serialize = ""
+        Exit Function
+    End If
+    
+    Dim Json As cJson
+    Set Json = New cJson
+    Dim SessionData As Scripting.Dictionary
+    Set SessionData = New Scripting.Dictionary
+    Dim DataCopy As Scripting.Dictionary
+    Set DataCopy = New Scripting.Dictionary
     
     ' 复制 Data 字典，跳过 Object 类型（JSON 无法序列化）
-    Dim k As Variant
-    For Each k In Data.Keys
-        If IsObject(Data(k)) Then
-            ' 跳过对象类型，避免序列化失败
-        Else
-            DataCopy.Add k, Data(k)
-        End If
-    Next
+    If Not Data Is Nothing Then
+        Dim k As Variant
+        For Each k In Data.Keys
+            If IsObject(Data(k)) Then
+                ' 跳过对象类型，避免序列化失败
+            Else
+                DataCopy.Add k, Data(k)
+            End If
+        Next
+    End If
     
     With SessionData
         .Add "SessionID", pvSessionID
@@ -202,7 +258,8 @@ Public Function Deserialize(ByVal JsonString As String) As Boolean
         Exit Function
     End If
     
-    Dim Json As New cJson
+    Dim Json As cJson
+    Set Json = New cJson
     Dim SessionData As Scripting.Dictionary
     
     Set SessionData = Json.Decode(JsonString).Root
@@ -212,6 +269,7 @@ Public Function Deserialize(ByVal JsonString As String) As Boolean
     If SessionData.Exists("LastAccessedAt") Then pvLastAccessedAt = SessionData("LastAccessedAt")
     If SessionData.Exists("Timeout") Then pvTimeout = SessionData("Timeout")
     If SessionData.Exists("Data") Then
+        EnsureData
         Set Data = SessionData("Data")
     End If
     

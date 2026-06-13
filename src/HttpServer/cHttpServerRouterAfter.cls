@@ -15,7 +15,8 @@ Option Explicit
 
 '后置路由采用的是异步回调
 
-Dim Dic As New Scripting.Dictionary
+' As New→显式：改 As New 为显式创建
+Dim Dic As Scripting.Dictionary
 
 Public Property Get Handles() As Scripting.Dictionary
     Set Handles = Dic
@@ -30,3 +31,14 @@ Public Function Add(HandleName As String, Handle As Object) As Boolean
     Set Dic(HandleName) = Handle
 End Function
 
+Private Sub Class_Initialize()
+    Set Dic = New Scripting.Dictionary
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    If Not Dic Is Nothing Then
+        Dic.RemoveAll
+        Set Dic = Nothing
+    End If
+End Sub

@@ -85,7 +85,8 @@ Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As Str
         Call SendBodyText(JsonInst.Encode(Data, Whitespace), "application/json")
         Exit Sub
     End If
-    Dim Dic As New Scripting.Dictionary
+    Dim Dic As Scripting.Dictionary
+    Set Dic = New Scripting.Dictionary
     With Dic
         .Add JsonPackFieldNameCode, Code
         .Add JsonPackFieldNameMsg, msg

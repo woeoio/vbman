@@ -38,12 +38,19 @@ Public ExpiresAbsolute  As Variant
 Public LCID As Long
 Public Status  As String
 
+' 标记是否已经发送过响应，防止重复发送
+Private m_HasSent As Boolean
+
 Friend Property Set fClient(o As Object)
     If o Is Nothing Then
         Set Client = Nothing
     Else
         Set Client = o
     End If
+End Property
+
+Friend Property Get fHasSent() As Boolean
+    fHasSent = m_HasSent
 End Property
 
 
@@ -68,9 +75,9 @@ Public Sub View(TplPath As String)
     '
 End Sub
 
-'返回 json
+'发送 json
 Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As String, Optional Count As Long, Optional Whitespace As Variant)
-    '判断是否 Recordset 对象，是就先转换为集合
+    '判断是否 Recordset 对象，如果是就转为数组
     '    If TypeOf Data Is ADODB.Recordset Then
     '        Set Data = ToolsList.RsToCollection(Data)
     '    End If
@@ -88,12 +95,12 @@ Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As Str
     Call SendBodyText(JsonInst.Encode(Dic, Whitespace), "application/json")
 End Sub
 
-'返回 文件
+'发送 文件
 Public Sub File(Path As String)
-    '自动判断是否ajax请求，决定返回页面还是json
+    '自动判断是否ajax请求，重定向页面还是json
     Dim sPath As String: sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
     
-    ' 如果路径对应目录，尝试查找默认文档
+    ' 如果路径对应目录，则尝试默认文档
     If ToolsFso.Inst.FolderExists(sPath) = True Then
         Dim defaultDocs As Collection
         Set defaultDocs = Client.Context.Server.GetDefaultDocuments()
@@ -119,32 +126,30 @@ SendFile:
 End Sub
 
 Public Sub State(Code As Long, Text As String, Optional Say As String = "未知状态")
-    '自动判断是否ajax请求，决定返回页面还是json
+    '自动判断是否ajax请求，重定向页面还是json
     SendBodyText Say, "text/html", Code, Text
 End Sub
 Public Sub State400(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 400, "BadRequest", Say                                                '"没有找到页面" & vbCrLf & Say
+    State 400, "BadRequest", Say
 End Sub
 Public Sub State401(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 401, "Unauthorized", Say                                              '"没有找到页面" & vbCrLf & Say
+    State 401, "Unauthorized", Say
 End Sub
 Public Sub State403(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 403, "Forbidden", Say                                                 '"没有找到页面" & vbCrLf & Say
+    State 403, "Forbidden", Say
 End Sub
 Public Sub State404(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 404, "NotFound", Say                                                  '"没有找到页面" & vbCrLf & Say
+    State 404, "NotFound", Say
+End Sub
+' BUG-3 修复：添加 413 请求体过大状态码
+Public Sub State413(Optional Say As String = "Request Entity Too Large")
+    State 413, "PayloadTooLarge", Say
 End Sub
 Public Sub State502(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 502, "GatewayError", Say                                              '"网关错误" & vbCrLf & Say
+    State 502, "GatewayError", Say
 End Sub
 Public Sub State500(Optional Say As String)
-    '自动判断是否ajax请求，决定返回页面还是json
-    State 500, "InternalError", Say                                             '"内部错误" & vbCrLf & Say
+    State 500, "InternalError", Say
 End Sub
 
 Private Sub Class_Initialize()
@@ -152,21 +157,26 @@ Private Sub Class_Initialize()
     JsonPackFieldNameData = "data"
     JsonPackFieldNameMsg = "msg"
     JsonPackFieldNameCount = "count"
-    '默认 utf8 ，可根据前端请求标头自动设置编码输出
+    '默认 utf8 并生成相应的响应头会自动设置编码
     CharSet = "utf-8"
     CodePage = 65001
+    m_HasSent = False
 End Sub
 
 'Private Sub SendBodyTextAsUtf8(Data As String, DataType As String)
 '    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
 'End Sub
 Private Sub SendBodyText(Data As String, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
+    ' BUG-8 修复：防止重复发送响应
+    If m_HasSent Then Exit Sub
+    
     Dim D() As Byte
     If Data = "" Then
         Header("Content-Type") = "text/plain; charset=" & CharSet
         Header("Content-Length") = 0
         SendHeader Status, StatusText
         Header.RemoveAll
+        m_HasSent = True
         Exit Sub
     End If
     If CodePage = 65001 Then
@@ -177,11 +187,24 @@ Private Sub SendBodyText(Data As String, DataType As String, Optional Status As 
     Call SendBodyByte(D, DataType, Status, StatusText)
 End Sub
 Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As Long = 200, Optional StatusText As String = "OK")
+    ' BUG-8 修复：防止重复发送响应
+    If m_HasSent Then Exit Sub
+    
     Header("Content-Type") = DataType & "; charset=" & CharSet
-    Header("Content-Length") = UBound(Data) + 1                                 '注意空数组
+    Header("Content-Length") = UBound(Data) + 1                                 '注意数组下标
     SendHeader Status, StatusText
-    Client.Socket.SendData Data
+    
+    ' BUG-8 修复：SendData 添加错误处理，防止客户端已断开时抛出异常
+    If Not Client Is Nothing Then
+        If Not Client.Socket Is Nothing Then
+            On Error Resume Next
+            Client.Socket.SendData Data
+            On Error GoTo 0
+        End If
+    End If
+    
     Header.RemoveAll
+    m_HasSent = True
 End Sub
 
 Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As String = "OK", Optional HttpVersioin As String = "1.1")
@@ -196,7 +219,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     If Client.Parent.CrossDomain.Enable = True Then
         Client.Parent.CrossDomain.AddTo Header
     End If
-    ' 发送 Cookie（如果 Context 中有 Cookies 对象）
+    ' 处理响应 Cookie（从 Context 中的 Cookies 获取）
     If Not Client Is Nothing Then
         If Not Client.Context Is Nothing Then
             If Not Client.Context.Cookies Is Nothing Then
@@ -221,26 +244,32 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     For Each x In Header.Keys()
         Head = Head & x & ": " & Header.Item(x) & vbCrLf
     Next
-    Client.Socket.SendData Head & vbCrLf
+    
+    ' BUG-8 修复：SendData 添加错误处理
+    If Not Client Is Nothing Then
+        If Not Client.Socket Is Nothing Then
+            On Error Resume Next
+            Client.Socket.SendData Head & vbCrLf
+            On Error GoTo 0
+        End If
+    End If
 End Sub
 
 
 Public Sub test()
     Dim sRequest As String: sRequest = Client.Context.Request.HeaderRaw
-    Dim Index As Long: Index = Client.Index
+    Dim hSocket As Long: hSocket = Client.hSocket
     Dim vSplit              As Variant
     Dim sBody               As String
     vSplit = Split(sRequest, vbCrLf)
     If UBound(vSplit) >= 0 Then
-        '        Debug.Print vSplit(0)
-        sBody = Join(vSplit, vbCrLf & Index & ": ") & vbCrLf & _
-        vbCrLf & Index & ": Current time is " & Now & _
-        vbCrLf & Index & ": RemoteHostIP is " & Client.Socket.RemoteHostIP & _
-        vbCrLf & Index & ": RemotePort is " & Client.Socket.RemotePort
+        sBody = Join(vSplit, vbCrLf & hSocket & ": ") & vbCrLf & _
+        vbCrLf & hSocket & ": Current time is " & Now & _
+        vbCrLf & hSocket & ": RemoteHostIP is " & Client.Socket.RemoteHostIP & _
+        vbCrLf & hSocket & ": RemotePort is " & Client.Socket.RemotePort
         Client.Socket.SendData "HTTP/1.1 200 OK" & vbCrLf & _
 "Content-Type: text/html" & vbCrLf & _
 "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
         sBody
     End If
-    '    Debug.Print "OnDataArrival, Index=" & Index & ", done", Timer
 End Sub

@@ -11,7 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
-'作者：邓伟，215879458@qq.com
+'作者：张伟，215879458@qq.com
 
 Option Explicit
 
@@ -19,7 +19,7 @@ Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination
 
 ' Session 存储类型枚举
 Public Enum EnumSessionStorageType
-    SessionStorageMemory = 0      ' 内存存储（不持久化）
+    SessionStorageMemory = 0      ' 内存存储（非持久化）
     SessionStorageFileSystem = 1   ' 文件系统存储
     SessionStorageDatabase = 2     ' 数据库存储
 End Enum
@@ -28,7 +28,9 @@ Dim IsRunning  As Boolean
 
 Private WithEvents m_oServer    As cTlsReMaster
 Attribute m_oServer.VB_VarHelpID = -1
-Private m_cConnPool             As New Collection
+
+' BUG-1 修复：用 Dictionary 替代 Collection，以 hSocket 为 Key 彻底消除索引漂移
+Private m_cConnPool             As New Scripting.Dictionary
 
 ' TLS 模式枚举
 Private Enum EnumTlsMode
@@ -52,7 +54,7 @@ Private m_TlsCertSubject As String
 Private m_TlsCertificates As Collection
 Private m_TlsPrivateKey As Collection
 
-' 公共 TLS 参数
+' 其他 TLS 参数
 Private m_TlsAlpnProtocols As String
 
 ' WebRoot
@@ -74,23 +76,30 @@ Public CrossDomain As New cHttpCrossDomain
 
 Public LastError As String
 
-' Session 持久化配置
+' Session 持久化参数
 Public SessionStorageType As EnumSessionStorageType ' Session 存储类型
-Public SessionStoragePath As String ' 文件系统路径或数据库表名
+Public SessionStoragePath As String ' 文件系统路径或数据库名
 Public SessionCookieName As String ' Session Cookie 名称
 Public SessionAutoCleanup As Boolean ' 是否自动清理过期 Session
+
+' BUG-7 修复：最大连接数限制（默认 1000）
+Public MaxConnections As Long
+' BUG-3 修复：最大请求体大小（默认 10MB）
+Public MaxRequestSize As Long
+' BUG-2 修复：空闲连接超时秒数（默认 120 秒）
+Public IdleTimeoutSeconds As Long
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
 
-'支持MVC部署方式, 即 脚本文件 在 App 目录,静态文件在 Webroot
+'支持MVC方式，如 脚本文件 在 App 目录，静态文件在 WebRoot
 
 '=========================================================================
-' TLS 链式函数
+' TLS 链式配置
 '=========================================================================
 
 ' 证书文件模式（最常用）
-' CertFile: PFX/P12 或 PEM 格式证书路径，PEM 支持用 | 分隔多文件
+' CertFile: PFX/P12 或 PEM 格式证书路径，PEM 支持 | 号分隔多文件
 Public Function TlsCertFile( _
     ByVal CertFile As String, _
     Optional ByVal Password As String, _
@@ -115,7 +124,7 @@ Public Function TlsCertSubject( _
     Set TlsCertSubject = Me
 End Function
 
-' 内存证书集合模式（高级）
+' 内存证书集合模式（高级接口）
 Public Function TlsCertMemory( _
     ByVal Certificates As Collection, _
     ByVal PrivateKey As Collection, _
@@ -129,7 +138,7 @@ Public Function TlsCertMemory( _
 End Function
 
 '=========================================================================
-' WebRoot 链式函数
+' WebRoot 链式配置
 '=========================================================================
 
 Public Function WebRoot(ByVal Path As String) As cHttpServer
@@ -142,7 +151,7 @@ End Function
 '=========================================================================
 
 Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0.0") As Boolean
-    If IsRunning = True Then LastError = "服务器正在运行中": Exit Function
+    If IsRunning = True Then LastError = "服务器已经在运行中": Exit Function
     Set m_oServer = New cTlsReMaster
     With m_oServer
         If m_TlsMode = TlsNone Then
@@ -177,39 +186,35 @@ End Function
 
 Public Function StopMe() As Boolean
     On Error GoTo EH
-    m_oServer.CloseSck
+    If Not m_oServer Is Nothing Then
+        m_oServer.CloseSck
+    End If
     IsRunning = False
-    ' 逐一释放所有连接，断开循环引用
-    Dim i As Long
-    For i = m_cConnPool.Count To 1 Step -1
-        Dim oCallback As cClientCallback
-        Set oCallback = m_cConnPool.Item(i)
-        If Not oCallback Is Nothing Then
-            oCallback.Release
-        End If
-    Next
-    Set m_cConnPool = Nothing
+    ' 逐一释放所有连接，断开循环引用链
+    Dim key As Variant
+    Dim oCallback As cClientCallback
+    If Not m_cConnPool Is Nothing Then
+        For Each key In m_cConnPool.Keys
+            Set oCallback = m_cConnPool.Item(key)
+            If Not oCallback Is Nothing Then
+                oCallback.Release
+            End If
+        Next
+        m_cConnPool.RemoveAll
+    End If
     Set HttpApp = Nothing
     Set HttpSvr = Nothing
     Set m_oServer = Nothing
     
-    Set SSE = Nothing
-    Set ScriptEngine = Nothing
+    ' BUG-12 修复：StopMe 不再销毁共享对象（Router/SSE/Database/CrossDomain 等）
+    ' 这些对象由用户管理，服务器重启后可继续使用
     
-    Set Router = Nothing
-    Set RouteBefore = Nothing
-    Set RouteAfter = Nothing
-    Set Database = Nothing
-    
-    Set CrossDomain = Nothing
-    
-    ' 清理内存 Session
+    ' 清理内存中 Session
     If Not m_Sessions Is Nothing Then
         m_Sessions.RemoveAll
-        Set m_Sessions = Nothing
     End If
     
-    ' 重置 TLS 状态
+    ' 清理 TLS 状态
     m_TlsMode = TlsNone
     m_TlsCertFile = ""
     m_TlsPassword = ""
@@ -231,13 +236,23 @@ Private Sub Class_Initialize()
     SessionCookieName = "VBMAN_SESSIONID"
     SessionAutoCleanup = True
     m_Sessions.CompareMode = TextCompare
+    ' BUG-1 修复：Dictionary 用 hSocket 做 Key，不需要 CompareMode
+    ' BUG-7 修复：默认最大连接数
+    MaxConnections = 1000
+    ' BUG-3 修复：默认最大请求体 10MB
+    MaxRequestSize = 10485760
+    ' BUG-2 修复：默认空闲超时 120 秒
+    IdleTimeoutSeconds = 120
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    StopMe
 End Sub
 
 Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As Boolean)
     
     ' requestID 就是客户端的句柄 hSocket
-    '    Debug.Print "m_oServer_ConnectionRequest, requestID=" & requestID & ", RemoteHostIP=" & m_oServer.RemoteHostIP & ", RemotePort=" & m_oServer.RemotePort, Timer
-    'todo 实现 Disconnect,
     Dim CI As New cHttpServerClientInfo, IsDiss As Boolean
     With CI
         .IP = m_oServer.RemoteHostIP
@@ -249,59 +264,94 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
         Disconnect = True
         Exit Sub
     End If
+    
+    ' BUG-7 修复：检查最大连接数
+    If m_cConnPool.Count >= MaxConnections Then
+        Disconnect = True
+        RaiseEvent OnLogs("WARN", "连接数已达上限 " & MaxConnections & "，拒绝新连接")
+        Exit Sub
+    End If
+    
     Dim oCallback           As New cClientCallback
-    m_cConnPool.Add oCallback
+    Set oCallback.Socket = New cTlsReMaster
+    Set oCallback.Context = New cHttpServerContext
+    
+    ' BUG-1 修复：先 Accept 获取 SocketHandle，再用 hSocket 作为 Dictionary Key
+    oCallback.Socket.Accept requestID
+    Dim sockHandle As Long
+    sockHandle = oCallback.Socket.SocketHandle
+    
     With oCallback
-        Set .Socket = New cTlsReMaster
-        Set .Context = New cHttpServerContext
-        .Index = m_cConnPool.Count
+        .hSocket = sockHandle
         Set .Parent = Me
-        'todo 这里可以优化为对象池子, 并发请求的时候处理更快
+        .LastActivity = Now  ' BUG-2 修复：记录连接创建时间
         Set .Context.Server = HttpSvr
-        .Socket.Accept requestID
-        '
-        CI.hSocket = .Socket.SocketHandle
+        CI.hSocket = sockHandle
         Set .ClientInfo = CI
         Set .Context.ClientInfo = CI
-        .hSocket = .Socket.SocketHandle
     End With
-    '    Debug.Print "oCallback.Socket.Protocol=" & oCallback.Socket.Protocol
+    
+    ' BUG-1 修复：用 hSocket 做 Key，不依赖 Collection 位置索引
+    m_cConnPool.Add sockHandle, oCallback
 End Sub
 
-Friend Sub OnDataArrival(Index As Long)
+' BUG-1 修复：参数从 Index 改为 hSocket，用 Dictionary 按 Key 查找
+Friend Sub OnDataArrival(ByVal hSocket As Long)
     
     On Error GoTo EH
     Dim oCallback As cClientCallback
-    Set oCallback = m_cConnPool.Item(Index)
     
-    ' 1. 获取新数据并追加到接收缓冲区（解决粘包问题）
+    ' BUG-1 修复：用 hSocket 直接查找，不存在则跳过
+    If Not m_cConnPool.Exists(hSocket) Then Exit Sub
+    Set oCallback = m_cConnPool.Item(hSocket)
+    
+    ' BUG-2 修复：更新活动时间
+    oCallback.LastActivity = Now
+    
+    ' 1. 读取数据并追加到缓冲区（解决粘包问题）
     Dim newData() As Byte
     oCallback.Socket.GetData newData, vbArray + vbByte
+    
+    ' BUG-3 修复：检查缓冲区大小是否超过限制
+    If MaxRequestSize > 0 Then
+        If oCallback.GetRecvBufferLen + UBound(newData) + 1 > MaxRequestSize Then
+            RaiseEvent OnLogs("ERROR", "请求体超过最大限制 " & MaxRequestSize & " bytes, hSocket=" & hSocket)
+            oCallback.Release
+            m_cConnPool.Remove hSocket
+            Exit Sub
+        End If
+    End If
     
     ' 追加数据到缓冲区
     oCallback.AppendToBuffer newData
     
-    ' 2. 循环处理缓冲区中的完整请求（解决粘包问题）
+    ' 2. 循环处理缓冲区中的所有完整请求（解决粘包问题）
     Do While ContainsCompleteRequest(oCallback)
         ' 3. 提取一个完整的 HTTP 请求
         Dim completeRequest As Variant
         completeRequest = ExtractOneRequest(oCallback)
         
         ' 4. 处理该请求
-        ProcessHttpRequest Index, completeRequest
+        ProcessHttpRequest hSocket, completeRequest
         
         ' 5. 从缓冲区移除已处理的数据
         RemoveProcessedData oCallback, completeRequest
     Loop
+    
+    ' BUG-2 修复：定期清理空闲连接（每次数据到达时 1% 概率触发）
+    If IdleTimeoutSeconds > 0 Then
+        If Rnd < 0.01 Then CleanupIdleConnections
+    End If
+    
     Exit Sub
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "OnDataArrival: " & ErrInfo)
-    ' 发生错误时清空缓冲区，避免一直累积错误数据
+    ' 发生错误时清空缓冲区，防止持续积压导致崩溃
     oCallback.GetRecvBufferLen = 0
 End Sub
 
-' 判断是否包含完整的 HTTP 请求（用于解决粘包问题）
+' 判断是否包含完整的 HTTP 请求（解决粘包问题）
 Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolean
     Dim bufferLen As Long
     bufferLen = oCallback.GetRecvBufferLen
@@ -320,7 +370,8 @@ Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolea
     Dim headerEnd As Long
     headerEnd = FindCRLFCRLF(buffer, bufferLen)
     
-    If headerEnd = 0 Then
+    ' BUG-6 修复：FindCRLFCRLF 返回 -1 表示未找到
+    If headerEnd = -1 Then
         ' 未找到完整的请求头
         ContainsCompleteRequest = False
         Exit Function
@@ -338,27 +389,34 @@ Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolea
     Dim contentLength As Long
     contentLength = ParseContentLengthFromHeader(headerStr)
     
-    ' 计算已接收的体部长度
+    ' BUG-3 修复：检查 Content-Length 是否超过最大限制
+    If MaxRequestSize > 0 And contentLength > MaxRequestSize Then
+        ' 超限请求，返回 True 让上层处理并断开
+        ContainsCompleteRequest = True
+        Exit Function
+    End If
+    
+    ' 计算已接收到体内容量
     Dim bodyStart As Long
     bodyStart = headerEnd + 4  ' \r\n\r\n 的长度（4个字节）
     
-    ' 如果是 GET、HEAD、OPTIONS 等没有 body 的请求，contentLength 为 0
+    ' 如果是 GET、HEAD、OPTIONS 等没有 body 的请求方法，且 contentLength 为 0
     If contentLength = 0 Then
-        ' 检查是否是这些没有 body 的请求方法
+        ' 判断是否是那些没有 body 的请求方法
         If IsMethodWithoutBody(headerStr) Then
             ContainsCompleteRequest = True
             Exit Function
         End If
     End If
     
-    ' 判断缓冲区是否包含完整的请求（头部 + 体部）
+    ' 判断缓冲区是否包含完整的请求头 + 体部分
     Dim totalRequired As Long
     totalRequired = bodyStart + contentLength
     
     ContainsCompleteRequest = (bufferLen >= totalRequired)
 End Function
 
-' 查找 CRLFCRLF 标记
+' BUG-6 修复：找不到 CRLFCRLF 时返回 -1（而非 0），消除歧义
 Private Function FindCRLFCRLF(buffer() As Byte, bufLen As Long) As Long
     Dim i As Long
     For i = 0 To bufLen - 4
@@ -368,7 +426,7 @@ Private Function FindCRLFCRLF(buffer() As Byte, bufLen As Long) As Long
             Exit Function
         End If
     Next
-    FindCRLFCRLF = 0
+    FindCRLFCRLF = -1  ' BUG-6 修复：未找到返回 -1 而非 0
 End Function
 
 ' 提取一个完整的请求
@@ -386,7 +444,14 @@ Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
     Dim headerEnd As Long
     headerEnd = FindCRLFCRLF(buffer, bufferLen)
     
-    ' 提取请求头
+    ' BUG-6 修复：headerEnd 为 -1 时不应进入此函数（调用方已保证）
+    If headerEnd = -1 Then
+        result(2) = 0
+        ExtractOneRequest = result
+        Exit Function
+    End If
+    
+    ' 获取请求头
     Dim headerBytes() As Byte
     ReDim headerBytes(0 To headerEnd - 1)
     CopyMemory headerBytes(0), buffer(0), headerEnd
@@ -398,7 +463,7 @@ Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
     Dim contentLength As Long
     contentLength = ParseContentLengthFromHeader(headerStr)
     
-    ' 提取请求体
+    ' 获取请求体
     Dim bodyStart As Long
     bodyStart = headerEnd + 4
     
@@ -412,7 +477,7 @@ Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
         result(1) = vbNullString
     End If
     
-    ' 返回总长度
+    ' 计算总长度
     result(2) = bodyStart + contentLength
     
     ExtractOneRequest = result
@@ -437,7 +502,7 @@ Private Function ParseContentLengthFromHeader(headerStr As String) As Long
         Dim line As String
         line = lines(i)
         
-        ' 查找 Content-Length 头（不区分大小写）
+        ' 匹配 Content-Length 头（不区分大小写）
         If InStr(1, line, "Content-Length:", vbTextCompare) > 0 Then
             Dim parts As Variant
             parts = Split(line, ":", 2)
@@ -465,7 +530,7 @@ Private Function IsMethodWithoutBody(headerStr As String) As Boolean
     If UBound(lines) >= 0 Then
         firstLine = lines(0)
         
-        ' 检查请求方法
+        ' 判断请求方法
         If InStr(1, firstLine, "GET ", vbTextCompare) = 1 Or _
            InStr(1, firstLine, "HEAD ", vbTextCompare) = 1 Or _
            InStr(1, firstLine, "OPTIONS ", vbTextCompare) = 1 Or _
@@ -481,16 +546,18 @@ EH:
 End Function
 
 ' 处理一个完整的 HTTP 请求
-Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
+' BUG-1 修复：参数从 Index As Long 改为 hSocket As Long
+Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant)
     On Error GoTo EH
     
+    If Not m_cConnPool.Exists(hSocket) Then Exit Sub
     Dim oCallback As cClientCallback
-    Set oCallback = m_cConnPool.Item(Index)
+    Set oCallback = m_cConnPool.Item(hSocket)
     
     Dim Request As New cHttpServerRequest
     Dim response As New cHttpServerResponse
     
-    ' 传入Client给输出对象
+    ' 设置Client回调引用
     Set response.fClient = oCallback
     
     Dim aReqHead() As Byte
@@ -510,7 +577,13 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
         ERR.Raise 500, "REQUEST", Request.LastError
     End If
     
-    ' 开始 sse 流程
+    ' BUG-3 修复：请求体大小超限检查
+    If MaxRequestSize > 0 And Request.HeaderContentLength > MaxRequestSize Then
+        response.State413 "Request entity too large"
+        Exit Sub
+    End If
+    
+    ' 初始 sse 连接
     If Request.HeaderAccept = "text/event-stream" Then
         oCallback.IsSSE = True
         Set oCallback.Context.Request = Request
@@ -528,27 +601,27 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
         Exit Sub
     End If
     
-    ' 开始 http 流程
+    ' 初始 http 会话
     Dim Session As cHttpServerSession
     Dim Cookies As New cHttpServerCookies
     
-    ' 从请求头解析 Cookie（请求 Cookie 存入 m_RequestCookies，响应 Cookie 通过 Cookie() 设置）
+    ' 解析请求头中的 Cookie，分离请求 Cookie（只解析到 m_RequestCookies，响应 Cookie 通过 Cookie() 设置）
     If Request.Header.Exists("Cookie") = True Then
         Cookies.Decode Request.Header("Cookie")
     End If
     
-    ' 从请求 Cookie 读取 SessionID 并加载 Session
+    ' 从请求 Cookie 获取 SessionID，查找 Session
     Dim sessionID As String
     Dim sessionCookieName As String
     sessionCookieName = IIf(Me.SessionCookieName = "", "VBMAN_SESSIONID", Me.SessionCookieName)
     
-    ' 使用 GetValue 读取请求 Cookie（不创建响应 Cookie）
+    ' 使用 GetValue 获取请求端 Cookie（不影响响应端 Cookie）
     sessionID = Cookies.GetValue(sessionCookieName)
     
     If sessionID <> "" Then
-        ' 根据配置加载 Session
+        ' 根据不同存储类型加载 Session
         If SessionStorageType = SessionStorageMemory Then
-            ' 内存模式：直接引用存储的 Session 对象
+            ' 内存模式：直接查找存储中的 Session 对象
             If m_Sessions.Exists(sessionID) Then
                 Set Session = m_Sessions(sessionID)
                 If Session.IsExpired Then
@@ -568,7 +641,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
                 sessionFile = SessionStoragePath & "\" & sessionID & ".json"
             End If
             If Session.LoadFromFile(sessionFile) = False Or Session.IsExpired Then
-                ' 加载失败或已过期，清理过期文件
+                ' 加载失败或已过期，删除临时文件
                 If Session.IsExpired Then
                     On Error Resume Next
                     Kill sessionFile
@@ -581,7 +654,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
             Set Session = New cHttpServerSession
             sessionTable = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
             If Session.LoadFromDatabase(Database, sessionID, sessionTable) = False Or Session.IsExpired Then
-                ' 加载失败或已过期，清理过期记录
+                ' 加载失败或已过期，删除过期记录
                 If Session.IsExpired Then
                     On Error Resume Next
                     Database.Sql("DELETE FROM " & sessionTable & " WHERE SessionID=?") _
@@ -594,7 +667,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
         End If
     End If
     
-    ' 如果 Session 未加载（新用户或会话过期），创建空 Session
+    ' 如果 Session 未加载（或用户会话过期），创建新 Session
     If Session Is Nothing Then
         Set Session = New cHttpServerSession
     End If
@@ -616,7 +689,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
     ' 开始路由
     Call Router.Entry(oCallback)
     
-    ' 保存 Session（仅在有 SessionID 时，Item 写入会自动生成 SessionID）
+    ' 处理 Session：如果写入过 Item 则自动生成 SessionID
     If Session.sessionID <> "" Then
         ' 将 SessionID 写入响应 Cookie
         With Cookies.Cookie(sessionCookieName)
@@ -629,12 +702,12 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
             End If
         End With
         
-        ' 根据配置保存 Session 到存储
+        ' 根据不同存储方式保存 Session
         If SessionStorageType = SessionStorageMemory Then
-            ' 内存模式：更新或添加到字典（对象引用，无需额外保存）
+            ' 内存模式：更新或添加到字典（下次请求时复用，不需要额外保存）
             Set m_Sessions(Session.sessionID) = Session
         ElseIf Session.Dirty Then
-            ' 文件/数据库模式：仅数据变更时持久化，避免不必要的 I/O
+            ' 文件/数据库模式：仅在数据变更时持久化，避免不必要的 I/O
             If SessionStorageType = SessionStorageFileSystem Then
                 ' 文件系统
                 If SessionStoragePath = "" Then
@@ -651,7 +724,7 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
         End If
     End If
     
-    ' 概率性自动清理过期 Session（约 1% 概率）
+    ' 并根据概率自动清理过期 Session（约 1% 概率）
     If SessionAutoCleanup Then
         If Rnd < 0.01 Then CleanupExpiredSessions
     End If
@@ -659,40 +732,78 @@ Private Sub ProcessHttpRequest(Index As Long, completeRequest As Variant)
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "ProcessHttpRequest: " & ErrInfo)
-    response.State500 ErrInfo
+    On Error Resume Next
+    If Not response Is Nothing Then
+        response.State500 ErrInfo
+    End If
 End Sub
 
-Friend Sub OnCloseSck(Index As Long)
+' BUG-1 修复：参数从 Index 改为 hSocket，用 Dictionary 按 Key 移除
+Friend Sub OnCloseSck(ByVal hSocket As Long)
     On Error GoTo EH
+    If Not m_cConnPool.Exists(hSocket) Then Exit Sub
+    
     Dim oCallback           As cClientCallback
-    Set oCallback = m_cConnPool.Item(Index)
+    Set oCallback = m_cConnPool.Item(hSocket)
     If Not oCallback Is Nothing Then
         If oCallback.IsSSE = True Then
             SSE.CloseClient oCallback.hSocket
         End If
-        ' 主动断开所有循环引用
+        ' 释放连接，断开循环引用链
         oCallback.Release
     End If
     
-    m_cConnPool.Remove Index
-    ' 清理尾部空位
-    Do While m_cConnPool.Count > 0
-        If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
-            Exit Do
-        End If
-        m_cConnPool.Remove m_cConnPool.Count
-    Loop
+    m_cConnPool.Remove hSocket
     Exit Sub
 EH:
-    ' 出错时仍尝试清理集合
+    ' 出错时尝试清理连接池条目
     On Error Resume Next
-    m_cConnPool.Remove Index
-    Do While m_cConnPool.Count > 0
-        If Not m_cConnPool.Item(m_cConnPool.Count) Is Nothing Then
-            Exit Do
+    m_cConnPool.Remove hSocket
+End Sub
+
+' BUG-2 修复：清理空闲超时连接
+Public Sub CleanupIdleConnections()
+    On Error GoTo EH
+    If IdleTimeoutSeconds <= 0 Then Exit Sub
+    If m_cConnPool.Count = 0 Then Exit Sub
+    
+    Dim key As Variant
+    Dim oCallback As cClientCallback
+    Dim cutoffTime As Date
+    cutoffTime = DateAdd("s", -IdleTimeoutSeconds, Now)
+    Dim keysToClose As New Collection
+    
+    ' 先收集需要关闭的连接 Key（不能在遍历中修改 Dictionary）
+    For Each key In m_cConnPool.Keys
+        Set oCallback = m_cConnPool.Item(key)
+        If Not oCallback Is Nothing Then
+            If oCallback.LastActivity < cutoffTime Then
+                keysToClose.Add key
+            End If
         End If
-        m_cConnPool.Remove m_cConnPool.Count
-    Loop
+    Next
+    
+    ' 关闭空闲连接
+    Dim i As Long
+    For i = 1 To keysToClose.Count
+        Dim hSocketToClose As Long
+        hSocketToClose = keysToClose(i)
+        If m_cConnPool.Exists(hSocketToClose) Then
+            Set oCallback = m_cConnPool.Item(hSocketToClose)
+            If Not oCallback Is Nothing Then
+                RaiseEvent OnLogs("INFO", "关闭空闲连接 hSocket=" & hSocketToClose & _
+                    ", 空闲时间=" & DateDiff("s", oCallback.LastActivity, Now) & "s")
+                If oCallback.IsSSE = True Then
+                    SSE.CloseClient hSocketToClose
+                End If
+                oCallback.Release
+            End If
+            m_cConnPool.Remove hSocketToClose
+        End If
+    Next
+    Exit Sub
+EH:
+    ' 忽略清理过程中的错误
 End Sub
 
 ' 清理过期的 Session
@@ -703,7 +814,7 @@ Public Sub CleanupExpiredSessions()
     Dim keysToRemove As New Collection
     
     If SessionStorageType = SessionStorageMemory Then
-        ' 内存模式：遍历字典清理过期 Session
+        ' 内存模式：遍历字典，删除过期 Session
         For Each k In m_Sessions.Keys
             Set Session = m_Sessions(k)
             If Session.IsExpired Then
@@ -715,7 +826,7 @@ Public Sub CleanupExpiredSessions()
             m_Sessions.Remove keysToRemove(i)
         Next
     ElseIf SessionStorageType = SessionStorageFileSystem Then
-        ' 文件系统模式：删除过期的 Session 文件
+        ' 文件系统模式，删除过期的 Session 文件
         Dim sessionPath As String
         If SessionStoragePath = "" Then
             sessionPath = Environ("TEMP") & "\vbman\sessions\"
@@ -738,7 +849,7 @@ Public Sub CleanupExpiredSessions()
             Loop
         End If
     ElseIf SessionStorageType = SessionStorageDatabase Then
-        ' 数据库模式：删除过期的 Session 记录
+        ' 数据库模式，删除过期的 Session 记录
         Dim tblName As String
         tblName = IIf(SessionStoragePath = "", "sessions", SessionStoragePath)
         On Error Resume Next
@@ -749,8 +860,16 @@ Public Sub CleanupExpiredSessions()
     End If
     Exit Sub
 EH:
-    ' 忽略清理错误
+    ' 忽略清理过程中的错误
 End Sub
 
+' 获取当前连接数
+Public Property Get ConnectionCount() As Long
+    If m_cConnPool Is Nothing Then
+        ConnectionCount = 0
+    Else
+        ConnectionCount = m_cConnPool.Count
+    End If
+End Property
 
 

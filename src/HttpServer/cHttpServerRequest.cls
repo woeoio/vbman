@@ -34,15 +34,15 @@ Public MethodName As String
 Public HttpVersion As String
 Public url As String
 Public PathInfo As String
-Public PathInfoList As New cCollection
+Public PathInfoList As cCollection
 Public PathInfoController As String
 Public PathInfoAction As String
 Public QueryInfo As String
-Public RouteParams As New Scripting.Dictionary
-Public QueryString As New Scripting.Dictionary
-Public Form As New Scripting.Dictionary
-Public Json As New cJson
-Public Header As New Scripting.Dictionary
+Public RouteParams As Scripting.Dictionary
+Public QueryString As Scripting.Dictionary
+Public Form As Scripting.Dictionary
+Public Json As cJson
+Public Header As Scripting.Dictionary
 Public HeaderRaw  As String
 Public HeaderUserAgent As String
 Public HeaderAccept As String
@@ -68,19 +68,16 @@ Attribute Item.VB_UserMemId = 0
     '
 End Property
 
-' 请求处理完毕后显式清理内部大对象，加速 COM 引用计数归零
+' 请求处理完毕后显式清理内部对象，释放所有 COM 引用
 Friend Sub ClearRequest()
     On Error Resume Next
-    ' 清空大型 Dictionary，释放子对象
-    If Not Header Is Nothing Then Header.RemoveAll
-    If Not QueryString Is Nothing Then QueryString.RemoveAll
-    If Not Form Is Nothing Then Form.RemoveAll
-    If Not RouteParams Is Nothing Then RouteParams.RemoveAll
-    If Not PathInfoList Is Nothing Then
-        Do While PathInfoList.Count > 0
-            PathInfoList.Remove 1
-        Loop
-    End If
+    ' 释放所有子对象（Set Nothing 立即归零引用计数）
+    Set Header = Nothing
+    Set QueryString = Nothing
+    Set Form = Nothing
+    Set RouteParams = Nothing
+    Set PathInfoList = Nothing
+    Set Json = Nothing
     ' 清空大字符串和字节数组
     HeaderRaw = ""
     pvRawBodyText = ""
@@ -184,18 +181,27 @@ EH:
 End Function
 
 Private Sub Class_Initialize()
+    ' 显式创建所有子对象（替代 As New 隐式创建）
+    Set Header = New Scripting.Dictionary
     Header.CompareMode = TextCompare
+    Set RouteParams = New Scripting.Dictionary
     RouteParams.CompareMode = TextCompare
+    Set QueryString = New Scripting.Dictionary
     QueryString.CompareMode = TextCompare
+    Set Form = New Scripting.Dictionary
     Form.CompareMode = TextCompare
+    Set PathInfoList = New cCollection
+    Set Json = New cJson
 End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
-    ' 保险清理
-    If Not Header Is Nothing Then Header.RemoveAll
-    If Not QueryString Is Nothing Then QueryString.RemoveAll
-    If Not Form Is Nothing Then Form.RemoveAll
-    If Not RouteParams Is Nothing Then RouteParams.RemoveAll
+    ' 显式销毁所有子对象
+    Set Header = Nothing
+    Set QueryString = Nothing
+    Set Form = Nothing
+    Set RouteParams = Nothing
+    Set PathInfoList = Nothing
+    Set Json = Nothing
     Erase pvRawBodyBin
 End Sub

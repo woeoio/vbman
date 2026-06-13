@@ -16,21 +16,19 @@ Option Explicit
 Dim IsAbort As Boolean
 Dim IsSkipNextMiddleWare As Boolean
 
-
-
 Public App As cHttpServerApp
-Public Server As cHttpServerSvr                                                 'LastError
+Public Server As cHttpServerSvr
 Public ClientInfo As cHttpServerClientInfo
 Public Request As cHttpServerRequest
 Public Response As cHttpServerResponse
 Public Session As cHttpServerSession
 Public Cookies As cHttpServerCookies
-Public TimeUse As New cTimeUse
+Public TimeUse As cTimeUse
 Public Db As cDataBase
 
-Public SSE As New cSSEContext
+Public SSE As cSSEContext
 '用户数据，用于整个请求生命周期传递数据
-Public UserData As New Scripting.Dictionary
+Public UserData As Scripting.Dictionary
 
 Friend Property Get fIsAbort() As Boolean
     fIsAbort = IsAbort
@@ -49,8 +47,8 @@ Public Sub SkipNextMiddleWare()
 End Sub
 
 ' 请求处理完毕后显式释放本次请求相关对象，切断循环引用链
-' 请求级短生命周期对象：Request/Response/Cookies/Session
-' 连接级长生命周期对象：SSE/UserData/TimeUse/Server/App/Db/ClientInfo 保留不释放
+' 请求级短生命周期对象：Request/Response/Cookies/Session/UserData
+' 连接级长生命周期对象：SSE/TimeUse/Server/App/Db/ClientInfo 保留不释放
 Friend Sub ReleaseRequest()
     On Error Resume Next
     
@@ -61,7 +59,6 @@ Friend Sub ReleaseRequest()
     
     ' 2. 释放请求级对象
     If Not Request Is Nothing Then
-        ' 清理 Request 内部大对象
         Request.ClearRequest
         Set Request = Nothing
     End If
@@ -89,9 +86,7 @@ Friend Sub Release()
     Set Session = Nothing
     Set Cookies = Nothing
     Set Db = Nothing
-    If Not SSE Is Nothing Then
-        Set SSE = Nothing
-    End If
+    Set SSE = Nothing
     Set ClientInfo = Nothing
     Set Server = Nothing
     Set App = Nothing
@@ -102,8 +97,15 @@ Friend Sub Release()
     Set TimeUse = Nothing
 End Sub
 
+Private Sub Class_Initialize()
+    ' 显式创建子对象（替代 As New 隐式创建）
+    Set TimeUse = New cTimeUse
+    Set SSE = New cSSEContext
+    Set UserData = New Scripting.Dictionary
+End Sub
+
 Private Sub Class_Terminate()
-    ' 保险清理：当对象引用计数归零时释放内部引用
+    On Error Resume Next
     Set Request = Nothing
     Set Response = Nothing
     Set Session = Nothing

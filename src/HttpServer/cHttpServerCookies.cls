@@ -14,11 +14,10 @@ Attribute VB_Exposed = True
 Option Explicit
 
 ' 响应 Cookie 存储（用于生成 Set-Cookie 头）
-' 需要在工程中引用 Microsoft Scripting Runtime
-Dim Data As New Scripting.Dictionary
+Dim Data As Scripting.Dictionary
 
 ' 请求 Cookie 存储（来自 Cookie 头，只读键值对）
-Private m_RequestCookies As New Scripting.Dictionary
+Private m_RequestCookies As Scripting.Dictionary
 
 ' 获取或创建响应 Cookie（用于 Set-Cookie）
 Public Property Get Cookie(ByVal Key As String) As cHttpServerCookieAttr
@@ -35,30 +34,38 @@ End Property
 
 ' 读取请求 Cookie 的值（浏览器发送的 Cookie）
 Public Function GetValue(ByVal Key As String) As String
-    If m_RequestCookies.Exists(Key) Then
-        GetValue = m_RequestCookies(Key)
+    If Not m_RequestCookies Is Nothing Then
+        If m_RequestCookies.Exists(Key) Then
+            GetValue = m_RequestCookies(Key)
+        End If
     End If
 End Function
 
 ' 检查 Cookie 是否存在（同时检查请求和响应）
 Public Function Exists(ByVal Key As String) As Boolean
-    Exists = Data.Exists(Key) Or m_RequestCookies.Exists(Key)
+    Exists = (Not Data Is Nothing And Data.Exists(Key)) Or (Not m_RequestCookies Is Nothing And m_RequestCookies.Exists(Key))
 End Function
 
 ' 检查请求 Cookie 是否存在（浏览器发送的）
 Public Function RequestExists(ByVal Key As String) As Boolean
-    RequestExists = m_RequestCookies.Exists(Key)
+    If Not m_RequestCookies Is Nothing Then
+        RequestExists = m_RequestCookies.Exists(Key)
+    End If
 End Function
 
 ' 检查响应 Cookie 是否存在（已设置 Set-Cookie 的）
 Public Function ResponseExists(ByVal Key As String) As Boolean
-    ResponseExists = Data.Exists(Key)
+    If Not Data Is Nothing Then
+        ResponseExists = Data.Exists(Key)
+    End If
 End Function
 
 ' 删除指定的响应 Cookie
 Public Sub Remove(ByVal Key As String)
-    If Data.Exists(Key) Then
-        Data.Remove Key
+    If Not Data Is Nothing Then
+        If Data.Exists(Key) Then
+            Data.Remove Key
+        End If
     End If
 End Sub
 
@@ -73,7 +80,9 @@ End Sub
 
 ' 清空所有响应 Cookie
 Public Sub Clear()
-    Data.RemoveAll
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+    End If
 End Sub
 
 ' 从 Cookie 头字符串解析请求 Cookie
@@ -131,6 +140,8 @@ Public Function Encode() As String
     Dim CK As cHttpServerCookieAttr
     
     cookieString = ""
+    
+    If Data Is Nothing Then Exit Function
     
     ' 仅遍历响应 Cookie（Data），不包含请求 Cookie
     For Each Key In Data.Keys
@@ -198,6 +209,22 @@ Private Function FormatHttpDate(dt As Variant) As String
 End Function
 
 Private Sub Class_Initialize()
+    ' 显式创建子对象（替代 As New 隐式创建）
+    Set Data = New Scripting.Dictionary
     Data.CompareMode = TextCompare
+    Set m_RequestCookies = New Scripting.Dictionary
     m_RequestCookies.CompareMode = TextCompare
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    ' 显式销毁所有子对象
+    If Not Data Is Nothing Then
+        Data.RemoveAll
+        Set Data = Nothing
+    End If
+    If Not m_RequestCookies Is Nothing Then
+        m_RequestCookies.RemoveAll
+        Set m_RequestCookies = Nothing
+    End If
 End Sub

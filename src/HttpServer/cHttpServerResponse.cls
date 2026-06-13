@@ -15,7 +15,7 @@ Option Explicit
 
 Dim Client As cClientCallback
 
-Dim JsonInst As New cJson
+Dim JsonInst As cJson
 
 Const ServerName As String = "VBMAN"
 
@@ -24,7 +24,7 @@ Public JsonPackFieldNameMsg As String
 Public JsonPackFieldNameData As String
 Public JsonPackFieldNameCount As String
 
-Public Header As New Scripting.Dictionary
+Public Header As Scripting.Dictionary
 
 '兼容asp对象
 Public Buffer As Boolean
@@ -161,14 +161,20 @@ Private Sub Class_Initialize()
     CharSet = "utf-8"
     CodePage = 65001
     m_HasSent = False
+    ' 显式创建子对象（替代 As New 隐式创建）
+    Set Header = New Scripting.Dictionary
+    Set JsonInst = New cJson
 End Sub
 
 Private Sub Class_Terminate()
-    ' 显式断开循环引用并清理内部对象
+    ' 显式断开循环引用并销毁内部对象
     Set Client = Nothing
-    If Not Header Is Nothing Then Header.RemoveAll
+    If Not Header Is Nothing Then
+        Header.RemoveAll
+        Set Header = Nothing
+    End If
     Set JsonInst = Nothing
-    Set Cookies = Nothing
+    If Not Cookies Is Nothing Then Set Cookies = Nothing
 End Sub
 
 'Private Sub SendBodyTextAsUtf8(Data As String, DataType As String)
@@ -257,7 +263,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     If Not Client Is Nothing Then
         If Not Client.Socket Is Nothing Then
             On Error Resume Next
-            Client.Socket.SendData Head & vbCrLf
+            Client.socket.SendData Head & vbCrLf
             On Error GoTo 0
         End If
     End If

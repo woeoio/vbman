@@ -48,7 +48,41 @@ Public Sub SkipNextMiddleWare()
     IsSkipNextMiddleWare = True
 End Sub
 
-' 显式释放所有内部对象引用，用于断开循环引用
+' 请求处理完毕后显式释放本次请求相关对象，切断循环引用链
+' 请求级短生命周期对象：Request/Response/Cookies/Session
+' 连接级长生命周期对象：SSE/UserData/TimeUse/Server/App/Db/ClientInfo 保留不释放
+Friend Sub ReleaseRequest()
+    On Error Resume Next
+    
+    ' 1. 先断开 Response 对 ClientCallback 的反向引用（最关键的循环引用）
+    If Not Response Is Nothing Then
+        Set Response.fClient = Nothing
+    End If
+    
+    ' 2. 释放请求级对象
+    If Not Request Is Nothing Then
+        ' 清理 Request 内部大对象
+        Request.ClearRequest
+        Set Request = Nothing
+    End If
+    Set Response = Nothing
+    Set Session = Nothing
+    If Not Cookies Is Nothing Then
+        Cookies.Clear
+        Set Cookies = Nothing
+    End If
+    
+    ' 3. 重置标志
+    IsAbort = False
+    IsSkipNextMiddleWare = False
+    
+    ' 4. 清理 UserData（每次请求独立）
+    If Not UserData Is Nothing Then
+        UserData.RemoveAll
+    End If
+End Sub
+
+' 连接关闭时释放所有对象（包括长生命周期对象）
 Friend Sub Release()
     Set Request = Nothing
     Set Response = Nothing
@@ -85,4 +119,3 @@ Private Sub Class_Terminate()
     End If
     Set TimeUse = Nothing
 End Sub
-

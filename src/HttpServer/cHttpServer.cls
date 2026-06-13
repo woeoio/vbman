@@ -619,6 +619,12 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     ' BUG-3 修复：请求体大小超限检查
     If MaxRequestSize > 0 And Request.HeaderContentLength > MaxRequestSize Then
         response.State413 "Request entity too large"
+        ' 请求处理完毕，显式清理本次请求对象
+        On Error Resume Next
+        oCallback.Context.ReleaseRequest
+        Request.ClearRequest
+        Set response = Nothing: Set Request = Nothing
+        On Error GoTo EH
         Exit Sub
     End If
     
@@ -637,6 +643,12 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
         Else
             response.State403
         End If
+        ' 请求处理完毕，显式清理本次请求对象
+        On Error Resume Next
+        oCallback.Context.ReleaseRequest
+        Request.ClearRequest
+        Set response = Nothing: Set Request = Nothing
+        On Error GoTo EH
         Exit Sub
     End If
     
@@ -763,6 +775,14 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
         End If
     End If
     
+    ' 请求处理完毕，显式清理本次请求对象，切断循环引用链
+    ' 这样即使在高并发下，VB6 COM 引用计数也能及时回收
+    On Error Resume Next
+    oCallback.Context.ReleaseRequest
+    Request.ClearRequest
+    Set response = Nothing: Set Request = Nothing
+    On Error GoTo 0
+    
     Exit Sub
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
@@ -771,6 +791,9 @@ EH:
     If Not response Is Nothing Then
         response.State500 ErrInfo
     End If
+    ' 错误路径也要清理请求对象
+    oCallback.Context.ReleaseRequest
+    Set response = Nothing: Set Request = Nothing
 End Sub
 
 ' BUG-1 修复：参数从 Index 改为 hSocket，用 Dictionary 按 Key 移除

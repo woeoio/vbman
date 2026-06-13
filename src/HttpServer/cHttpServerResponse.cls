@@ -163,6 +163,14 @@ Private Sub Class_Initialize()
     m_HasSent = False
 End Sub
 
+Private Sub Class_Terminate()
+    ' 显式断开循环引用并清理内部对象
+    Set Client = Nothing
+    If Not Header Is Nothing Then Header.RemoveAll
+    Set JsonInst = Nothing
+    Set Cookies = Nothing
+End Sub
+
 'Private Sub SendBodyTextAsUtf8(Data As String, DataType As String)
 '    Call SendBodyByte(ToolsUtf8.Encode(Data), DataType)
 'End Sub

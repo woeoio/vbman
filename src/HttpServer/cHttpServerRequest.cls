@@ -68,6 +68,36 @@ Attribute Item.VB_UserMemId = 0
     '
 End Property
 
+' 请求处理完毕后显式清理内部大对象，加速 COM 引用计数归零
+Friend Sub ClearRequest()
+    On Error Resume Next
+    ' 清空大型 Dictionary，释放子对象
+    If Not Header Is Nothing Then Header.RemoveAll
+    If Not QueryString Is Nothing Then QueryString.RemoveAll
+    If Not Form Is Nothing Then Form.RemoveAll
+    If Not RouteParams Is Nothing Then RouteParams.RemoveAll
+    If Not PathInfoList Is Nothing Then
+        Do While PathInfoList.Count > 0
+            PathInfoList.Remove 1
+        Loop
+    End If
+    ' 清空大字符串和字节数组
+    HeaderRaw = ""
+    pvRawBodyText = ""
+    Erase pvRawBodyBin
+    url = ""
+    PathInfo = ""
+    QueryInfo = ""
+    PathInfoController = ""
+    PathInfoAction = ""
+    HeaderUserAgent = ""
+    HeaderAccept = ""
+    HeaderHost = ""
+    HeaderHostDomain = ""
+    HeaderContentType = ""
+    HeaderContentLength = 0
+End Sub
+
 Private Function ParseUri(sRequest As String) As Boolean
     Dim oneLine: oneLine = Split(sRequest, vbCrLf, 2)
     Dim a: a = Split(oneLine(0), " ")
@@ -158,4 +188,14 @@ Private Sub Class_Initialize()
     RouteParams.CompareMode = TextCompare
     QueryString.CompareMode = TextCompare
     Form.CompareMode = TextCompare
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    ' 保险清理
+    If Not Header Is Nothing Then Header.RemoveAll
+    If Not QueryString Is Nothing Then QueryString.RemoveAll
+    If Not Form Is Nothing Then Form.RemoveAll
+    If Not RouteParams Is Nothing Then RouteParams.RemoveAll
+    Erase pvRawBodyBin
 End Sub

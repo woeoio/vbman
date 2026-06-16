@@ -27,6 +27,9 @@ Public TimeUse As cTimeUse
 Public Db As cDataBase
 
 Public SSE As cSSEContext
+
+' 服务器级统计对象引用（来自 Server.Statistics，仅引用不持有）
+Public Statistics As cHttpServerStatistics
 '用户数据，用于整个请求生命周期传递数据
 Public UserData As Scripting.Dictionary
 
@@ -77,6 +80,7 @@ Friend Sub ReleaseRequest()
     If Not UserData Is Nothing Then
         UserData.RemoveAll
     End If
+    ' Statistics 是服务器级单例引用，不在此释放
 End Sub
 
 ' 连接关闭时释放所有对象（包括长生命周期对象）
@@ -90,6 +94,7 @@ Friend Sub Release()
     Set ClientInfo = Nothing
     Set Server = Nothing
     Set App = Nothing
+    ' Statistics 是服务器级单例引用，不在此释放
     If Not UserData Is Nothing Then
         UserData.RemoveAll
         Set UserData = Nothing
@@ -115,6 +120,7 @@ Private Sub Class_Terminate()
     Set ClientInfo = Nothing
     Set Server = Nothing
     Set App = Nothing
+    ' Statistics 是服务器级单例引用，不在此释放
     If Not UserData Is Nothing Then
         UserData.RemoveAll
         Set UserData = Nothing

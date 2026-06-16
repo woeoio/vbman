@@ -81,6 +81,9 @@ Public Database As cDataBase
 
 Public CrossDomain As cHttpCrossDomain
 
+' 性能统计对象
+Public Statistics As cHttpServerStatistics
+
 Public LastError As String
 
 ' Session 持久化参数
@@ -190,6 +193,7 @@ Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0
         .WebRoot = m_WebRoot
     End With
     IsRunning = True
+    Statistics.StartTime = Now
     
     ' 启动内置定时清理器
     Set m_oCleanupTimer = New cTimer
@@ -272,6 +276,7 @@ Private Sub Class_Initialize()
     Set RouteAfter = New cHttpServerRouterAfter
     Set Database = New cDataBase
     Set CrossDomain = New cHttpCrossDomain
+    Set Statistics = New cHttpServerStatistics
     
     ' 默认配置
     SessionStorageType = SessionStorageMemory ' 默认内存存储
@@ -298,6 +303,7 @@ Private Sub Class_Terminate()
     Set RouteAfter = Nothing
     Set Database = Nothing
     Set CrossDomain = Nothing
+    Set Statistics = Nothing
     If Not m_cConnPool Is Nothing Then
         m_cConnPool.RemoveAll
         Set m_cConnPool = Nothing
@@ -351,6 +357,7 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
     If m_cConnPool.Count >= MaxConnections Then
         Disconnect = True
         RaiseEvent OnLogs("WARN", "连接数已达上限 " & MaxConnections & "，拒绝新连接")
+        Statistics.RejectedConnections = Statistics.RejectedConnections + 1
         Exit Sub
     End If
     
@@ -376,6 +383,10 @@ Private Sub m_oServer_ConnectionRequest(ByVal requestID As Long, Disconnect As B
     
     ' BUG-1 修复：用 hSocket 做 Key，不依赖 Collection 位置索引
     m_cConnPool.Add sockHandle, oCallback
+    
+    ' 统计：连接接受 + 峰值更新
+    Statistics.TotalConnectionsAccepted = Statistics.TotalConnectionsAccepted + 1
+    Statistics.UpdatePeakConnections m_cConnPool.Count
 End Sub
 
 ' BUG-1 修复：参数从 Index 改为 hSocket，用 Dictionary 按 Key 查找
@@ -661,6 +672,7 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     ' BUG-3 修复：请求体大小超限检查
     If MaxRequestSize > 0 And Request.HeaderContentLength > MaxRequestSize Then
         response.State413 "Request entity too large"
+        Statistics.RequestSizeRejected = Statistics.RequestSizeRejected + 1
         ' 请求处理完毕，显式清理本次请求对象
         On Error Resume Next
         oCallback.Context.ReleaseRequest
@@ -675,6 +687,7 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
         oCallback.IsSSE = True
         Set oCallback.Context.Request = Request
         Call SSE.Entry(oCallback)
+        Statistics.SSEConnectionsAccepted = Statistics.SSEConnectionsAccepted + 1
         Exit Sub
     End If
     
@@ -773,6 +786,7 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
         Set .Cookies = Cookies
         Set .Db = oCallback.Parent.Database
         Set .SSE.flsSSEInst = SSE
+        Set .Statistics = Statistics    ' 引用服务器级统计对象
     End With
     
     ' 解析请求体
@@ -783,10 +797,18 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     ' 开始路由
     Call Router.Entry(oCallback)
     
+    ' 统计：请求完成（按方法和状态码分类）
+    Statistics.TotalRequests = Statistics.TotalRequests + 1
+    Statistics.IncrementByMethod Request.Method
+    If Not response Is Nothing Then
+        Statistics.IncrementByStatusCode response.StatusCode
+    End If
+    
     ' 关键修复：只有 Session.HasID（实际有数据被写入）时才写入 Cookie 和存储
     ' 之前 sessionID Property Get 会自动生成 GUID，导致每个请求的空 Session 都被存入 m_Sessions
     ' 造成 900 QPS × 20 分钟 = 1,080,000 个空 Session 永驻内存（约 1-2GB）
     If Session.HasID Then
+        Statistics.TotalSessionsCreated = Statistics.TotalSessionsCreated + 1
         ' 将 SessionID 写入响应 Cookie
         With Cookies.Cookie(sessionCookieName)
             .Value = Session.sessionID
@@ -834,6 +856,8 @@ Private Sub ProcessHttpRequest(ByVal hSocket As Long, completeRequest As Variant
     Exit Sub
 EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    Statistics.RequestErrors = Statistics.RequestErrors + 1
+    Statistics.TotalRequests = Statistics.TotalRequests + 1
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "ProcessHttpRequest: " & ErrInfo)
     On Error Resume Next
     If Not response Is Nothing Then
@@ -891,6 +915,9 @@ Public Sub CleanupIdleConnections()
             End If
         End If
     Next
+    
+    ' 统计：空闲连接清理数
+    Statistics.IdleConnectionsCleaned = Statistics.IdleConnectionsCleaned + keysToClose.Count
     
     ' 关闭空闲连接
     Dim i As Long

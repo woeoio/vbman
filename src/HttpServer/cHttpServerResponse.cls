@@ -38,6 +38,9 @@ Public ExpiresAbsolute  As Variant
 Public LCID As Long
 Public Status  As String
 
+' 统计用：记录本次响应的状态码（在 SendHeader 中赋值）
+Public StatusCode As Long
+
 ' 标记是否已经发送过响应，防止重复发送
 Private m_HasSent As Boolean
 
@@ -162,6 +165,7 @@ Private Sub Class_Initialize()
     CharSet = "utf-8"
     CodePage = 65001
     m_HasSent = False
+    StatusCode = 0
     ' 显式创建子对象（替代 As New 隐式创建）
     Set Header = New Scripting.Dictionary
     Set JsonInst = New cJson
@@ -223,6 +227,8 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
 End Sub
 
 Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As String = "OK", Optional HttpVersioin As String = "1.1")
+    ' 记录状态码供统计使用
+    StatusCode = Status
     Dim Head As String: Head = "HTTP/" & HttpVersioin & " " & Status & " " & StatusText & vbCrLf
     '
     Dim UserVer As String: UserVer = "FREE"

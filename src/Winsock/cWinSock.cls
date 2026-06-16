@@ -1937,7 +1937,7 @@ Public Function SyncConnect(HostAddress As String, ByVal HostPort As Long, Optio
     If m_TlsMode <> TlsNone Then
         SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout, UseTls:=True)
     Else
-        SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout)
+        SyncConnect = m_oSocket.SyncConnect(m_sRemoteHost, m_lRemotePort, Timeout, UseTls:=False)
     End If
 
     ' Update state on success

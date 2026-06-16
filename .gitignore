@@ -13,3 +13,4 @@ config/
 private/
 tmp/
 demos/
+.temp/

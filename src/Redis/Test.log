@@ -1,0 +1,158 @@
+Demo_RedisTest.TestRedisClient
+==========================================
+cRedisClient 全量单元测试
+==========================================
+
+[1] 连接测试
+----------------------------------------
+连接: 成功
+Connected: True
+Host: dbserver.cc
+Port: 9736
+PING: PONG
+
+[2] 基础命令测试
+----------------------------------------
+SET test_key: 成功
+GET test_key: test_value
+SET with EX(10s): 成功
+TTL expire_key: 10
+EXISTS test_key: 1
+EXISTS expire_key: 1
+EXISTS nonexistent: 0
+DEL test_key: 1 个键被删除
+EXISTS test_key after DEL: 0
+KEYS pattern_test*: 找到 2 个键
+  - pattern_test1
+  - pattern_test2
+
+[3] String 操作测试
+----------------------------------------
+INCR counter: 11
+INCR counter again: 12
+DECR counter: 11
+MGET mkey1, mkey2, mkey3, nonexistent:
+  [0]: value1
+  [1]: value2
+  [2]: value3
+  [3]: 
+
+[4] Hash 操作测试
+----------------------------------------
+HSET user:1 name: 成功
+HGET user:1 name: 张三
+HGET user:1 age: 25
+HGET user:1 city: 北京
+HEXISTS user:1 name: True
+HEXISTS user:1 email: False
+HMGET user:1 name, age, city:
+  [0]: 张三
+  [1]: 25
+  [2]: 北京
+HGETALL user:1:
+  name: 张三
+  age: 25
+  city: 北京
+HDEL user:1 age: 删除 1 个字段
+
+[5] List 操作测试
+----------------------------------------
+LPUSH mylist 3次: 长度=3
+RPUSH mylist 2次: 长度=5
+LLEN mylist: 5
+LRANGE mylist 0 -1:
+  [0]: item3
+  [1]: item2
+  [2]: item1
+  [3]: item4
+  [4]: item5
+LPOP mylist: item3
+RPOP mylist: item5
+
+[6] Set 操作测试
+----------------------------------------
+SADD myset apple, banana, orange: 新增 3 个成员
+SMEMBERS myset:
+  - apple
+  - banana
+  - orange
+SCARD myset: 3
+SISMEMBER myset apple: True
+SISMEMBER myset grape: False
+SREM myset banana: 删除 1 个成员
+
+[7] Sorted Set 操作测试
+----------------------------------------
+ZADD leaderboard 3 members: 最新新增 1 个成员
+ZRANGE leaderboard 0 -1:
+  - player1
+  - player3
+  - player2
+ZRANGE leaderboard 0 -1 WITHSCORES:
+  - player1: 100
+  - player3: 150
+  - player2: 200
+ZCARD leaderboard: 3
+ZREM leaderboard player3: 删除 1 个成员
+
+[8] 事务操作测试
+----------------------------------------
+InTransaction: False
+MULTI: 成功
+InTransaction: True
+在事务中执行了3个 SET 命令
+EXEC: 返回 3 个结果
+  [0]: OK
+  [1]: OK
+  [2]: OK
+GET trans_key1: value1
+InTransaction: False
+DISCARD: 成功
+EXISTS discard_key after DISCARD: 0 (应为0)
+
+[9] 服务器操作测试
+----------------------------------------
+PING: PONG
+INFO server: (前100字符) # Server
+redis_version:8.2.3
+redis_git_sha1:00000000
+redis_git_dirty:1
+redis_build_id:c978de5219...
+INFO: 6373 字节
+
+[10] 数据库切换测试
+----------------------------------------
+当前 DbIndex: 0
+SELECT 1: 成功
+DbIndex: 1
+GET db1_key: in_database_1
+SELECT 0: 成功
+DbIndex: 0
+EXISTS db1_key in db0: 0 (应为0)
+
+[11] 属性测试
+----------------------------------------
+Host: dbserver.cc
+Port: 9736
+Connected: True
+DbIndex: 0
+Timeout: 5
+InTransaction: False
+InPipeline: False
+
+[12] 错误处理测试
+----------------------------------------
+GET nonexistent_key_12345: '' (应为空)
+DEL nonexistent_key_12345: 0 (应为0)
+
+[13] 清理测试数据
+----------------------------------------
+
+[14] 断开连接
+----------------------------------------
+Connected after Disconnect: False
+
+==========================================
+测试完成！
+==========================================
+

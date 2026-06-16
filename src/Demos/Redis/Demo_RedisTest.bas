@@ -459,7 +459,7 @@ Public Sub TestRedisClient()
     Debug.Print "[14] ¶Ï¿ªÁ¬½Ó"
     Debug.Print "----------------------------------------"
     
-    Redis.DisConnect
+    Redis.Disconnect
     Debug.Print "Connected after Disconnect: " & Redis.Connected
     
     '=====================================================================

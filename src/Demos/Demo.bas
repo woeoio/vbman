@@ -144,18 +144,18 @@ Public Sub TestAliyunCapt()
     ' 阿里云验证码2.0服务端验证示例
     ' 注意：请替换为您的真实阿里云AccessKey
     ' 从阿里云控制台获取: https://ram.console.aliyun.com/manage/ak
-    Dim ID As String, Secret As String
+    Dim Id As String, Secret As String
     With New cIni
         .LoadFrom "D:\code\vi\vbmanlib\vbman\config\aliyun.ini"
         With .Section("aliyun")
-            ID = .Item("app_id")
+            Id = .Item("app_id")
             Secret = .Item("app_key")
         End With
     End With
     
     ' 使用链式调用配置并验证
     With New cAliyunCaptcha
-        .AccessKeyId(ID) _
+        .AccessKeyId(Id) _
         .AccessKeySecret(Secret) _
         .Region(ALIYUN_CAPTCHA_REGION_CN) _
         .Timeout(30000) _
@@ -388,9 +388,12 @@ End Sub
 
 Sub Redis()
     With New cRedisClient
-        .Connect "127.0.0.1", 6379
-        .Set_ "hello", "vbman redis client"
-        Debug.Print .Get_("hello")
+        If .Connect("121.229.102.17", 9736) = True Then
+            Debug.Print .Set_("hello", "vbman redis client")
+            Debug.Print .Get_("hello")
+        Else
+            Debug.Print .LastError
+        End If
     End With
 End Sub
 

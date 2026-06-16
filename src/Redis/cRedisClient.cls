@@ -1624,7 +1624,7 @@ Private Function ReadLine() As String
     Dim lLen As Long
 
     Do
-        Dim baOne(0 To 0) As Byte
+        Dim baOne() As Byte
         If Not m_oSocket.SyncReceiveArray(baOne, 1, m_dTimeout * 1000) Then
             ERR.Raise vbObjectError, MODULE_NAME, "Read line timeout"
         End If

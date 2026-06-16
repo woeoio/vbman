@@ -406,6 +406,9 @@ Friend Sub OnDataArrival(ByVal hSocket As Long)
     Dim newData() As Byte
     oCallback.Socket.GetData newData, vbArray + vbByte
     
+    ' 统计：记录接收字节数
+    Statistics.TotalBytesReceived = Statistics.TotalBytesReceived + UBound(newData) + 1
+    
     ' BUG-3 修复：检查缓冲区大小是否超过限制
     If MaxRequestSize > 0 Then
         If oCallback.GetRecvBufferLen + UBound(newData) + 1 > MaxRequestSize Then

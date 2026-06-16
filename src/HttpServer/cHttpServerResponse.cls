@@ -218,6 +218,10 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
         If Not Client.Socket Is Nothing Then
             On Error Resume Next
             Client.Socket.SendData Data
+            ' 统计：记录Body发送字节数
+            If Not Client.Parent Is Nothing Then
+                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + UBound(Data) + 1
+            End If
             On Error GoTo 0
         End If
     End If
@@ -271,6 +275,10 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
         If Not Client.Socket Is Nothing Then
             On Error Resume Next
             Client.socket.SendData Head & vbCrLf
+            ' 统计：记录Header发送字节数
+            If Not Client.Parent Is Nothing Then
+                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + Len(Head) + 2
+            End If
             On Error GoTo 0
         End If
     End If

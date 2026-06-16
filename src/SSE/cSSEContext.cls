@@ -19,6 +19,11 @@ Friend Property Set flsSSEInst(o As cSSE)
     Set SSEInst = o
 End Property
 
+' 代理 cSSE.Data 字典，允许控制器直接操作数据后调用 Send
+Public Property Get Data() As Scripting.Dictionary
+    Set Data = SSEInst.Data
+End Property
+
 Public Property Get ClientCount() As Long
     ClientCount = SSEInst.ClientCount
 End Property
@@ -29,6 +34,12 @@ End Function
 
 Public Function SendPack(Action As String, Content As Variant, Optional hSocket As Long) As Boolean
     SendPack = SSEInst.SendPack(Action, Content, hSocket)
+End Function
+
+' 代理 cSSE.Send 方法，支持自定义数据结构发送
+' 用法: ctx.SSE.Data.Add "key", "value" : ctx.SSE.Send(hSocket)
+Public Function Send(Optional ByVal hSocket As Long) As Boolean
+    Send = SSEInst.Send(hSocket)
 End Function
 
 Public Function CloseClient(Optional ByVal hSocket As Long) As Boolean

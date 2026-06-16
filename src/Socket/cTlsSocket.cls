@@ -1809,6 +1809,11 @@ Private Sub m_oAsyncSocket_OnSend()
     On Error GoTo EH
     If m_bUseTls Then
         If Not TlsIsReady(m_uCtx) Then
+            ' BUG修复：TLS握手期间若有发送缓冲区残留数据，利用FD_WRITE刷新
+            ' 否则WSAEWOULDBLOCK后数据永远无法发出，导致握手死锁超时
+            If m_lSendPos > 0 Then
+                Call pvHandleSend
+            End If
             GoTo QH
         End If
         If Not pvHandleSend() Then

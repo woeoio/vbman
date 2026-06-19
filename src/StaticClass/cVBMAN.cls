@@ -32,7 +32,8 @@ Public Delay As New cDelay
 Public FileEx As New cFileEx
 Public Dialog As New cDialog
 Public Formater As New cFormater
-Public Stdio As New cSTDIO
+Public StdIO As New cSTDIO
+Public Zip As New cZipArchive
 
 Public Hash As New cCryptoHash
 Public HashMAC As New cCryptoHMAC

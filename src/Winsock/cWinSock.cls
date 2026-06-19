@@ -149,6 +149,7 @@ Private m_sRemoteHost               As String
 Private m_lRemotePort               As Long
 Private m_sRemoteHostIP             As String
 Private m_sTag                      As String
+Private m_sClientKey                As String
 Private m_vUserData                 As Variant
 Private m_baRecvBuffer()            As Byte
 Private m_bIsServer                 As Boolean
@@ -317,6 +318,15 @@ End Property
 
 Public Property Set UserData(ByVal Value As Variant)
     Set m_vUserData = Value
+End Property
+
+' Internal collection key (used by server to manage clients)
+Friend Property Get ClientKey() As String
+    ClientKey = m_sClientKey
+End Property
+
+Friend Property Let ClientKey(ByVal Value As String)
+    m_sClientKey = Value
 End Property
 
 ' Socket handle
@@ -1570,8 +1580,8 @@ Private Sub m_oSocket_OnAccept()
     If oClient.State = wckConnected Then
         ' Add to clients collection
         m_lClientCounter = m_lClientCounter + 1
-        oClient.Tag = "#" & m_lClientCounter
-        m_cClients.Add oClient, oClient.Tag
+        oClient.ClientKey = "#" & m_lClientCounter
+        m_cClients.Add oClient, oClient.ClientKey
         
         ' Inherit packet protocol configuration from server
         ' Each client gets its own independent protocol instance
@@ -1657,7 +1667,7 @@ Private Sub m_oSocket_OnReceive()
                 ' All data is received through the server's socket
                 oClient.Protocol = wskUDPProtocol
                 Set oClient.ParentServer = Me
-                oClient.Tag = sKey
+                oClient.ClientKey = sKey
                 
                 ' Inherit packet protocol configuration from server
                 If Not m_oPacketProtocol Is Nothing Then
@@ -1677,7 +1687,7 @@ Private Sub m_oSocket_OnReceive()
                     End If
                 End If
                 
-                m_cClients.Add oClient, sKey
+                m_cClients.Add oClient, oClient.ClientKey
                 
                 ' Raise event to notify user - allow rejection
                 Dim bDisConnect As Boolean
@@ -1835,9 +1845,9 @@ Friend Sub RemoveClient(oClient As cWinsock)
         ' Only process if client is still in collection to avoid duplicate events
         ' BUG修复：Collection 无 Exists 方法，改用 On Error + Item 检查模式
         Dim oTmp As cWinsock
-        Set oTmp = m_cClients(oClient.Tag)
+        Set oTmp = m_cClients(oClient.ClientKey)
         If Not oTmp Is Nothing Then
-            m_cClients.Remove oClient.Tag
+            m_cClients.Remove oClient.ClientKey
             ' Unbind user if client was bound (including from groups)
             If LenB(CStr(oClient.CurrentUser)) <> 0 Then
                 UnbindUserFromAllGroups oClient.CurrentUser

@@ -52,6 +52,7 @@ Private m_oSocket As cWinsock
 Private m_sHost As String
 Private m_lPort As Long
 Private m_sPassword As String
+Private m_sUsername As String
 Private m_lDbIndex As Long
 Private m_dTimeout As Double
 Private m_bConnected As Boolean
@@ -60,6 +61,8 @@ Private m_bInPipeline As Boolean
 Private m_lPipelineCount As Long
 Private m_bAutoReconnect As Boolean
 Private m_sLastError As String
+Private WithEvents m_oHeartbeatTimer As cTimer
+Private m_lHeartbeatInterval As Long
 
 '=========================================================================
 ' 事件
@@ -81,11 +84,32 @@ Public Property Get Port() As Long
 End Property
 
 Public Property Get Connected() As Boolean
-    Connected = m_bConnected
+    Connected = IsConnected()
+End Property
+
+' 判断客户端是否真正连接到服务端（检查 Socket 实际状态，只读）
+Public Property Get IsConnected() As Boolean
+    On Error GoTo Fallback
+    If Not m_oSocket Is Nothing Then
+        If m_oSocket.State = wckConnected Then
+            IsConnected = True
+        Else
+            ' Socket 已断开，同步内部标志
+            m_bConnected = False
+            IsConnected = False
+        End If
+    End If
+    Exit Property
+Fallback:
+    IsConnected = False
 End Property
 
 Public Property Get DbIndex() As Long
     DbIndex = m_lDbIndex
+End Property
+
+Public Property Get Username() As String
+    Username = m_sUsername
 End Property
 
 Public Property Let DbIndex(ByVal Value As Long)
@@ -119,6 +143,20 @@ Public Property Let AutoReconnect(ByVal Value As Boolean)
     m_bAutoReconnect = Value
 End Property
 
+Public Property Get HeartbeatInterval() As Long
+    HeartbeatInterval = m_lHeartbeatInterval
+End Property
+
+Public Property Let HeartbeatInterval(ByVal Value As Long)
+    m_lHeartbeatInterval = Value
+    If Not m_oHeartbeatTimer Is Nothing Then
+        If m_oHeartbeatTimer.Enabled Then
+            m_oHeartbeatTimer.Interval = Value * 1000
+            m_oHeartbeatTimer.Reset
+        End If
+    End If
+End Property
+
 Public Property Get LastError() As String
     LastError = m_sLastError
 End Property
@@ -134,12 +172,14 @@ End Property
 ' 连接到 Redis 服务器
 Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
     Optional ByVal Port As Long = 6379, _
-    Optional ByVal Password As String = "") As Boolean
+    Optional ByVal Password As String = "", _
+    Optional ByVal Username As String = "") As Boolean
     On Error GoTo ErrorHandler
 
     m_sHost = Server
     m_lPort = Port
     m_sPassword = Password
+    m_sUsername = Username
 
     ' 关闭已有连接
     If Not m_oSocket Is Nothing Then
@@ -162,9 +202,10 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
 
     ' 密码认证
     If LenB(m_sPassword) > 0 Then
-        If Not Auth(m_sPassword) Then
+        If Not Auth(m_sPassword, m_sUsername) Then
             m_sLastError = "认证失败"
             RaiseEvent OnError(m_sLastError)
+            m_bConnected = False
             Connect = False
             Exit Function
         End If
@@ -175,6 +216,8 @@ Public Function Connect(Optional ByVal Server As String = "127.0.0.1", _
         Call SelectDb(m_lDbIndex)
     End If
 
+    ' 连接成功，启动心跳保活
+    StartHeartbeat
     Connect = True
     Exit Function
 
@@ -182,11 +225,13 @@ ErrorHandler:
     m_sLastError = ERR.Description
     RaiseEvent OnError(m_sLastError)
     m_bConnected = False
+    StopHeartbeat
     Connect = False
 End Function
 
 ' 断开连接
 Public Sub Disconnect()
+    StopHeartbeat
     If Not m_oSocket Is Nothing Then
         On Error Resume Next
         m_oSocket.Close_
@@ -199,12 +244,18 @@ Public Sub Disconnect()
     m_lPipelineCount = 0
 End Sub
 
-' 认证
-Public Function Auth(ByVal Password As String) As Boolean
+' 认证（Redis 6.0+ ACL 支持 Username）
+Public Function Auth(ByVal Password As String, Optional ByVal Username As String = "") As Boolean
     On Error GoTo ErrorHandler
 
     Dim sResp As Variant
-    sResp = SendCommand(Array("AUTH", Password))
+    If LenB(Username) > 0 Then
+        ' Redis 6.0+ ACL: AUTH username password
+        sResp = SendCommand(Array("AUTH", Username, Password))
+    Else
+        ' 传统认证: AUTH password
+        sResp = SendCommand(Array("AUTH", Password))
+    End If
     Auth = (sResp = "OK")
     Exit Function
 
@@ -233,13 +284,43 @@ ErrorHandler:
 End Function
 
 ' 确保连接可用（自动重连）
+' 使用 IsConnected 检查真实 Socket 状态，避免 m_bConnected 标志与实际连接不一致
 Private Function EnsureConnected() As Boolean
-    If m_bConnected Then
+    If m_bConnected And IsConnected() Then
         EnsureConnected = True
     ElseIf m_bAutoReconnect Then
-        EnsureConnected = Connect(m_sHost, m_lPort, m_sPassword)
+        EnsureConnected = Connect(m_sHost, m_lPort, m_sPassword, m_sUsername)
     End If
 End Function
+
+' 启动心跳定时器
+Public Sub StartHeartbeat()
+    If m_lHeartbeatInterval <= 0 Then Exit Sub
+    If m_oHeartbeatTimer Is Nothing Then
+        Set m_oHeartbeatTimer = New cTimer
+    End If
+    m_oHeartbeatTimer.Interval = m_lHeartbeatInterval * 1000
+    m_oHeartbeatTimer.Enabled = True
+End Sub
+
+' 停止心跳定时器
+Public Sub StopHeartbeat()
+    If Not m_oHeartbeatTimer Is Nothing Then
+        m_oHeartbeatTimer.Enabled = False
+    End If
+End Sub
+
+' 心跳定时器事件 - 定期 PING 保持连接活跃，检测死连接并触发重连
+Private Sub m_oHeartbeatTimer_Timer()
+    On Error Resume Next
+    Dim sResp As String
+    sResp = Ping()
+    If ERR.Number <> 0 Then
+        m_bConnected = False
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Sub
 
 '=========================================================================
 ' 基础命令
@@ -1586,8 +1667,31 @@ End Function
 ' 私有方法 - 命令发送
 '=========================================================================
 
-' 发送命令并返回响应
+' 发送命令并返回响应（带一次自动重连重试）
 Private Function SendCommand(ByVal Command As Variant) As Variant
+    On Error GoTo RetryHandler
+
+    SendCommand = SendCommandCore(Command)
+    Exit Function
+
+RetryHandler:
+    ' 命令失败 - 标记连接断开，尝试重连后重试一次
+    m_bConnected = False
+    If m_bAutoReconnect Then
+        On Error Resume Next
+        If EnsureConnected() Then
+            On Error GoTo 0
+            SendCommand = SendCommandCore(Command)
+            Exit Function
+        End If
+    End If
+    ' 重连失败或未启用自动重连 - 抛出错误
+    On Error GoTo 0
+    ERR.Raise vbObjectError, MODULE_NAME, "Not connected to Redis server"
+End Function
+
+' 实际发送命令的核心逻辑
+Private Function SendCommandCore(ByVal Command As Variant) As Variant
     If Not EnsureConnected() Then
         ERR.Raise vbObjectError, MODULE_NAME, "Not connected to Redis server"
     End If
@@ -1605,10 +1709,10 @@ Private Function SendCommand(ByVal Command As Variant) As Variant
     If m_bInPipeline Then
         ' 管道模式：只发送不接收
         m_lPipelineCount = m_lPipelineCount + 1
-        SendCommand = Empty
+        SendCommandCore = Empty
     Else
         ' 正常模式：发送并接收响应
-        SendCommand = ReadResp()
+        SendCommandCore = ReadResp()
     End If
 End Function
 
@@ -1923,16 +2027,19 @@ Private Sub Class_Initialize()
     m_sHost = "127.0.0.1"
     m_lPort = 6379
     m_sPassword = ""
+    m_sUsername = ""
     m_lDbIndex = 0
     m_dTimeout = 5
     m_bConnected = False
     m_bInTransaction = False
     m_bInPipeline = False
     m_lPipelineCount = 0
-    m_bAutoReconnect = False
+    m_bAutoReconnect = True
+    m_lHeartbeatInterval = 30
     m_sLastError = ""
 End Sub
 
 Private Sub Class_Terminate()
+    StopHeartbeat
     Call Disconnect
 End Sub

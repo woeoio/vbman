@@ -150,6 +150,7 @@ Private m_lRemotePort               As Long
 Private m_sRemoteHostIP             As String
 Private m_sTag                      As String
 Private m_sClientKey                As String
+Private m_lClientId                 As Long
 Private m_vUserData                 As Variant
 Private m_baRecvBuffer()            As Byte
 Private m_bIsServer                 As Boolean
@@ -327,6 +328,15 @@ End Property
 
 Friend Property Let ClientKey(ByVal Value As String)
     m_sClientKey = Value
+End Property
+
+' Unique client ID assigned by server (read-only, auto-incrementing)
+Public Property Get ClientId() As Long
+    ClientId = m_lClientId
+End Property
+
+Friend Property Let ClientId(ByVal Value As Long)
+    m_lClientId = Value
 End Property
 
 ' Socket handle
@@ -1580,6 +1590,7 @@ Private Sub m_oSocket_OnAccept()
     If oClient.State = wckConnected Then
         ' Add to clients collection
         m_lClientCounter = m_lClientCounter + 1
+        oClient.ClientId = m_lClientCounter
         oClient.ClientKey = "#" & m_lClientCounter
         m_cClients.Add oClient, oClient.ClientKey
         
@@ -1661,12 +1672,14 @@ Private Sub m_oSocket_OnReceive()
             On Error GoTo EH
             
             If oClient Is Nothing Then
+                m_lClientCounter = m_lClientCounter + 1
                 Set oClient = New cWinsock
                 oClient.SetUdpClientInfo sAddress, lPort
                 ' UDP client doesn't need its own socket - it's just an identifier
                 ' All data is received through the server's socket
                 oClient.Protocol = wskUDPProtocol
                 Set oClient.ParentServer = Me
+                oClient.ClientId = m_lClientCounter
                 oClient.ClientKey = sKey
                 
                 ' Inherit packet protocol configuration from server
@@ -2145,6 +2158,7 @@ Private Sub Class_Initialize()
     m_eProtocol = DEF_PROTOCOL
     m_lLocalPort = DEF_LOCALPORT
     m_lRemotePort = DEF_REMOTEPORT
+    m_lClientId = 0
     m_baRecvBuffer = vbNullString
     m_Users.CompareMode = TextCompare
     m_Groups.CompareMode = TextCompare

@@ -218,14 +218,27 @@ Public Function Send(Optional ByVal hSocket As Long) As Boolean
     If AcceptConnect = True Then Header = MakeHeaders()
     Dim SseDataText As String: SseDataText = Header & "event: message" & vbCrLf & "data: " & Json.Encode(SendData) & "" & vbCrLf & vbCrLf
     Dim d() As Byte: d = ToolsUtf8.Encode(SseDataText)
+    Dim bytesToSend As Long: bytesToSend = UBound(d) + 1
     If hSocket = 0 Then
         For Each x In Clients.Keys()
             Set Client = Clients(x)
+            On Error Resume Next
             Call Client.Socket.SendData(d)
+            ' 统计：广播时每个客户端都发送一份，累计实际发送字节数
+            If Not Client.Parent Is Nothing Then
+                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + bytesToSend
+            End If
+            On Error GoTo 0
         Next
     Else
         Set Client = Clients(hSocket)
+        On Error Resume Next
         Call Client.Socket.SendData(d)
+        ' 统计：单播时记录发送字节数
+        If Not Client.Parent Is Nothing Then
+            Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + bytesToSend
+        End If
+        On Error GoTo 0
     End If
     Send = True
 QH:

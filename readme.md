@@ -97,6 +97,7 @@ BSMAN 旗下规划了一系列子项目：
 | 项目名称                                                        | 许可证 | 用途                     |
 | --------------------------------------------------------------- | ------ | ------------------------ |
 | [wqweto/VbAsyncSocket](https://github.com/wqweto/VbAsyncSocket) | MIT    | 所有 `Socket` 对象基于它 |
+| [wqweto/ZipArchive](https://github.com/wqweto/ZipArchive)       | MIT    | `cZipArchive` 对象基于它 |
 | [Tim Hall/VBA-JSON](https://github.com/VBA-tools/VBA-JSON)      | MIT    | `cJson` 对象后端使用它   |
 | [Jason Peter Brown/HttpMimeType](mailto://jason@bitspaces.com)  | MIT    | 使用了 `HttpMimeType`    |
 | [David Zimmer/cTimer](http://sandsprite.com)                    | /      | `cTimer` 对象来源于它    |

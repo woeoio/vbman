@@ -93,6 +93,7 @@ This project uses the following open-source projects:
 | Project                                                         | License | Purpose                              |
 | --------------------------------------------------------------- | ------- | ------------------------------------ |
 | [wqweto/VbAsyncSocket](https://github.com/wqweto/VbAsyncSocket) | MIT     | All `Socket` objects are based on it |
+| [wqweto/ZipArchive](https://github.com/wqweto/ZipArchive)       | MIT     | `cZipArchive` object is based on it  |
 | [Tim Hall/VBA-JSON](https://github.com/VBA-tools/VBA-JSON)      | MIT     | `cJson` object backend               |
 | [Jason Peter Brown/HttpMimeType](mailto://jason@bitspaces.com)  | MIT     | Uses `HttpMimeType`                  |
 | [David Zimmer/cTimer](http://sandsprite.com)                    | /       | `cTimer` object source               |

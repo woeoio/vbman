@@ -57,6 +57,37 @@ Public Enum enumDbType
 End Enum
 Public DatabaseType As enumDbType
 
+'ADO DataTypeEnum 常用枚举，方便外部引用 VBMAN 后直接使用
+'如 VBMAN.cDataBase.adVarWChar 或直接 adVarWChar
+Public Enum AdoDataType
+    adEmpty = 0
+    adTinyInt = 16
+    adSmallInt = 2
+    adInteger = 3
+    adBigInt = 20
+    adUnsignedTinyInt = 17
+    adUnsignedSmallInt = 18
+    adUnsignedInt = 19
+    adUnsignedBigInt = 21
+    adSingle = 4
+    adDouble = 5
+    adCurrency = 6
+    adDecimal = 14
+    adBoolean = 11
+    adDate = 7
+    adDBDate = 133
+    adDBTime = 134
+    adDBTimeStamp = 135
+    adVarChar = 200
+    adLongVarChar = 201
+    adVarWChar = 202
+    adLongVarWChar = 203
+    adBinary = 128
+    adVarBinary = 204
+    adLongVarBinary = 205
+    adGUID = 72
+End Enum
+
 Public Property Get Async() As cDataBase
     IsAsync = True
     Set Async = Me
@@ -287,6 +318,16 @@ Public Function Param(ByVal ParamName As String, ByVal ParamValue As Variant, Op
     Cmd.Parameters.Append P
 End Function
 
+'清理参数化查询的参数和Command对象
+Public Sub ClearParam()
+    If Not Cmd Is Nothing Then
+        Do While Cmd.Parameters.count > 0
+            Cmd.Parameters.Delete 0
+        Loop
+        Set Cmd = Nothing
+    End If
+End Sub
+
 '执行参数化查询
 Public Function ExecParam(Optional RecordsAffected) As Boolean
     On Error GoTo eee
@@ -297,21 +338,13 @@ Public Function ExecParam(Optional RecordsAffected) As Boolean
     ExecParam = True
     
     '清理参数
-    Do While Cmd.Parameters.count > 0
-        Cmd.Parameters.Delete 0
-    Loop
-    Set Cmd = Nothing
+    ClearParam
     Exit Function
 eee:
     LastErr = "ExecParam Err[" & ERR.Number & "]" & ERR.Description & "{" & pvRawSqlString & "}"
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
-    If Not Cmd Is Nothing Then
-        Do While Cmd.Parameters.count > 0
-            Cmd.Parameters.Delete 0
-        Loop
-        Set Cmd = Nothing
-    End If
+    ClearParam
 End Function
 
 Public Function FetchParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Optional LockType As LockTypeEnum = adLockOptimistic) As Boolean
@@ -337,21 +370,13 @@ Public Function QueryParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Op
     QueryParam = True
     
     '清理参数
-    Do While Cmd.Parameters.count > 0
-        Cmd.Parameters.Delete 0
-    Loop
-    Set Cmd = Nothing
+    ClearParam
     Exit Function
 eee:
     LastErr = "QueryParam Err[" & ERR.Number & "]" & ERR.Description & "{" & pvRawSqlString & "}"
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
-    If Not Cmd Is Nothing Then
-        Do While Cmd.Parameters.count > 0
-            Cmd.Parameters.Delete 0
-        Loop
-        Set Cmd = Nothing
-    End If
+    ClearParam
 End Function
 
 '执行数据库操作语句

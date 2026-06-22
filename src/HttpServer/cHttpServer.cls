@@ -64,6 +64,8 @@ Private m_TlsAlpnProtocols As String
 
 ' WebRoot
 Private m_WebRoot As String
+' 自定义默认文档（在 Start 前收集，Start 时注入 HttpSvr）
+Private m_DefaultDocumentAdditions As Collection
 ' As New→显式：Session 字典显式创建
 Dim m_Sessions                  As Scripting.Dictionary
 
@@ -159,6 +161,26 @@ Public Function WebRoot(ByVal Path As String) As cHttpServer
 End Function
 
 '=========================================================================
+' 默认文档配置
+'=========================================================================
+
+' 添加自定义默认文档（在 Start 前调用）
+' 默认文档列表：index.html, index.htm, default.html, default.htm
+' 添加后按追加顺序查找，如添加 home.html 则查找顺序为：
+' index.html → index.htm → default.html → default.htm → home.html
+Public Sub AddDefaultDocument(FileName As String)
+    If m_DefaultDocumentAdditions Is Nothing Then
+        Set m_DefaultDocumentAdditions = New Collection
+    End If
+    ' 去重：已存在则跳过
+    Dim i As Long
+    For i = 1 To m_DefaultDocumentAdditions.Count
+        If LCase(m_DefaultDocumentAdditions(i)) = LCase(FileName) Then Exit Sub
+    Next
+    m_DefaultDocumentAdditions.Add FileName
+End Sub
+
+'=========================================================================
 ' Start / StopMe
 '=========================================================================
 
@@ -192,6 +214,13 @@ Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0
         .Port = Port
         .WebRoot = m_WebRoot
     End With
+    ' 注入用户自定义默认文档
+    If Not m_DefaultDocumentAdditions Is Nothing Then
+        Dim docName As Variant
+        For Each docName In m_DefaultDocumentAdditions
+            HttpSvr.AddDefaultDocument CStr(docName)
+        Next
+    End If
     IsRunning = True
     Statistics.StartTime = Now
     

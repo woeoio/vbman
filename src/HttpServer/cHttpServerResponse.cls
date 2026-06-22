@@ -124,9 +124,74 @@ Public Sub File(Path As String)
     
 SendFile:
     If ToolsFso.Inst.FileExists(sPath) = False Then Call State404: Exit Sub
-    Dim Data() As Byte
-    If ToolsStream.LoadFileAsBinary(sPath, Data) = False Then Call State404: Exit Sub
-    SendBodyByte Data, ToolsHttpMimeType.MapMimeType(sPath)
+    
+    ' === ETag + 304 + 懒缓存 ===
+    
+    ' 1. 获取文件信息，计算 ETag（仅 FSO 元数据，不读文件内容）
+    Dim fileInfo As Object  ' Scripting.File
+    Set fileInfo = ToolsFso.Inst.GetFile(sPath)
+    Dim currentETag As String
+    currentETag = Client.Context.Server.ComputeETag(fileInfo.DateLastModified, fileInfo.Size)
+    Dim lastModTime As Date
+    lastModTime = fileInfo.DateLastModified
+    Set fileInfo = Nothing
+    
+    ' 2. 设置 ETag + Last-Modified 响应头
+    Header("ETag") = currentETag
+    Header("Last-Modified") = Client.Context.Server.FormatHttpDate(lastModTime)
+    
+    ' 3. 304 Not Modified 协商缓存（比对请求的 If-None-Match）
+    Dim reqHeader As Scripting.Dictionary
+    Set reqHeader = Client.Context.Request.Header
+    If reqHeader.Exists("If-None-Match") Then
+        If reqHeader("If-None-Match") = currentETag Then
+            Send304 currentETag, lastModTime
+            Exit Sub
+        End If
+    End If
+    
+    ' 4. 查找内容缓存
+    Dim cachedEntry As cHttpServerFileCacheEntry
+    Set cachedEntry = Client.Context.Server.GetCachedFile(sPath)
+    
+    If Not cachedEntry Is Nothing Then
+        ' 缓存命中：检查 TTL 过期 + ETag 变化
+        Dim ttlExpired As Boolean
+        ttlExpired = False
+        If Client.Context.Server.CacheTTLSeconds > 0 Then
+            If DateDiff("s", cachedEntry.CachedAt, Now) > Client.Context.Server.CacheTTLSeconds Then
+                ttlExpired = True
+            End If
+        End If
+        
+        If cachedEntry.ETag <> currentETag Then
+            ' 文件已更新：移除旧缓存，重新读取
+            Client.Context.Server.InvalidateFileCache sPath
+            Set cachedEntry = Nothing
+        ElseIf ttlExpired Then
+            ' TTL 过期但文件未变：刷新缓存时间，继续使用
+            cachedEntry.CachedAt = Now
+        End If
+    End If
+    
+    ' 5. 发送内容
+    If Not cachedEntry Is Nothing Then
+        ' 从缓存内存输出（跳过磁盘 I/O）
+        SendBodyByte cachedEntry.Content, ToolsHttpMimeType.MapMimeType(sPath)
+    Else
+        ' 从磁盘读取
+        Dim Data() As Byte
+        If ToolsStream.LoadFileAsBinary(sPath, Data) = False Then Call State404: Exit Sub
+        
+        ' 懒缓存：首次访问且未超出大小上限时加入缓存
+        If Client.Context.Server.MaxCacheFileSize > 0 Then
+            If UBound(Data) + 1 <= Client.Context.Server.MaxCacheFileSize Then
+                Client.Context.Server.AddFileToCache sPath, Data, currentETag, lastModTime
+            End If
+        End If
+        
+        SendBodyByte Data, ToolsHttpMimeType.MapMimeType(sPath)
+    End If
 End Sub
 
 Public Sub State(Code As Long, Text As String, Optional Say As String = "未知状态")
@@ -154,6 +219,17 @@ Public Sub State502(Optional Say As String)
 End Sub
 Public Sub State500(Optional Say As String)
     State 500, "InternalError", Say
+End Sub
+
+' 发送 304 Not Modified（协商缓存命中，不传输文件内容）
+Private Sub Send304(ETagValue As String, LastModifiedTime As Date)
+    If m_HasSent Then Exit Sub
+    Header("ETag") = ETagValue
+    Header("Last-Modified") = Client.Context.Server.FormatHttpDate(LastModifiedTime)
+    Header("Content-Length") = 0
+    SendHeader 304, "Not Modified"
+    Header.RemoveAll
+    m_HasSent = True
 End Sub
 
 Private Sub Class_Initialize()

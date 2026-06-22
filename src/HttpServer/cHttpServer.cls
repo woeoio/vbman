@@ -102,6 +102,9 @@ Public MaxRequestSize As Long
 Public IdleTimeoutSeconds As Long
 ' 内置清理定时器间隔（毫秒，默认 30000 = 30秒）
 Private m_CleanupTimerInterval As Long
+' 缓存配置（Start 前设置，Start 时注入 HttpSvr）
+Private m_MaxCacheFileSize As Long
+Private m_CacheTTLSeconds As Long
 
 Dim HttpApp As cHttpServerApp
 Dim HttpSvr As cHttpServerSvr
@@ -181,6 +184,51 @@ Public Sub AddDefaultDocument(FileName As String)
 End Sub
 
 '=========================================================================
+' 缓存配置与手动刷新
+'=========================================================================
+
+' 单文件缓存上限（字节），默认 1MB，0=禁用内容缓存
+' 设置为0时：文件仍从磁盘读取，但保留ETag/304协商缓存功能
+Public Property Get MaxCacheFileSize() As Long
+    If HttpSvr Is Nothing Then
+        MaxCacheFileSize = m_MaxCacheFileSize
+    Else
+        MaxCacheFileSize = HttpSvr.MaxCacheFileSize
+    End If
+End Property
+Public Property Let MaxCacheFileSize(ByVal value As Long)
+    m_MaxCacheFileSize = value
+    If Not HttpSvr Is Nothing Then HttpSvr.MaxCacheFileSize = value
+End Property
+
+' 缓存TTL（秒），默认300=5分钟，0=永不过期
+' 过期后缓存条目仍保留，下次访问时检查ETag是否变化再决定刷新
+Public Property Get CacheTTLSeconds() As Long
+    If HttpSvr Is Nothing Then
+        CacheTTLSeconds = m_CacheTTLSeconds
+    Else
+        CacheTTLSeconds = HttpSvr.CacheTTLSeconds
+    End If
+End Property
+Public Property Let CacheTTLSeconds(ByVal value As Long)
+    m_CacheTTLSeconds = value
+    If Not HttpSvr Is Nothing Then HttpSvr.CacheTTLSeconds = value
+End Property
+
+' 刷新目录结构缓存（部署新文件/新目录后手动调用）
+' 不影响文件内容缓存，内容缓存通过ETag自动感知文件更新
+Public Sub RefreshCache()
+    If HttpSvr Is Nothing Then Exit Sub
+    HttpSvr.RefreshDirCache
+End Sub
+
+' 清空文件内容缓存（强制所有文件重新从磁盘读取）
+Public Sub ClearFileCache()
+    If HttpSvr Is Nothing Then Exit Sub
+    HttpSvr.ClearFileCache
+End Sub
+
+'=========================================================================
 ' Start / StopMe
 '=========================================================================
 
@@ -221,6 +269,9 @@ Public Function Start(Optional Port As Long = 80, Optional IP As String = "0.0.0
             HttpSvr.AddDefaultDocument CStr(docName)
         Next
     End If
+    ' 注入缓存配置
+    If m_MaxCacheFileSize > 0 Then HttpSvr.MaxCacheFileSize = m_MaxCacheFileSize
+    If m_CacheTTLSeconds > 0 Then HttpSvr.CacheTTLSeconds = m_CacheTTLSeconds
     IsRunning = True
     Statistics.StartTime = Now
     
@@ -319,6 +370,9 @@ Private Sub Class_Initialize()
     IdleTimeoutSeconds = 120
     ' 内置清理定时器默认 30 秒
     m_CleanupTimerInterval = 30000
+    ' 缓存默认配置：单文件上限 1MB，TTL 5分钟
+    m_MaxCacheFileSize = 1048576
+    m_CacheTTLSeconds = 300
 End Sub
 
 Private Sub Class_Terminate()

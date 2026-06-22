@@ -131,14 +131,14 @@ SendFile:
     Dim fileInfo As Object  ' Scripting.File
     Set fileInfo = ToolsFso.Inst.GetFile(sPath)
     Dim currentETag As String
-    currentETag = Client.Context.Server.ComputeETag(fileInfo.DateLastModified, fileInfo.Size)
+    currentETag = ToolsDateTime.ComputeETag(fileInfo.DateLastModified, fileInfo.Size)
     Dim lastModTime As Date
     lastModTime = fileInfo.DateLastModified
     Set fileInfo = Nothing
     
     ' 2. 设置 ETag + Last-Modified 响应头
     Header("ETag") = currentETag
-    Header("Last-Modified") = Client.Context.Server.FormatHttpDate(lastModTime)
+    Header("Last-Modified") = ToolsDateTime.FormatHttpDate(lastModTime)
     
     ' 3. 304 Not Modified 协商缓存（比对请求的 If-None-Match）
     Dim reqHeader As Scripting.Dictionary
@@ -225,7 +225,7 @@ End Sub
 Private Sub Send304(ETagValue As String, LastModifiedTime As Date)
     If m_HasSent Then Exit Sub
     Header("ETag") = ETagValue
-    Header("Last-Modified") = Client.Context.Server.FormatHttpDate(LastModifiedTime)
+    Header("Last-Modified") = ToolsDateTime.FormatHttpDate(LastModifiedTime)
     Header("Content-Length") = 0
     SendHeader 304, "Not Modified"
     Header.RemoveAll

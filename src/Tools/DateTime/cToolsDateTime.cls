@@ -113,21 +113,42 @@ Public Function FormatDateTime(Optional ByVal strFormat As String = "yyyy-mm-dd 
     On Error Resume Next
     FormatDateTime = Format(dt, strFormat)
     On Error GoTo 0
-    
-    'Dim formattedDate As String
-    
-    'Rem  使用当前时间并按指定格式返回
-    'formattedDate = FormatDateTimeCustom("yyyy-mm-dd hh:nn:ss")
-    'MsgBox formattedDate
-    '
-    'Rem  使用给定的日期时间字符串
-    'formattedDate = FormatDateTimeCustom("dd/mm/yyyy", "2024-08-23 14:30:00")
-    'MsgBox formattedDate
-    '
-    'Rem  使用给定的日期类型
-    'formattedDate = FormatDateTimeCustom("hh:nn:ss AM/PM", #8/23/2024 2:30:00 PM#)
-    'MsgBox formattedDate
-    
 End Function
 
+'=========================================================================
+' HTTP 日期与缓存相关
+'=========================================================================
 
+' 格式化 HTTP 日期（RFC 1123 / RFC 2616 格式）
+' 输出格式: "Day, DD Mon YYYY HH:MM:SS GMT"（如 "Mon, 22 Jun 2026 09:42:00 GMT"）
+' 使用硬编码英文星期/月份名，确保 locale 无关
+' 用途: Last-Modified、Cookie Expires、Cache-Control Expires 等 HTTP 头
+Public Function FormatHttpDate(d As Date) As String
+    Dim dayNames As Variant
+    dayNames = Array("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    Dim monthNames As Variant
+    monthNames = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", _
+                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    Dim wday As Long: wday = Weekday(d) - 1  ' VB6 Weekday: 1=Sun
+    Dim mon As Long: mon = Month(d) - 1
+    FormatHttpDate = dayNames(wday) & ", " & _
+        Right("0" & Day(d), 2) & " " & monthNames(mon) & " " & _
+        Year(d) & " " & _
+        Right("0" & Hour(d), 2) & ":" & _
+        Right("0" & Minute(d), 2) & ":" & _
+        Right("0" & Second(d), 2) & " GMT"
+End Function
+
+' 计算 ETag 标识（基于文件修改时间 + 大小，locale 无关）
+' 输出格式: "YYYYMMDDHHNNSS-FileSize"（如 "20260622094200-1048576"）
+' 用途: HTTP 协商缓存 ETag 头，比对文件是否更新
+Public Function ComputeETag(lastModified As Date, fileSize As Long) As String
+    ComputeETag = """" & _
+        Right(Year(lastModified), 4) & _
+        Right("0" & Month(lastModified), 2) & _
+        Right("0" & Day(lastModified), 2) & _
+        Right("0" & Hour(lastModified), 2) & _
+        Right("0" & Minute(lastModified), 2) & _
+        Right("0" & Second(lastModified), 2) & _
+        "-" & fileSize & """"
+End Function

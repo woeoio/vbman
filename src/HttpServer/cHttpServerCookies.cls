@@ -165,7 +165,7 @@ Public Function Encode() As String
         
         ' 添加过期时间
         If Not IsEmpty(CK.Expires) Then
-            cookieString = cookieString & "; Expires=" & FormatHttpDate(CK.Expires)
+            cookieString = cookieString & "; Expires=" & ToolsDateTime.FormatHttpDate(CK.Expires)
         End If
         
         ' 添加 Secure 标志
@@ -187,27 +187,8 @@ Public Function Encode() As String
     Encode = cookieString
 End Function
 
-' 格式化 HTTP 日期（RFC 1123 格式）
-Private Function FormatHttpDate(dt As Variant) As String
-    Dim dtDate As Date
-    Dim sWeekDay As String, sMonth As String
-    Dim arrWeekDay As Variant, arrMonth As Variant
-    
-    arrWeekDay = Array("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-    arrMonth = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-    
-    dtDate = CDate(dt)
-    sWeekDay = arrWeekDay(Weekday(dtDate, vbSunday) - 1)
-    sMonth = arrMonth(Month(dtDate) - 1)
-    
-    FormatHttpDate = sWeekDay & ", " & _
-                     Right("0" & Day(dtDate), 2) & " " & _
-                     sMonth & " " & _
-                     Year(dtDate) & " " & _
-                     Right("0" & Hour(dtDate), 2) & ":" & _
-                     Right("0" & Minute(dtDate), 2) & ":" & _
-                     Right("0" & Second(dtDate), 2) & " GMT"
-End Function
+' FormatHttpDate 已移至 cToolsDateTime 工具类
+' 调用方式: ToolsDateTime.FormatHttpDate(dt)
 
 Private Sub Class_Initialize()
     ' 显式创建子对象（替代 As New 隐式创建）

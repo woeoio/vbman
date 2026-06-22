@@ -195,32 +195,5 @@ Friend Sub ClearFileCache()
     m_FileCache.RemoveAll
 End Sub
 
-' 计算 ETag：基于文件修改时间+大小（locale无关）
-Friend Function ComputeETag(lastModified As Date, fileSize As Long) As String
-    ComputeETag = """" & _
-        Right(Year(lastModified), 4) & _
-        Right("0" & Month(lastModified), 2) & _
-        Right("0" & Day(lastModified), 2) & _
-        Right("0" & Hour(lastModified), 2) & _
-        Right("0" & Minute(lastModified), 2) & _
-        Right("0" & Second(lastModified), 2) & _
-        "-" & fileSize & """"
-End Function
-
-' 格式化 HTTP 日期（RFC 2616: "Day, DD Mon YYYY HH:MM:SS GMT"）
-' 使用硬编码英文星期/月份名，确保 locale 无关
-Friend Function FormatHttpDate(d As Date) As String
-    Dim dayNames As Variant
-    dayNames = Array("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-    Dim monthNames As Variant
-    monthNames = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", _
-                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-    Dim wday As Long: wday = Weekday(d) - 1  ' VB6 Weekday: 1=Sun
-    Dim mon As Long: mon = Month(d) - 1
-    FormatHttpDate = dayNames(wday) & ", " & _
-        Right("0" & Day(d), 2) & " " & monthNames(mon) & " " & _
-        Year(d) & " " & _
-        Right("0" & Hour(d), 2) & ":" & _
-        Right("0" & Minute(d), 2) & ":" & _
-        Right("0" & Second(d), 2) & " GMT"
-End Function
+' FormatHttpDate 和 ComputeETag 已移至 cToolsDateTime 工具类
+' 调用方式: ToolsDateTime.FormatHttpDate(d) / ToolsDateTime.ComputeETag(lastModified, fileSize)

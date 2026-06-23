@@ -328,7 +328,7 @@ Public Function Where(ByVal Condition As String, ParamArray Params() As Variant)
 End Function
 
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-'  链式查询构建器 - Select / Distinct / OrderBy / GroupBy / Having
+'  链式查询构建器 - Columns / Distinct / OrderBy / GroupBy / Having
 '  / Join / LeftJoin / RightJoin / OrWhere / WhereIn / WhereNotIn
 '  / WhereBetween / WhereLike / WhereNull / WhereNotNull / Limit / Offset
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

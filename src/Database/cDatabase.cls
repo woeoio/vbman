@@ -39,9 +39,26 @@ Dim Connections As New Scripting.Dictionary
 Private IsPage As Boolean
 Private IsTrans As Boolean
 Private pvRawSqlString As String
+Private pvTableName As String
+Private pvWhereCondition As String
+Private pvWhereParams As New Collection
+Private pvFields As New Scripting.Dictionary  ' Field() 链式调用缓存 {fieldName: value}
 Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
+'━━━ 链式查询构建器新增内部状态 ━━━
+Private pvSelectFields As String          ' Select() 设置的字段列表
+Private pvIsDistinct As Boolean           ' Distinct 标记
+Private pvOrderByClause As String         ' OrderBy 排序子句
+Private pvGroupByClause As String         ' GroupBy 分组子句
+Private pvHavingClause As String          ' Having 分组过滤子句
+Private pvJoinClauses As String           ' Join 连接子句（可叠加多个）
+Private pvLimitValue As Long              ' Limit 限制条数
+Private pvOffsetValue As Long             ' Offset 偏移量
+Private pvOrWhereCondition As String      ' OrWhere OR条件
+Private pvWhereInClauses As String        ' WhereIn 子句片段（可叠加）
+Private pvWhereBetweenClauses As String   ' WhereBetween 子句片段
+Private pvWhereNullClauses As String      ' WhereNull/WhereNotNull 子句片段
 Public IsCloneInstance As Boolean                                               '标记是否为连接池克隆实例
 'Public CustomConnectionString As String
 
@@ -283,6 +300,402 @@ Public Function Sql(ByVal RawSqlString As String) As cDataBase
     Set Sql = Me
     pvRawSqlString = RawSqlString
     IsPage = False
+End Function
+
+'设置当前操作的表名，用于后续 AddRow/RowUpdate 等方法
+Public Function Table(ByVal TableName As String) As cDataBase
+    Set Table = Me
+    pvTableName = TableName
+End Function
+
+'设置 WHERE 条件，支持 ? 占位符 + ParamArray 参数值
+'用法: db.Where("serial_no=? AND channel=?", serialNo, 1)
+Public Function Where(ByVal Condition As String, ParamArray Params() As Variant) As cDataBase
+    Set Where = Me
+    ' 替换 ? 占位符为参数值
+    Dim i As Long
+    pvWhereCondition = Condition
+    For i = 0 To UBound(Params)
+        ' 用 ADO 参数化方式存储参数值
+        pvWhereParams.Add CStr(Params(i))
+        ' 替换第一个 ? 为值（用单引号转义）
+        Dim pos As Long: pos = InStr(pvWhereCondition, "?")
+        If pos > 0 Then
+            Dim val As String: val = Replace(CStr(Params(i)), "'", "''")
+            pvWhereCondition = Left$(pvWhereCondition, pos - 1) & "'" & val & "'" & Mid$(pvWhereCondition, pos + 1)
+        End If
+    Next
+End Function
+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+'  链式查询构建器 - Select / Distinct / OrderBy / GroupBy / Having
+'  / Join / LeftJoin / RightJoin / OrWhere / WhereIn / WhereNotIn
+'  / WhereBetween / WhereLike / WhereNull / WhereNotNull / Limit / Offset
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+'选择查询字段（默认 SELECT *，调用后改为指定字段）
+'用法: db.Table("t").Select("id,name,age").RowRead
+'     db.Table("t").Select("id", "name", "age").RowRead  (多参数形式)
+Public Function Select(ParamArray Fields() As Variant) As cDataBase
+    Set Select = Me
+    If UBound(Fields) < 0 Then Exit Function
+    '如果只传一个参数且包含逗号，视为完整字段列表字符串
+    If UBound(Fields) = 0 And InStr(CStr(Fields(0)), ",") > 0 Then
+        pvSelectFields = CStr(Fields(0))
+    Else
+        Dim i As Long, s As String
+        For i = 0 To UBound(Fields)
+            If s <> "" Then s = s & ", "
+            s = s & CStr(Fields(i))
+        Next
+        pvSelectFields = s
+    End If
+End Function
+
+'去重查询 SELECT DISTINCT
+'用法: db.Table("t").Distinct.Select("category").RowRead
+Public Function Distinct() As cDataBase
+    Set Distinct = Me
+    pvIsDistinct = True
+End Function
+
+'排序 ASC（可多次调用叠加多个排序字段）
+'用法: db.Table("t").OrderBy("age").OrderBy("name").RowRead
+Public Function OrderBy(ByVal FieldName As String) As cDataBase
+    Set OrderBy = Me
+    If pvOrderByClause <> "" Then pvOrderByClause = pvOrderByClause & ", "
+    pvOrderByClause = pvOrderByClause & FieldName & " ASC"
+End Function
+
+'排序 DESC（可多次调用叠加多个排序字段）
+'用法: db.Table("t").OrderByDesc("age").OrderByDesc("name").RowRead
+Public Function OrderByDesc(ByVal FieldName As String) As cDataBase
+    Set OrderByDesc = Me
+    If pvOrderByClause <> "" Then pvOrderByClause = pvOrderByClause & ", "
+    pvOrderByClause = pvOrderByClause & FieldName & " DESC"
+End Function
+
+'自定义排序（指定字段和方向）
+'用法: db.Table("t").OrderByRaw("age DESC, name ASC").RowRead
+Public Function OrderByRaw(ByVal RawClause As String) As cDataBase
+    Set OrderByRaw = Me
+    If pvOrderByClause <> "" Then pvOrderByClause = pvOrderByClause & ", "
+    pvOrderByClause = pvOrderByClause & RawClause
+End Function
+
+'分组 GROUP BY（可多次调用叠加多个分组字段）
+'用法: db.Table("t").GroupBy("category").Having("COUNT(*)>5").RowRead
+Public Function GroupBy(ByVal FieldName As String) As cDataBase
+    Set GroupBy = Me
+    If pvGroupByClause <> "" Then pvGroupByClause = pvGroupByClause & ", "
+    pvGroupByClause = pvGroupByClause & FieldName
+End Function
+
+'分组过滤 HAVING（配合 GroupBy 使用）
+'用法: db.Table("t").GroupBy("category").Having("COUNT(*)>5").RowRead
+Public Function Having(ByVal Condition As String) As cDataBase
+    Set Having = Me
+    pvHavingClause = Condition
+End Function
+
+'INNER JOIN 表连接
+'用法: db.Table("orders").Join("users", "orders.user_id = users.id").RowRead
+Public Function Join(ByVal TableName As String, ByVal OnCondition As String) As cDataBase
+    Set Join = Me
+    pvJoinClauses = pvJoinClauses & " INNER JOIN " & TableName & " ON " & OnCondition
+End Function
+
+'LEFT JOIN 左连接
+'用法: db.Table("orders").LeftJoin("users", "orders.user_id = users.id").RowRead
+Public Function LeftJoin(ByVal TableName As String, ByVal OnCondition As String) As cDataBase
+    Set LeftJoin = Me
+    pvJoinClauses = pvJoinClauses & " LEFT JOIN " & TableName & " ON " & OnCondition
+End Function
+
+'RIGHT JOIN 右连接
+'用法: db.Table("orders").RightJoin("users", "orders.user_id = users.id").RowRead
+Public Function RightJoin(ByVal TableName As String, ByVal OnCondition As String) As cDataBase
+    Set RightJoin = Me
+    pvJoinClauses = pvJoinClauses & " RIGHT JOIN " & TableName & " ON " & OnCondition
+End Function
+
+'OR WHERE 条件（与 Where 并列，用 OR 连接）
+'用法: db.Table("t").Where("age>18").OrWhere("status='active'").RowRead
+Public Function OrWhere(ByVal Condition As String, ParamArray Params() As Variant) As cDataBase
+    Set OrWhere = Me
+    Dim s As String: s = Condition
+    Dim i As Long
+    For i = 0 To UBound(Params)
+        Dim pos As Long: pos = InStr(s, "?")
+        If pos > 0 Then
+            Dim val As String: val = Replace(CStr(Params(i)), "'", "''")
+            s = Left$(s, pos - 1) & "'" & val & "'" & Mid$(s, pos + 1)
+        End If
+    Next
+    If pvOrWhereCondition <> "" Then pvOrWhereCondition = pvOrWhereCondition & " OR "
+    pvOrWhereCondition = pvOrWhereCondition & s
+End Function
+
+'WHERE IN 条件（字段值在指定列表中）
+'用法: db.Table("t").WhereIn("status", "active,pending,closed").RowRead
+'     db.Table("t").WhereIn("id", 1, 2, 3).RowRead  (多参数形式)
+Public Function WhereIn(ByVal FieldName As String, ParamArray Values() As Variant) As cDataBase
+    Set WhereIn = Me
+    Dim s As String
+    '如果只传一个参数且包含逗号，视为完整列表字符串
+    If UBound(Values) = 0 And InStr(CStr(Values(0)), ",") > 0 Then
+        Dim items() As String: items = Split(CStr(Values(0)), ",")
+        Dim j As Long
+        For j = 0 To UBound(items)
+            If s <> "" Then s = s & ", "
+            s = s & "'" & Trim(Replace(items(j), "'", "''")) & "'"
+        Next
+    Else
+        Dim i As Long
+        For i = 0 To UBound(Values)
+            If s <> "" Then s = s & ", "
+            s = s & "'" & Replace(CStr(Values(i)), "'", "''") & "'"
+        Next
+    End If
+    If pvWhereInClauses <> "" Then pvWhereInClauses = pvWhereInClauses & " AND "
+    pvWhereInClauses = pvWhereInClauses & FieldName & " IN (" & s & ")"
+End Function
+
+'WHERE NOT IN 条件（字段值不在指定列表中）
+Public Function WhereNotIn(ByVal FieldName As String, ParamArray Values() As Variant) As cDataBase
+    Set WhereNotIn = Me
+    Dim s As String
+    If UBound(Values) = 0 And InStr(CStr(Values(0)), ",") > 0 Then
+        Dim items() As String: items = Split(CStr(Values(0)), ",")
+        Dim j As Long
+        For j = 0 To UBound(items)
+            If s <> "" Then s = s & ", "
+            s = s & "'" & Trim(Replace(items(j), "'", "''")) & "'"
+        Next
+    Else
+        Dim i As Long
+        For i = 0 To UBound(Values)
+            If s <> "" Then s = s & ", "
+            s = s & "'" & Replace(CStr(Values(i)), "'", "''") & "'"
+        Next
+    End If
+    If pvWhereInClauses <> "" Then pvWhereInClauses = pvWhereInClauses & " AND "
+    pvWhereInClauses = pvWhereInClauses & FieldName & " NOT IN (" & s & ")"
+End Function
+
+'WHERE BETWEEN 条件（字段值在两个值之间）
+'用法: db.Table("t").WhereBetween("age", 18, 30).RowRead
+Public Function WhereBetween(ByVal FieldName As String, ByVal Value1 As Variant, ByVal Value2 As Variant) As cDataBase
+    Set WhereBetween = Me
+    If pvWhereBetweenClauses <> "" Then pvWhereBetweenClauses = pvWhereBetweenClauses & " AND "
+    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " BETWEEN '" & Replace(CStr(Value1), "'", "''") & "' AND '" & Replace(CStr(Value2), "'", "''") & "'"
+End Function
+
+'WHERE NOT BETWEEN 条件
+Public Function WhereNotBetween(ByVal FieldName As String, ByVal Value1 As Variant, ByVal Value2 As Variant) As cDataBase
+    Set WhereNotBetween = Me
+    If pvWhereBetweenClauses <> "" Then pvWhereBetweenClauses = pvWhereBetweenClauses & " AND "
+    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " NOT BETWEEN '" & Replace(CStr(Value1), "'", "''") & "' AND '" & Replace(CStr(Value2), "'", "''") & "'"
+End Function
+
+'WHERE LIKE 条件（模糊匹配）
+'用法: db.Table("t").WhereLike("name", "%张%").RowRead
+Public Function WhereLike(ByVal FieldName As String, ByVal Pattern As String) As cDataBase
+    Set WhereLike = Me
+    '复用 pvWhereCondition 累加
+    If pvWhereCondition <> "" Then pvWhereCondition = pvWhereCondition & " AND "
+    pvWhereCondition = pvWhereCondition & FieldName & " LIKE '" & Replace(Pattern, "'", "''") & "'"
+End Function
+
+'WHERE NOT LIKE 条件
+Public Function WhereNotLike(ByVal FieldName As String, ByVal Pattern As String) As cDataBase
+    Set WhereNotLike = Me
+    If pvWhereCondition <> "" Then pvWhereCondition = pvWhereCondition & " AND "
+    pvWhereCondition = pvWhereCondition & FieldName & " NOT LIKE '" & Replace(Pattern, "'", "''") & "'"
+End Function
+
+'WHERE IS NULL 条件
+'用法: db.Table("t").WhereNull("deleted_at").RowRead
+Public Function WhereNull(ByVal FieldName As String) As cDataBase
+    Set WhereNull = Me
+    If pvWhereNullClauses <> "" Then pvWhereNullClauses = pvWhereNullClauses & " AND "
+    pvWhereNullClauses = pvWhereNullClauses & FieldName & " IS NULL"
+End Function
+
+'WHERE IS NOT NULL 条件
+'用法: db.Table("t").WhereNotNull("email").RowRead
+Public Function WhereNotNull(ByVal FieldName As String) As cDataBase
+    Set WhereNotNull = Me
+    If pvWhereNullClauses <> "" Then pvWhereNullClauses = pvWhereNullClauses & " AND "
+    pvWhereNullClauses = pvWhereNullClauses & FieldName & " IS NOT NULL"
+End Function
+
+'限制返回条数 LIMIT（非分页场景，简单截断）
+'用法: db.Table("t").OrderByDesc("id").Limit(10).RowRead
+Public Function Limit(ByVal N As Long) As cDataBase
+    Set Limit = Me
+    pvLimitValue = N
+End Function
+
+'偏移量 OFFSET（配合 Limit 使用，跳过前 N 条）
+'用法: db.Table("t").OrderByDesc("id").Limit(10).Offset(20).RowRead
+Public Function Offset(ByVal N As Long) As cDataBase
+    Set Offset = Me
+    pvOffsetValue = N
+End Function
+
+'重置链式查询构建器所有内部状态（每次终结操作后自动调用）
+Private Sub ResetBuilder()
+    pvTableName = ""
+    pvWhereCondition = ""
+    pvOrWhereCondition = ""
+    pvWhereInClauses = ""
+    pvWhereBetweenClauses = ""
+    pvWhereNullClauses = ""
+    pvSelectFields = ""
+    pvIsDistinct = False
+    pvOrderByClause = ""
+    pvGroupByClause = ""
+    pvHavingClause = ""
+    pvJoinClauses = ""
+    pvLimitValue = 0
+    pvOffsetValue = 0
+    pvRawSqlString = ""
+    IsPage = False
+    pvPageNum = 0
+    pvPageLimit = 0
+    pvPageOffset = 0
+End Sub
+
+'拼接 WHERE 子句（合并 Where/WhereIn/WhereBetween/WhereNull/OrWhere）
+'由 RowUpdate/RowDelete 等需要 WHERE 的终结方法内部调用
+Private Function BuildWhereClause() As String
+    Dim whereParts As String
+    If pvWhereCondition <> "" Then whereParts = pvWhereCondition
+    If pvWhereInClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereInClauses
+    End If
+    If pvWhereBetweenClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereBetweenClauses
+    End If
+    If pvWhereNullClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereNullClauses
+    End If
+    If pvOrWhereCondition <> "" Then
+        If whereParts <> "" Then
+            whereParts = whereParts & " OR (" & pvOrWhereCondition & ")"
+        Else
+            whereParts = pvOrWhereCondition
+        End If
+    End If
+    BuildWhereClause = whereParts
+End Function
+
+'拼接完整 SELECT SQL（由 RowRead/Fetch 等终结方法内部调用）
+'构建逻辑: SELECT [DISTINCT] {fields} FROM {table} {joins} WHERE {conditions} GROUP BY {group} HAVING {having} ORDER BY {order} LIMIT/OFFSET
+Private Function BuildSelectSql() As String
+    Dim SqlString As String
+    
+    'SELECT 部分
+    If pvIsDistinct Then
+        SqlString = "SELECT DISTINCT "
+    Else
+        SqlString = "SELECT "
+    End If
+    If pvSelectFields <> "" Then
+        SqlString = SqlString & pvSelectFields
+    Else
+        SqlString = SqlString & "*"
+    End If
+    
+    'FROM 部分
+    SqlString = SqlString & " FROM " & pvTableName
+    
+    'JOIN 部分
+    If pvJoinClauses <> "" Then
+        SqlString = SqlString & pvJoinClauses
+    End If
+    
+    'WHERE 部分 - 合并所有条件子句
+    Dim whereParts As String
+    If pvWhereCondition <> "" Then whereParts = pvWhereCondition
+    If pvWhereInClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereInClauses
+    End If
+    If pvWhereBetweenClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereBetweenClauses
+    End If
+    If pvWhereNullClauses <> "" Then
+        If whereParts <> "" Then whereParts = whereParts & " AND "
+        whereParts = whereParts & pvWhereNullClauses
+    End If
+    If pvOrWhereCondition <> "" Then
+        If whereParts <> "" Then
+            whereParts = whereParts & " OR (" & pvOrWhereCondition & ")"
+        Else
+            whereParts = pvOrWhereCondition
+        End If
+    End If
+    If whereParts <> "" Then
+        SqlString = SqlString & " WHERE " & whereParts
+    End If
+    
+    'GROUP BY 部分
+    If pvGroupByClause <> "" Then
+        SqlString = SqlString & " GROUP BY " & pvGroupByClause
+    End If
+    
+    'HAVING 部分
+    If pvHavingClause <> "" Then
+        SqlString = SqlString & " HAVING " & pvHavingClause
+    End If
+    
+    'ORDER BY 部分
+    If pvOrderByClause <> "" Then
+        SqlString = SqlString & " ORDER BY " & pvOrderByClause
+    End If
+    
+    'LIMIT / OFFSET 部分（根据数据库类型适配语法）
+    If pvLimitValue > 0 Or pvOffsetValue > 0 Then
+        Select Case DatabaseType
+        Case Mysql
+            If pvOffsetValue > 0 Then
+                SqlString = SqlString & " LIMIT " & pvOffsetValue & ", " & pvLimitValue
+            ElseIf pvLimitValue > 0 Then
+                SqlString = SqlString & " LIMIT " & pvLimitValue
+            End If
+        Case MsSql
+            'SQL Server: OFFSET {n} ROWS FETCH NEXT {m} ROWS ONLY (需 ORDER BY)
+            If pvOrderByClause = "" Then
+                '没有 ORDER BY 时用 id 排序兜底（SQL Server OFFSET 必须有 ORDER BY）
+                SqlString = SqlString & " ORDER BY (SELECT 0)"
+            End If
+            If pvOffsetValue > 0 Then
+                SqlString = SqlString & " OFFSET " & pvOffsetValue & " ROWS FETCH NEXT " & pvLimitValue & " ROWS ONLY"
+            ElseIf pvLimitValue > 0 Then
+                SqlString = SqlString & " OFFSET 0 ROWS FETCH NEXT " & pvLimitValue & " ROWS ONLY"
+            End If
+        Case Access
+            'Access 不支持 LIMIT/OFFSET，使用 ADO 分页机制替代
+            If pvLimitValue > 0 Then
+                pvPageLimit = pvLimitValue
+                pvPageNum = (pvOffsetValue \ pvLimitValue) + 1
+                IsPage = True
+            End If
+        Case Else
+            '其他数据库类型，使用 LIMIT 语法
+            If pvLimitValue > 0 Then
+                SqlString = SqlString & " LIMIT " & pvLimitValue
+            End If
+        End Select
+    End If
+    
+    BuildSelectSql = SqlString
 End Function
 
 '参数化查询 - 防止SQL注入
@@ -714,6 +1127,370 @@ eee:
     LastErr = "GetTables Err[" & ERR.Number & "]" & ERR.Description
     LastErrNumber = ERR.Number
     LastErrDescription = ERR.Description
+End Function
+
+'设置字段值（链式），存入内部缓存，最终由 RowCreate/RowUpdate 自动写入 Recordset
+'用法: .Field "serial_no", serialNo  或  .Field "is_new", True
+Public Function Field(ByVal FieldName As String, ByVal FieldValue As Variant) As cDataBase
+    Set Field = Me
+    If pvFields.Exists(FieldName) Then
+        pvFields(FieldName) = FieldValue
+    Else
+        pvFields.Add FieldName, FieldValue
+    End If
+End Function
+
+'清除已缓存的字段值（RowCreate/RowUpdate 执行后自动调用）
+Private Sub ClearFields()
+    pvFields.RemoveAll
+End Sub
+
+'将缓存字段写入当前 Recordset（RowCreate/RowUpdate 内部调用）
+Private Sub FlushFields()
+    Dim key As Variant
+    For Each key In pvFields.Keys
+        Rs.Fields(CStr(key)).Value = pvFields(key)
+    Next
+End Sub
+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+'  ORM 链式操作: RowCreate / RowRead / RowUpdate / RowDelete
+'  用法:
+'    创建: db.Table("t").Field("k",v).RowCreate
+'    读取: db.Table("t").Where("id=?",1).RowRead : Debug.Print .rs!name
+'    更新: db.Table("t").Where("id=?",1).Field("k",v).RowUpdate
+'    删除: db.Table("t").Where("id=?",1).RowDelete
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+'插入新行 - 需先调用 Table() 设置表名
+'支持两种用法:
+'  1. 链式 Field: With db.Table("devices") : .Field "serial_no", "xxx" : .RowCreate : End With
+'  2. 传统 Rs:   With db.Table("devices").RowCreate : .rs!serial_no = "xxx" : .rs.Update : End With
+Public Function RowCreate() As cDataBase
+    On Error GoTo eee
+    Set RowCreate = Me
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowCreate: no table set, call Table() first": Exit Function
+    
+    If Rs.State <> adStateClosed Then Rs.Close
+    Rs.Open "SELECT * FROM " & pvTableName & " WHERE 1=0", Conn, adOpenKeyset, adLockOptimistic
+    Rs.AddNew
+    
+    '自动填充 Field() 链式设置的字段值
+    If pvFields.count > 0 Then
+        FlushFields
+        Rs.Update
+        ClearFields
+    End If
+    '注意: RowCreate 后不自动 ResetBuilder，因为用户可能继续用 Rs 编辑字段
+    '但 pvTableName 保留以便后续操作，pvWhere 等查询状态无需重置
+    Exit Function
+eee:
+    LastErr = "RowCreate Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ClearFields
+    ResetBuilder
+End Function
+
+'查询行 - 链式构建器终结方法，拼接完整 SQL 并打开 Recordset
+'用法: db.Table("devices").Where("id=?", id).RowRead
+'     db.Table("t").Select("id,name").OrderBy("age").GroupBy("dept").RowRead
+Public Function RowRead() As cDataBase
+    On Error GoTo eee
+    Set RowRead = Me
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowRead: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = BuildSelectSql()
+    ResetBuilder  ' 构建完毕，重置状态
+    
+    If Rs.State <> adStateClosed Then Rs.Close
+    Rs.Open SqlString, Conn, adOpenKeyset, adLockOptimistic
+    
+    '处理分页
+    If IsPage Then
+        Rs.PageSize = pvPageLimit
+        Rs.AbsolutePage = pvPageNum
+        IsPage = False
+    End If
+    Exit Function
+eee:
+    LastErr = "RowRead Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'更新行 - 需先调用 Table() + Where() 定位目标行
+'支持两种用法:
+'  1. 链式 Field: With db.Table("devices").Where("serial_no=?", sn) : .Field "device_json", json : .RowUpdate : End With
+'  2. 传统 Rs:   With db.Table("devices").Where("serial_no=?", sn).RowUpdate : .rs!device_json = json : .rs.Update : End With
+Public Function RowUpdate() As cDataBase
+    On Error GoTo eee
+    Set RowUpdate = Me
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowUpdate: no table set, call Table() first": Exit Function
+    
+    '拼接 WHERE 条件（合并所有链式条件子句）
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql = "" Then LastErr = "RowUpdate: no condition set, call Where() first": ResetBuilder: Exit Function
+    
+    If Rs.State <> adStateClosed Then Rs.Close
+    Rs.Open "SELECT * FROM " & pvTableName & " WHERE " & whereSql, Conn, adOpenKeyset, adLockOptimistic
+    If Not Rs.EOF Then
+        '定位到第一行（通常只有一行），准备编辑
+    Else
+        LastErr = "RowUpdate: no row found matching condition"
+        ResetBuilder
+        Exit Function
+    End If
+    
+    '自动填充 Field() 链式设置的字段值
+    If pvFields.count > 0 Then
+        FlushFields
+        Rs.Update
+        ClearFields
+    End If
+    ResetBuilder  ' 用完重置
+    Exit Function
+eee:
+    LastErr = "RowUpdate Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+    ClearFields
+End Function
+
+'删除行 - 需先调用 Table() + Where() 定位目标行
+'用法: db.Table("devices").Where("id=?", id).RowDelete
+'     db.Table("t").WhereIn("status", "expired,deleted").RowDelete
+Public Function RowDelete() As cDataBase
+    On Error GoTo eee
+    Set RowDelete = Me
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowDelete: no table set, call Table() first": Exit Function
+    
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql = "" Then LastErr = "RowDelete: no condition set, call Where() first": ResetBuilder: Exit Function
+    
+    Dim SqlString As String
+    SqlString = "DELETE FROM " & pvTableName & " WHERE " & whereSql
+    ResetBuilder  ' 用完重置
+    
+    Conn.Execute SqlString, , adExecuteNoRecords
+    Exit Function
+eee:
+    LastErr = "RowDelete Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+'  链式构建器终结方法 - RowCount / RowExists / RowPluck / RowMax / RowMin / RowSum / RowAvg
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+'链式统计行数 - 返回符合条件的记录总数
+'用法: n = db.Table("t").Where("age>18").RowCount
+Public Function RowCount() As Long
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowCount: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT COUNT(*) AS cnt FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    If Not rsTemp.EOF Then RowCount = rsTemp("cnt")
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowCount Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式判断是否存在 - 返回布尔值
+'用法: If db.Table("t").Where("serial_no=?", sn).RowExists Then ...
+Public Function RowExists() As Boolean
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowExists: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT 1 AS exists_flag FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    '添加 LIMIT 1 提升性能
+    Select Case DatabaseType
+    Case Mysql: SqlString = SqlString & " LIMIT 1"
+    Case MsSql: SqlString = SqlString & " OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY"  '需有ORDER BY，此处简化
+    End Select
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    RowExists = Not rsTemp.EOF
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowExists Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式提取单列值列表 - 返回 Collection
+'用法: Dim names As Collection: Set names = db.Table("t").Where("age>18").RowPluck("name")
+Public Function RowPluck(ByVal FieldName As String) As Collection
+    On Error GoTo eee
+    Set RowPluck = New Collection
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowPluck: no table set, call Table() first": Exit Function
+    
+    '强制修改 Select 为单字段
+    pvSelectFields = FieldName
+    Dim SqlString As String
+    SqlString = BuildSelectSql()
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    Do Until rsTemp.EOF
+        RowPluck.Add rsTemp(0).Value
+        rsTemp.MoveNext
+    Loop
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    Set RowPluck = New Collection
+    LastErr = "RowPluck Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式聚合函数 - MAX
+'用法: maxAge = db.Table("t").Where("dept='IT'").RowMax("age")
+Public Function RowMax(ByVal FieldName As String) As Variant
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowMax: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT MAX(" & FieldName & ") AS agg_val FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    If pvGroupByClause <> "" Then SqlString = SqlString & " GROUP BY " & pvGroupByClause
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    If Not rsTemp.EOF Then RowMax = rsTemp("agg_val")
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowMax Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式聚合函数 - MIN
+Public Function RowMin(ByVal FieldName As String) As Variant
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowMin: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT MIN(" & FieldName & ") AS agg_val FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    If pvGroupByClause <> "" Then SqlString = SqlString & " GROUP BY " & pvGroupByClause
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    If Not rsTemp.EOF Then RowMin = rsTemp("agg_val")
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowMin Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式聚合函数 - SUM
+Public Function RowSum(ByVal FieldName As String) As Variant
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowSum: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT SUM(" & FieldName & ") AS agg_val FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    If pvGroupByClause <> "" Then SqlString = SqlString & " GROUP BY " & pvGroupByClause
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    If Not rsTemp.EOF Then RowSum = rsTemp("agg_val")
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowSum Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
+End Function
+
+'链式聚合函数 - AVG
+Public Function RowAvg(ByVal FieldName As String) As Variant
+    On Error GoTo eee
+    If IsConnect = False Then LastErr = "Database not connect": Exit Function
+    If pvTableName = "" Then LastErr = "RowAvg: no table set, call Table() first": Exit Function
+    
+    Dim SqlString As String
+    SqlString = "SELECT AVG(" & FieldName & ") AS agg_val FROM " & pvTableName
+    Dim whereSql As String
+    whereSql = BuildWhereClause()
+    If whereSql <> "" Then SqlString = SqlString & " WHERE " & whereSql
+    If pvGroupByClause <> "" Then SqlString = SqlString & " GROUP BY " & pvGroupByClause
+    ResetBuilder
+    
+    Dim rsTemp As New ADODB.Recordset
+    rsTemp.Open SqlString, Conn, adOpenForwardOnly, adLockReadOnly
+    If Not rsTemp.EOF Then RowAvg = rsTemp("agg_val")
+    rsTemp.Close
+    Set rsTemp = Nothing
+    Exit Function
+eee:
+    LastErr = "RowAvg Err[" & ERR.Number & "]" & ERR.Description
+    LastErrNumber = ERR.Number
+    LastErrDescription = ERR.Description
+    ResetBuilder
 End Function
 
 '转义SQL字符串（防止SQL注入）

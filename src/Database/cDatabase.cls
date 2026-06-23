@@ -47,7 +47,7 @@ Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
 '━━━ 链式查询构建器新增内部状态 ━━━
-Private pvSelectFields As String          ' Select() 设置的字段列表
+Private pvSelectFields As String          ' Columns() 设置的查询列列表
 Private pvIsDistinct As Boolean           ' Distinct 标记
 Private pvOrderByClause As String         ' OrderBy 排序子句
 Private pvGroupByClause As String         ' GroupBy 分组子句
@@ -333,27 +333,28 @@ End Function
 '  / WhereBetween / WhereLike / WhereNull / WhereNotNull / Limit / Offset
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-'选择查询字段（默认 SELECT *，调用后改为指定字段）
-'用法: db.Table("t").Select("id,name,age").RowRead
-'     db.Table("t").Select("id", "name", "age").RowRead  (多参数形式)
-Public Function Select(ParamArray Fields() As Variant) As cDataBase
-    Set Select = Me
-    If UBound(Fields) < 0 Then Exit Function
-    '如果只传一个参数且包含逗号，视为完整字段列表字符串
-    If UBound(Fields) = 0 And InStr(CStr(Fields(0)), ",") > 0 Then
-        pvSelectFields = CStr(Fields(0))
+'指定查询列（默认 SELECT *，调用后改为指定列）
+'用法: db.Table("t").Columns("id,name,age").RowRead
+'     db.Table("t").Columns("id", "name", "age").RowRead  (多参数形式)
+'注意: 方法名使用 Columns 而非 Select，避免与 VB6 保留字 Select Case 冲突
+Public Function Columns(ParamArray Cols() As Variant) As cDataBase
+    Set Columns = Me
+    If UBound(Cols) < 0 Then Exit Function
+    '如果只传一个参数且包含逗号，视为完整列列表字符串
+    If UBound(Cols) = 0 And InStr(CStr(Cols(0)), ",") > 0 Then
+        pvSelectFields = CStr(Cols(0))
     Else
         Dim i As Long, s As String
-        For i = 0 To UBound(Fields)
+        For i = 0 To UBound(Cols)
             If s <> "" Then s = s & ", "
-            s = s & CStr(Fields(i))
+            s = s & CStr(Cols(i))
         Next
         pvSelectFields = s
     End If
 End Function
 
 '去重查询 SELECT DISTINCT
-'用法: db.Table("t").Distinct.Select("category").RowRead
+'用法: db.Table("t").Distinct.Columns("category").RowRead
 Public Function Distinct() As cDataBase
     Set Distinct = Me
     pvIsDistinct = True
@@ -1195,7 +1196,7 @@ End Function
 
 '查询行 - 链式构建器终结方法，拼接完整 SQL 并打开 Recordset
 '用法: db.Table("devices").Where("id=?", id).RowRead
-'     db.Table("t").Select("id,name").OrderBy("age").GroupBy("dept").RowRead
+'     db.Table("t").Columns("id,name").OrderBy("age").GroupBy("dept").RowRead
 Public Function RowRead() As cDataBase
     On Error GoTo eee
     Set RowRead = Me
@@ -1361,7 +1362,7 @@ Public Function RowPluck(ByVal FieldName As String) As Collection
     If IsConnect = False Then LastErr = "Database not connect": Exit Function
     If pvTableName = "" Then LastErr = "RowPluck: no table set, call Table() first": Exit Function
     
-    '强制修改 Select 为单字段
+    '强制修改 Columns 为单字段
     pvSelectFields = FieldName
     Dim SqlString As String
     SqlString = BuildSelectSql()

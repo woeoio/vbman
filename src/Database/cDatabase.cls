@@ -16,6 +16,54 @@ Attribute VB_Exposed = True
 'Microsoft ActiveX Data Objects 2.8 Library
 '依赖：
 'ToolsDic.bas
+'
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+'  ?? 已修复 BUG: Where 等链式方法参数化引号处理
+'
+'  原始问题: Table.Where("field=?", param) 对所有参数无条件加单引号，
+'  导致 Long 类型值变成 '42'，COUNTER/数值字段无法匹配字符串。
+'  现已修复: 新增 pvIsNumericType + pvSqlValue 辅助函数，
+'  数值类型(Integer/Long/Single/Double/Currency/Byte/Boolean)不加引号，
+'  字符串/日期类型加引号并转义，Null/Empty 输出 NULL 关键字。
+'
+'  ━━━ 后续优化方向: Schema 缓存方案 ━━━
+'
+'  当前 VarType 方案尊重调用者的 VB6 变量类型意图，简单可靠。
+'  但更理想的方案是以数据库字段定义为权威，而非调用者传入类型:
+'
+'  原理: Table("tablename") 执行时，先做一次轻量级 schema 查询:
+'        SELECT * FROM tablename WHERE 1=0  (零行空结果集)
+'        通过 ADO Recordset 拿到每个字段的 Type、DefinedSize 等元数据，
+'        缓存到 pvSchemaCache (Dictionary: fieldName → ADO DataTypeEnum)
+'
+'  后续 Where/WhereIn/WhereBetween 等链式方法:
+'        从条件字符串解析字段名 → 查 pvSchemaCache 获取字段类型
+'        → 按字段类型决定引号(数值字段不加, 文本字段加)
+'        → 解析失败时 fallback 到 VarType 方案兜底
+'
+'  Schema 方案优势:
+'        1. 以数据库定义为权威，即使调用者误传 Where("id=?", "42")
+'           也能正确生成 id=42 (系统按字段类型修正)
+'        2. 可扩展为类型校验——参数类型与字段类型不匹配时给出警告
+'        3. Date 类型可按字段类型选择格式(#...# 或 '...' 或标准格式)
+'
+'  Schema 方案代价:
+'        1. Table() 必须立即查一次 schema，打破纯延迟执行模式
+'           (可用缓存 pvSchemaCache 缓解，同表名只查一次)
+'        2. 从 Where 条件字符串解析字段名有复杂度
+'           (简单正则可处理 field=? / field>? / field IN (?) 等常见模式，
+'            嵌套括号/子查询等复杂条件需要 fallback 兜底)
+'        3. 表不存在时 schema 查询会报错，CREATE TABLE 场景需特殊处理
+'        4. ALTER TABLE 后缓存需失效，可设 pvSchemaCache.Clear 方法
+'
+'  实现策略: 两套逻辑并存，Schema 优先，VarType 兜底:
+'        Table("t") → 检查 pvSchemaCache 有无 "t" 元数据
+'                    → 无 → SELECT * FROM t WHERE 1=0 → 缓存 → 继续
+'                    → 有 → 直接使用
+'        Where("id=?", 42) → 解析字段名 "id"
+'                           → 查缓存: id → adInteger → 不加引号 → id=42
+'                           → 解析失败 → VarType(42)=vbLong → 不加引号 → id=42
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Public Event AsyncExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
 
@@ -104,6 +152,36 @@ Public Enum AdoDataType
     adLongVarBinary = 205
     adGUID = 72
 End Enum
+
+'━━━ SQL 参数类型智能引号处理 ━━━
+'判断 Variant 值是否为数值类型（数值在 SQL 中不加单引号，字符串/日期需加）
+'此函数解决 Where("id=?", longValue) 将 Long 值错误包裹为 '42' 的 BUG
+'数值类型: Integer, Long, Single, Double, Currency, Byte, Boolean
+'非数值类型: String, Date, Empty, Null 等 → 需加单引号
+Private Function pvIsNumericType(ByVal v As Variant) As Boolean
+    Select Case VarType(v)
+        Case vbInteger, vbLong, vbSingle, vbDouble, vbCurrency, vbByte, vbBoolean
+            pvIsNumericType = True
+        Case Else
+            pvIsNumericType = False
+    End Select
+End Function
+
+'将 Variant 值转为 SQL 安全字符串
+'数值类型不加引号直接输出（如 42 → "42"）
+'字符串类型加引号并转义单引号（如 "O'Brien" → "'O''Brien'"）
+'Null/Empty 输出 NULL 关键字
+Private Function pvSqlValue(ByVal v As Variant) As String
+    If IsNull(v) Then
+        pvSqlValue = "NULL"
+    ElseIf VarType(v) = vbEmpty Then
+        pvSqlValue = "NULL"
+    ElseIf pvIsNumericType(v) Then
+        pvSqlValue = CStr(v)
+    Else
+        pvSqlValue = "'" & Replace(CStr(v), "'", "''") & "'"
+    End If
+End Function
 
 Public Property Get Async() As cDataBase
     IsAsync = True
@@ -318,11 +396,10 @@ Public Function Where(ByVal Condition As String, ParamArray Params() As Variant)
     For i = 0 To UBound(Params)
         ' 用 ADO 参数化方式存储参数值
         pvWhereParams.Add CStr(Params(i))
-        ' 替换第一个 ? 为值（用单引号转义）
+        ' 替换第一个 ? 为值（数值不加引号，字符串加引号并转义）
         Dim pos As Long: pos = InStr(pvWhereCondition, "?")
         If pos > 0 Then
-            Dim val As String: val = Replace(CStr(Params(i)), "'", "''")
-            pvWhereCondition = Left$(pvWhereCondition, pos - 1) & "'" & val & "'" & Mid$(pvWhereCondition, pos + 1)
+            pvWhereCondition = Left$(pvWhereCondition, pos - 1) & pvSqlValue(Params(i)) & Mid$(pvWhereCondition, pos + 1)
         End If
     Next
 End Function
@@ -429,8 +506,7 @@ Public Function OrWhere(ByVal Condition As String, ParamArray Params() As Varian
     For i = 0 To UBound(Params)
         Dim pos As Long: pos = InStr(s, "?")
         If pos > 0 Then
-            Dim val As String: val = Replace(CStr(Params(i)), "'", "''")
-            s = Left$(s, pos - 1) & "'" & val & "'" & Mid$(s, pos + 1)
+            s = Left$(s, pos - 1) & pvSqlValue(Params(i)) & Mid$(s, pos + 1)
         End If
     Next
     If pvOrWhereCondition <> "" Then pvOrWhereCondition = pvOrWhereCondition & " OR "
@@ -455,7 +531,7 @@ Public Function WhereIn(ByVal FieldName As String, ParamArray Values() As Varian
         Dim i As Long
         For i = 0 To UBound(Values)
             If s <> "" Then s = s & ", "
-            s = s & "'" & Replace(CStr(Values(i)), "'", "''") & "'"
+            s = s & pvSqlValue(Values(i))
         Next
     End If
     If pvWhereInClauses <> "" Then pvWhereInClauses = pvWhereInClauses & " AND "
@@ -477,7 +553,7 @@ Public Function WhereNotIn(ByVal FieldName As String, ParamArray Values() As Var
         Dim i As Long
         For i = 0 To UBound(Values)
             If s <> "" Then s = s & ", "
-            s = s & "'" & Replace(CStr(Values(i)), "'", "''") & "'"
+            s = s & pvSqlValue(Values(i))
         Next
     End If
     If pvWhereInClauses <> "" Then pvWhereInClauses = pvWhereInClauses & " AND "
@@ -489,14 +565,14 @@ End Function
 Public Function WhereBetween(ByVal FieldName As String, ByVal Value1 As Variant, ByVal Value2 As Variant) As cDataBase
     Set WhereBetween = Me
     If pvWhereBetweenClauses <> "" Then pvWhereBetweenClauses = pvWhereBetweenClauses & " AND "
-    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " BETWEEN '" & Replace(CStr(Value1), "'", "''") & "' AND '" & Replace(CStr(Value2), "'", "''") & "'"
+    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " BETWEEN " & pvSqlValue(Value1) & " AND " & pvSqlValue(Value2)
 End Function
 
 'WHERE NOT BETWEEN 条件
 Public Function WhereNotBetween(ByVal FieldName As String, ByVal Value1 As Variant, ByVal Value2 As Variant) As cDataBase
     Set WhereNotBetween = Me
     If pvWhereBetweenClauses <> "" Then pvWhereBetweenClauses = pvWhereBetweenClauses & " AND "
-    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " NOT BETWEEN '" & Replace(CStr(Value1), "'", "''") & "' AND '" & Replace(CStr(Value2), "'", "''") & "'"
+    pvWhereBetweenClauses = pvWhereBetweenClauses & FieldName & " NOT BETWEEN " & pvSqlValue(Value1) & " AND " & pvSqlValue(Value2)
 End Function
 
 'WHERE LIKE 条件（模糊匹配）
@@ -1019,11 +1095,8 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
         For Each key In bRow.Keys
             If fields <> "" Then fields = fields & ", ": Values = Values & ", "
             fields = fields & key
-            '处理值，转义单引号
-            Dim Val As String
-            Val = CStr(bRow(key))
-            Val = Replace(Val, "'", "''")
-            Values = Values & "'" & Val & "'"
+            '处理值，数值不加引号，字符串加引号并转义
+            Values = Values & pvSqlValue(bRow(key))
         Next
         
         SqlString = "INSERT INTO " & TableName & " (" & fields & ") VALUES (" & Values & ")"

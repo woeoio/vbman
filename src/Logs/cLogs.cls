@@ -58,7 +58,7 @@ Public SendToWebView As Boolean
 
 '用于回显到任意窗体，任何 Form 窗体把 listbox set 给这个对象就可以输出
 '比如：Set LogTools.FormListBox = List1
-Public FormListBox As VB.ListBox
+Public FormListBox As Object
 Public FormListBoxMaxItem As Long
 '日志文件根目录，为空则使用当前程序的目录
 Public LogDir As String

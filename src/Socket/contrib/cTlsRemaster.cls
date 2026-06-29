@@ -218,6 +218,15 @@ Private Property Let pvState(ByVal eValue As RemasterSockState)
 End Property
 
 '=========================================================================
+' 初始化与清理
+'=========================================================================
+
+Private Sub Class_Initialize()
+    m_baRecvBuffer = vbNullString
+    m_baSendBuffer = vbNullString
+End Sub
+
+'=========================================================================
 ' Methods
 '=========================================================================
 
@@ -603,11 +612,4 @@ EH:
     PrintError FUNC_NAME
 End Sub
 
-'=========================================================================
-' Base class events
-'=========================================================================
-
-Private Sub UserControl_Initialize()
-    m_baRecvBuffer = vbNullString
-    m_baSendBuffer = vbNullString
-End Sub
+' UserControl_Initialize 已移至 Class_Initialize（.cls 版本不触发 UserControl 事件）

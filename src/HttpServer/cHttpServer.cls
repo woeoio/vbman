@@ -523,7 +523,7 @@ EH:
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
     RaiseEvent OnLogs(ToolsLogs.LEVEL_ERROR, "OnDataArrival: " & ErrInfo)
     ' 发生错误时清空缓冲区，防止持续积压导致崩溃
-    oCallback.GetRecvBufferLen = 0
+    If Not oCallback Is Nothing Then oCallback.GetRecvBufferLen = 0
 End Sub
 
 ' 判断是否包含完整的 HTTP 请求（解决粘包问题）
@@ -546,7 +546,7 @@ Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolea
     headerEnd = FindCRLFCRLF(buffer, bufferLen)
     
     ' BUG-6 修复：FindCRLFCRLF 返回 -1 表示未找到
-    If headerEnd = -1 Then
+    If headerEnd <= 0 Then
         ' 未找到完整的请求头
         ContainsCompleteRequest = False
         Exit Function
@@ -620,7 +620,7 @@ Private Function ExtractOneRequest(oCallback As cClientCallback) As Variant
     headerEnd = FindCRLFCRLF(buffer, bufferLen)
     
     ' BUG-6 修复：headerEnd 为 -1 时不应进入此函数（调用方已保证）
-    If headerEnd = -1 Then
+    If headerEnd <= 0 Then
         result(2) = 0
         ExtractOneRequest = result
         Exit Function

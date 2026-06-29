@@ -72,7 +72,7 @@ End Sub
 Public Sub Redirect(Url As String)
     Header("Location") = Url
     SendBodyText "", "text/html", 302, "Found"
-    Header.RemoveAll
+    ' SendBodyText 内部已调用 Header.RemoveAll，此处无需重复
 End Sub
 Public Sub View(TplPath As String)
     '
@@ -101,8 +101,30 @@ End Sub
 
 '发送 文件
 Public Sub File(Path As String)
-    '自动判断是否ajax请求，重定向页面还是json
-    Dim sPath As String: sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
+    On Error GoTo EH
+    
+    ' 防御性检查：确保 Client -> Context -> Server 引用链有效
+    If Client Is Nothing Then
+        Call State500("File: Client is Nothing")
+        Exit Sub
+    End If
+    If Client.Context Is Nothing Then
+        Call State500("File: Context is Nothing")
+        Exit Sub
+    End If
+    If Client.Context.Server Is Nothing Then
+        Call State500("File: Server is Nothing")
+        Exit Sub
+    End If
+    
+    ' 路径穿越防护：拒绝包含 .. 的路径
+    If InStr(1, Path, "..", vbTextCompare) > 0 Then
+        Call State403("Forbidden")
+        Exit Sub
+    End If
+    
+    Dim sPath As String
+    sPath = ToolsFso.AutoCompleteFullPath(Client.Context.Server.WebRoot & Path, True)
     
     ' 如果路径对应目录，则尝试默认文档
     If ToolsFso.Inst.FolderExists(sPath) = True Then
@@ -141,12 +163,19 @@ SendFile:
     Header("Last-Modified") = ToolsDateTime.FormatHttpDate(lastModTime)
     
     ' 3. 304 Not Modified 协商缓存（比对请求的 If-None-Match）
-    Dim reqHeader As Scripting.Dictionary
-    Set reqHeader = Client.Context.Request.Header
-    If reqHeader.Exists("If-None-Match") Then
-        If reqHeader("If-None-Match") = currentETag Then
-            Send304 currentETag, lastModTime
-            Exit Sub
+    '    防御性检查：Request 和 Header 可能在重入场景下被释放
+    If Not Client.Context Is Nothing Then
+        If Not Client.Context.Request Is Nothing Then
+            If Not Client.Context.Request.Header Is Nothing Then
+                Dim reqHeader As Scripting.Dictionary
+                Set reqHeader = Client.Context.Request.Header
+                If reqHeader.Exists("If-None-Match") Then
+                    If reqHeader("If-None-Match") = currentETag Then
+                        Send304 currentETag, lastModTime
+                        Exit Sub
+                    End If
+                End If
+            End If
         End If
     End If
     
@@ -175,9 +204,15 @@ SendFile:
     End If
     
     ' 5. 发送内容
+    Dim mimeType As String
+    mimeType = ToolsHttpMimeType.MapMimeType(sPath)
+    
     If Not cachedEntry Is Nothing Then
         ' 从缓存内存输出（跳过磁盘 I/O）
-        SendBodyByte cachedEntry.Content, ToolsHttpMimeType.MapMimeType(sPath)
+        ' 先读取到局部变量，避免 Property Get 返回值直接传入 ByRef 参数的潜在问题
+        Dim cachedData() As Byte
+        cachedData = cachedEntry.Content
+        SendBodyByte cachedData, mimeType
     Else
         ' 从磁盘读取
         Dim Data() As Byte
@@ -190,12 +225,20 @@ SendFile:
             End If
         End If
         
-        SendBodyByte Data, ToolsHttpMimeType.MapMimeType(sPath)
+        SendBodyByte Data, mimeType
+    End If
+    
+    Exit Sub
+EH:
+    On Error Resume Next  ' 防止 State500 内 SendData 再出错导致递归崩溃
+    Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
+    If Not m_HasSent Then
+        State500 "File: " & ErrInfo
     End If
 End Sub
 
 Public Sub State(Code As Long, Text As String, Optional Say As String = "未知状态")
-    '自动判断是否ajax请求，重定向页面还是json
+    On Error Resume Next  ' 防止 EH 块调用 State* 时 SendData 再次出错导致递归崩溃
     SendBodyText Say, "text/html", Code, Text
 End Sub
 Public Sub State400(Optional Say As String)
@@ -218,6 +261,7 @@ Public Sub State502(Optional Say As String)
     State 502, "GatewayError", Say
 End Sub
 Public Sub State500(Optional Say As String)
+    On Error Resume Next  ' 防止错误处理器内的二次错误导致崩溃
     State 500, "InternalError", Say
 End Sub
 
@@ -227,7 +271,7 @@ Private Sub Send304(ETagValue As String, LastModifiedTime As Date)
     Header("ETag") = ETagValue
     Header("Last-Modified") = ToolsDateTime.FormatHttpDate(LastModifiedTime)
     Header("Content-Length") = 0
-    SendHeader 304, "Not Modified"
+    Header("Cache-Control") = "no-cache": SendHeader 304, "Not Modified"
     Header.RemoveAll
     m_HasSent = True
 End Sub
@@ -267,7 +311,12 @@ Private Sub SendBodyText(Data As String, DataType As String, Optional Status As 
     
     Dim D() As Byte
     If Data = "" Then
-        Header("Content-Type") = "text/plain; charset=" & CharSet
+        ' 修复：空字符串时使用传入的 DataType 而非硬编码 text/plain
+        If ShouldIncludeCharset(DataType) Then
+            Header("Content-Type") = DataType & "; charset=" & CharSet
+        Else
+            Header("Content-Type") = DataType
+        End If
         Header("Content-Length") = 0
         SendHeader Status, StatusText
         Header.RemoveAll
@@ -285,8 +334,31 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
     ' BUG-8 修复：防止重复发送响应
     If m_HasSent Then Exit Sub
     
-    Header("Content-Type") = DataType & "; charset=" & CharSet
-    Header("Content-Length") = UBound(Data) + 1                                 '注意数组下标
+    ' 数组安全检查：确保 Data 已初始化
+    ' (Not Data) = -1 是 VB6 检查数组是否未初始化的惯用写法
+    Dim dataLen As Long
+    If (Not Data) = -1 Then
+        ' 数组未初始化，发送空响应
+        If ShouldIncludeCharset(DataType) Then
+            Header("Content-Type") = DataType & "; charset=" & CharSet
+        Else
+            Header("Content-Type") = DataType
+        End If
+        Header("Content-Length") = 0
+        SendHeader Status, StatusText
+        Header.RemoveAll
+        m_HasSent = True
+        Exit Sub
+    End If
+    dataLen = UBound(Data) + 1
+    
+    ' 智能 Content-Type：仅对文本类型附加 charset
+    If ShouldIncludeCharset(DataType) Then
+        Header("Content-Type") = DataType & "; charset=" & CharSet
+    Else
+        Header("Content-Type") = DataType
+    End If
+    Header("Content-Length") = dataLen
     SendHeader Status, StatusText
     
     ' BUG-8 修复：SendData 添加错误处理，防止客户端已断开时抛出异常
@@ -296,7 +368,7 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
             Client.Socket.SendData Data
             ' 统计：记录Body发送字节数
             If Not Client.Parent Is Nothing Then
-                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + UBound(Data) + 1
+                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + dataLen
             End If
             On Error GoTo 0
         End If
@@ -305,6 +377,24 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
     Header.RemoveAll
     m_HasSent = True
 End Sub
+
+' 判断 MIME 类型是否需要附加 charset
+' 文本类型需要 charset（如 text/html, text/css, application/json）
+' 二进制类型不需要（如 image/png, video/mp4, application/octet-stream）
+Private Function ShouldIncludeCharset(ByVal mimeType As String) As Boolean
+    Dim lowerType As String
+    lowerType = LCase(mimeType)
+    If Left(lowerType, 5) = "text/" Then
+        ShouldIncludeCharset = True
+    ElseIf Left(lowerType, 12) = "application/" Then
+        If InStr(lowerType, "json") > 0 Or _
+           InStr(lowerType, "javascript") > 0 Or _
+           InStr(lowerType, "xml") > 0 Or _
+           InStr(lowerType, "yaml") > 0 Then
+            ShouldIncludeCharset = True
+        End If
+    End If
+End Function
 
 Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As String = "OK", Optional HttpVersioin As String = "1.1")
     ' 记录状态码供统计使用
@@ -317,11 +407,20 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
     If UserVer = "FREE" Then
         Header("PowerBy") = "www.vb6.pro"
     End If
-    If Client.Parent.CrossDomain.Enable = True Then
-        Client.Parent.CrossDomain.AddTo Header
-    End If
-    ' 处理响应 Cookie（从 Context 中的 Cookies 获取）
+    
+    ' BUG 修复：原代码在 If Not Client Is Nothing 之前访问 Client.Parent.CrossDomain
+    ' 当 Client 为 Nothing 时会导致崩溃。现将所有 Client 访问统一在防护块内
     If Not Client Is Nothing Then
+        ' 跨域处理
+        If Not Client.Parent Is Nothing Then
+            If Not Client.Parent.CrossDomain Is Nothing Then
+                If Client.Parent.CrossDomain.Enable = True Then
+                    Client.Parent.CrossDomain.AddTo Header
+                End If
+            End If
+        End If
+        
+        ' 处理响应 Cookie（从 Context 中的 Cookies 获取）
         If Not Client.Context Is Nothing Then
             If Not Client.Context.Cookies Is Nothing Then
                 Dim cookieLines As String
@@ -341,6 +440,7 @@ Private Sub SendHeader(Optional Status As Long = 200, Optional StatusText As Str
             End If
         End If
     End If
+    
     Dim x, i As Long
     For Each x In Header.Keys()
         Head = Head & x & ": " & Header.Item(x) & vbCrLf

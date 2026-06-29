@@ -60,7 +60,7 @@ End Property
 
 Friend Function IsStaticFile(Path As String) As Boolean
     Dim AppendFix As String: AppendFix = LCase(Right(Path, 4))
-    If AppendFix = ".asp" Then Exit Function
+    If InStr(1, Path, "..", vbTextCompare) > 0 Then Exit Function: If AppendFix = ".asp" Then Exit Function
     If AppendFix = ".vbs" Then Exit Function
     ' 根路径视为静态文件（用于默认文档查找）
     If Path = "/" Then IsStaticFile = True: Exit Function

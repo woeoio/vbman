@@ -96,18 +96,15 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     
     If InStr(lastSegment, ".") > 0 Then
         ' ===== 快速通道：含点号，视为静态文件 =====
+        ' 仅当 IsStaticFile 确认为已知静态文件时才直接发送
+        ' 否则落入路由优先通道（支持 /api/data.json 等带点号的路由）
         If Client.Context.Server.WebRoot <> "" Then
             If Client.Context.Server.IsStaticFile(Request.PathInfo) = True Then
                 Response.File Request.PathInfo
                 GoTo QH
             End If
         End If
-        ' 不是已知静态文件，也尝试直接发送（可能是深层子目录的文件）
-        If Client.Context.Server.WebRoot <> "" Then
-            Response.File Request.PathInfo
-            GoTo QH
-        End If
-        ' 无 WebRoot 则走路由
+        ' 无 WebRoot 或非已知静态文件，继续走路由
     End If
     
     ' ===== 路由优先通道：无点号，先路由后静态文件 =====
@@ -227,6 +224,7 @@ QH:
     Entry = True
     Exit Function
 EH:
+    On Error Resume Next  ' 防止 State500 内 SendData 再出错导致递归崩溃
     If LastError = "" Then LastError = ERR.Number & "#" & ERR.Description
     Call Client.Context.Response.State500(LastError)
     LastError = ""

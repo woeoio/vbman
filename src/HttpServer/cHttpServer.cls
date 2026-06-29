@@ -591,17 +591,24 @@ Private Function ContainsCompleteRequest(oCallback As cClientCallback) As Boolea
     ContainsCompleteRequest = (bufferLen >= totalRequired)
 End Function
 
-' BUG-6 修复：找不到 CRLFCRLF 时返回 -1（而非 0），消除歧义
+' 在字节数组中查找 vbCrLf & vbCrLf，返回 0-based 偏移，未找到返回 -1
+' 使用 InStr 替代逐字节 VB6 p-code 循环，避免大 buffer 下的性能崩溃
 Private Function FindCRLFCRLF(Buffer() As Byte, bufLen As Long) As Long
-    Dim i As Long
-    For i = 0 To bufLen - 4
-        If Buffer(i) = 13 And Buffer(i + 1) = 10 And _
-           Buffer(i + 2) = 13 And Buffer(i + 3) = 10 Then
-            FindCRLFCRLF = i
-            Exit Function
-        End If
-    Next
-    FindCRLFCRLF = -1  ' BUG-6 修复：未找到返回 -1 而非 0
+    If bufLen < 4 Then
+        FindCRLFCRLF = -1
+        Exit Function
+    End If
+    ' InStr 在字符串中搜索子串，StrConv 将字节数组转为等宽字符串
+    ' 每个 byte -> 1 个 Unicode 字符，InStr 1-based 返回位置
+    Dim s As String
+    s = Left$(StrConv(Buffer, vbUnicode), bufLen)
+    Dim pos As Long
+    pos = InStr(1, s, vbCrLf & vbCrLf, vbBinaryCompare)
+    If pos > 0 Then
+        FindCRLFCRLF = pos - 1  ' 转为 0-based
+    Else
+        FindCRLFCRLF = -1
+    End If
 End Function
 
 ' 提取一个完整的请求

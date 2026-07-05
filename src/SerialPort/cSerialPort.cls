@@ -14,6 +14,52 @@ Attribute VB_Exposed = True
 Option Explicit
 
 '===============================================================================
+' 公共枚举 - 通信事件/错误/Modem状态
+' 编译为 DLL 后随类型库导出，供外部工程使用
+' （原为 modSerialPortAPI.bas 中的 Public Const，标准模块常量不会导出至类型库）
+'===============================================================================
+
+' 通信事件 (SetCommMask / WaitCommEvent / PinChanged 事件)
+Public Enum eCommEvent
+    EV_RXCHAR = &H1&          ' 字符已接收
+    EV_RXFLAG = &H2&          ' 事件字符已接收
+    EV_TXEMPTY = &H4&         ' 发送缓冲区已空
+    EV_CTS = &H8&             ' CTS信号变化
+    EV_DSR = &H10&            ' DSR信号变化
+    EV_RLSD = &H20&           ' RLSD(CD)信号变化
+    EV_BREAK = &H40&          ' 检测到中断
+    EV_ERR = &H80&            ' 线路状态错误
+    EV_RING = &H100&          ' 振铃检测
+    EV_PERR = &H200&          ' 打印机错误
+    EV_RX80FULL = &H400&      ' 接收缓冲区80%满
+    EV_EVENT1 = &H800&        ' 设备事件1
+    EV_EVENT2 = &H1000&       ' 设备事件2
+End Enum
+
+' 通信错误 (ClearCommError / ErrorOccurred 事件 / ReadCommErrors)
+Public Enum eCommError
+    CE_RXOVER = &H1&          ' 接收缓冲区溢出
+    CE_OVERRUN = &H2&         ' 字符覆盖（缓冲区满）
+    CE_RXPARITY = &H4&        ' 校验错误
+    CE_FRAME = &H8&           ' 帧错误
+    CE_BREAK = &H10&          ' 中断检测
+    CE_TXFULL = &H100&        ' 发送缓冲区满
+    CE_PTO = &H200&           ' 并口超时
+    CE_IOE = &H400&           ' I/O错误
+    CE_DNS = &H800&           ' 设备未选择
+    CE_OOP = &H1000&          ' 缺纸
+    CE_MODE = &H8000&         ' 模式错误
+End Enum
+
+' Modem 状态 (GetCommModemStatus / ReadModemStatus)
+Public Enum eModemStatus
+    MS_CTS_ON = &H10&         ' CTS 清除发送
+    MS_DSR_ON = &H20&         ' DSR 数据设备就绪
+    MS_RING_ON = &H40&        ' RING 振铃
+    MS_RLSD_ON = &H80&        ' RLSD/CD 载波检测
+End Enum
+
+'===============================================================================
 ' 类: cSerialPort
 ' 说明: 纯 Win32 API 串口通信类
 '       完整封装 Windows 串口通信 API 的所有能力:

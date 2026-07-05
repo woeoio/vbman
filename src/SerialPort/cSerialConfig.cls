@@ -18,11 +18,68 @@ Option Explicit
 ' 说明: 串口通信配置类 - 封装 DCB 和 COMMTIMEOUTS 结构
 '       提供类型安全的属性访问，以及与 Win32 结构的双向转换
 '
-' 注意: Public 属性统一使用 Long 而非枚举类型，
-'       因为 VB6 不允许 Private 类的 Public 成员使用枚举类型。
-'       调用时仍可使用 modSerialPortAPI 中定义的枚举常量:
-'           cfg.BaudRate = br115200   ' br115200 自动强转为 Long
+' 注意: 本类为 Public 类(MultiUse)，Public 属性可直接使用枚举类型，
+'       编译为 DLL 后枚举随类型库导出，外部工程可直接使用:
+'           cfg.BaudRate = br115200
 '===============================================================================
+
+'===============================================================================
+' 公共枚举 - 编译为 DLL 后随类型库导出，供外部工程使用
+' （原定义在 modSerialPortAPI.bas，标准模块的 Public Enum 不会导出至类型库）
+'===============================================================================
+
+Public Enum eBaudRate
+    br110 = 110
+    br300 = 300
+    br600 = 600
+    br1200 = 1200
+    br2400 = 2400
+    br4800 = 4800
+    br9600 = 9600
+    br14400 = 14400
+    br19200 = 19200
+    br38400 = 38400
+    br56000 = 56000
+    br57600 = 57600
+    br115200 = 115200
+    br128000 = 128000
+    br256000 = 256000
+End Enum
+
+Public Enum eParity
+    ptNone = 0       ' NOPARITY
+    ptOdd = 1        ' ODDPARITY
+    ptEven = 2       ' EVENPARITY
+    ptMark = 3       ' MARKPARITY
+    ptSpace = 4      ' SPACEPARITY
+End Enum
+
+Public Enum eStopBits
+    sb1 = 0          ' ONESTOPBIT
+    sb1_5 = 1        ' ONE5STOPBITS
+    sb2 = 2          ' TWOSTOPBITS
+End Enum
+
+Public Enum eDtrControl
+    dcDisable = 0    ' DTR_CONTROL_DISABLE
+    dcEnable = 1     ' DTR_CONTROL_ENABLE
+    dcHandshake = 2  ' DTR_CONTROL_HANDSHAKE
+End Enum
+
+Public Enum eRtsControl
+    rcDisable = 0    ' RTS_CONTROL_DISABLE
+    rcEnable = 1     ' RTS_CONTROL_ENABLE
+    rcHandshake = 2  ' RTS_CONTROL_HANDSHAKE
+    rcToggle = 3     ' RTS_CONTROL_TOGGLE
+End Enum
+
+Public Enum eFlowControl
+    fcNone = 0                ' 无流控制
+    fcXonXoff = 1             ' 软件流控制(XON/XOFF)
+    fcRtsCts = 2              ' 硬件流控制(RTS/CTS)
+    fcDtrDsr = 3              ' 硬件流控制(DTR/DSR)
+    fcRtsCtsAndXonXoff = 4    ' 混合流控制
+End Enum
 
 '===============================================================================
 ' 私有成员 - 通信参数（内部变量保留枚举类型，享有类型安全）
@@ -81,14 +138,14 @@ Private Sub Class_Initialize()
 End Sub
 
 '===============================================================================
-' 属性 - 通信参数（Public接口用Long，内部变量用枚举）
+' 属性 - 通信参数（直接使用枚举类型，类型安全 + 智能提示）
 '===============================================================================
 
-Public Property Get BaudRate() As Long
+Public Property Get BaudRate() As eBaudRate
     BaudRate = m_BaudRate
 End Property
 
-Public Property Let BaudRate(ByVal Value As Long)
+Public Property Let BaudRate(ByVal Value As eBaudRate)
     m_BaudRate = Value
 End Property
 
@@ -103,27 +160,27 @@ Public Property Let DataBits(ByVal Value As Long)
     m_DataBits = Value
 End Property
 
-Public Property Get StopBits() As Long
+Public Property Get StopBits() As eStopBits
     StopBits = m_StopBits
 End Property
 
-Public Property Let StopBits(ByVal Value As Long)
+Public Property Let StopBits(ByVal Value As eStopBits)
     m_StopBits = Value
 End Property
 
-Public Property Get Parity() As Long
+Public Property Get Parity() As eParity
     Parity = m_Parity
 End Property
 
-Public Property Let Parity(ByVal Value As Long)
+Public Property Let Parity(ByVal Value As eParity)
     m_Parity = Value
 End Property
 
-Public Property Get FlowControl() As Long
+Public Property Get FlowControl() As eFlowControl
     FlowControl = m_FlowControl
 End Property
 
-Public Property Let FlowControl(ByVal Value As Long)
+Public Property Let FlowControl(ByVal Value As eFlowControl)
     m_FlowControl = Value
     ' 同步更新DTR/RTS控制模式
     Select Case Value
@@ -138,19 +195,19 @@ Public Property Let FlowControl(ByVal Value As Long)
     End Select
 End Property
 
-Public Property Get DtrControl() As Long
+Public Property Get DtrControl() As eDtrControl
     DtrControl = m_DtrControl
 End Property
 
-Public Property Let DtrControl(ByVal Value As Long)
+Public Property Let DtrControl(ByVal Value As eDtrControl)
     m_DtrControl = Value
 End Property
 
-Public Property Get RtsControl() As Long
+Public Property Get RtsControl() As eRtsControl
     RtsControl = m_RtsControl
 End Property
 
-Public Property Let RtsControl(ByVal Value As Long)
+Public Property Let RtsControl(ByVal Value As eRtsControl)
     m_RtsControl = Value
 End Property
 

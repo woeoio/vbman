@@ -206,52 +206,14 @@ Public Const SETBREAK As Long = 8&
 Public Const CLRBREAK As Long = 9&
 
 '===============================================================================
-' 常量 - Modem 状态 (GetCommModemStatus)
+' 常量 - Modem 状态 / 通信事件 / 通信错误
+' 注意: 这些常量已移至 cSerialPort.cls 作为 Public Enum 定义，
+'       编译为 DLL 后随类型库导出供外部工程使用。
+'       此处不再重复定义，避免二义性名称冲突。
 '===============================================================================
 
-Public Const MS_CTS_ON As Long = &H10&
-Public Const MS_DSR_ON As Long = &H20&
-Public Const MS_RING_ON As Long = &H40&
-Public Const MS_RLSD_ON As Long = &H80&
-
-'===============================================================================
-' 常量 - 通信事件 (SetCommMask / WaitCommEvent)
-'===============================================================================
-
-Public Const EV_RXCHAR As Long = &H1&          ' 字符已接收
-Public Const EV_RXFLAG As Long = &H2&          ' 事件字符已接收
-Public Const EV_TXEMPTY As Long = &H4&         ' 发送缓冲区已空
-Public Const EV_CTS As Long = &H8&             ' CTS信号变化
-Public Const EV_DSR As Long = &H10&            ' DSR信号变化
-Public Const EV_RLSD As Long = &H20&           ' RLSD(CD)信号变化
-Public Const EV_BREAK As Long = &H40&          ' 检测到中断
-Public Const EV_ERR As Long = &H80&            ' 线路状态错误
-Public Const EV_RING As Long = &H100&          ' 振铃检测
-Public Const EV_PERR As Long = &H200&          ' 打印机错误
-Public Const EV_RX80FULL As Long = &H400&      ' 接收缓冲区80%满
-Public Const EV_EVENT1 As Long = &H800&        ' 设备事件1
-Public Const EV_EVENT2 As Long = &H1000&       ' 设备事件2
-
-' 所有事件的掩码
-Public Const EV_ALL As Long = EV_RXCHAR Or EV_RXFLAG Or EV_TXEMPTY Or _
-    EV_CTS Or EV_DSR Or EV_RLSD Or EV_BREAK Or EV_ERR Or _
-    EV_RING Or EV_PERR Or EV_RX80FULL Or EV_EVENT1 Or EV_EVENT2
-
-'===============================================================================
-' 常量 - 通信错误 (ClearCommError)
-'===============================================================================
-
-Public Const CE_RXOVER As Long = &H1&          ' 接收缓冲区溢出
-Public Const CE_OVERRUN As Long = &H2&         ' 字符覆盖（缓冲区满）
-Public Const CE_RXPARITY As Long = &H4&        ' 校验错误
-Public Const CE_FRAME As Long = &H8&           ' 帧错误
-Public Const CE_BREAK As Long = &H10&          ' 中断检测
-Public Const CE_TXFULL As Long = &H100&        ' 发送缓冲区满
-Public Const CE_PTO As Long = &H200&           ' 并口超时
-Public Const CE_IOE As Long = &H400&           ' I/O错误
-Public Const CE_DNS As Long = &H800&           ' 设备未选择
-Public Const CE_OOP As Long = &H1000&          ' 缺纸
-Public Const CE_MODE As Long = &H8000&         ' 模式错误
+' 所有通信事件的掩码（内部使用，使用底层数值避免循环引用 cSerialPort）
+Public Const EV_ALL As Long = &H1& Or &H2& Or &H4& Or &H8& Or &H10& Or &H20& Or &H40& Or &H80& Or &H100& Or &H200& Or &H400& Or &H800& Or &H1000&
 
 '===============================================================================
 ' 常量 - FormatMessage
@@ -319,81 +281,10 @@ Public Const BAUD_128K As Long = &H10000
 Public Const BAUD_USER As Long = &H10000000
 
 '===============================================================================
-' 枚举 - 波特率
+' 注意: 枚举定义已移至 cSerialConfig.cls 类模块
+'       标准模块(.bas)中的 Public Enum 不会随 DLL 类型库导出，
+'       移至类模块后外部工程才能引用这些枚举常量。
 '===============================================================================
-
-Public Enum eBaudRate
-    br110 = 110
-    br300 = 300
-    br600 = 600
-    br1200 = 1200
-    br2400 = 2400
-    br4800 = 4800
-    br9600 = 9600
-    br14400 = 14400
-    br19200 = 19200
-    br38400 = 38400
-    br56000 = 56000
-    br57600 = 57600
-    br115200 = 115200
-    br128000 = 128000
-    br256000 = 256000
-End Enum
-
-'===============================================================================
-' 枚举 - 校验位
-'===============================================================================
-
-Public Enum eParity
-    ptNone = 0       ' NOPARITY
-    ptOdd = 1        ' ODDPARITY
-    ptEven = 2       ' EVENPARITY
-    ptMark = 3       ' MARKPARITY
-    ptSpace = 4      ' SPACEPARITY
-End Enum
-
-'===============================================================================
-' 枚举 - 停止位
-'===============================================================================
-
-Public Enum eStopBits
-    sb1 = 0          ' ONESTOPBIT
-    sb1_5 = 1        ' ONE5STOPBITS
-    sb2 = 2          ' TWOSTOPBITS
-End Enum
-
-'===============================================================================
-' 枚举 - DTR 控制模式
-'===============================================================================
-
-Public Enum eDtrControl
-    dcDisable = 0    ' DTR_CONTROL_DISABLE
-    dcEnable = 1     ' DTR_CONTROL_ENABLE
-    dcHandshake = 2  ' DTR_CONTROL_HANDSHAKE
-End Enum
-
-'===============================================================================
-' 枚举 - RTS 控制模式
-'===============================================================================
-
-Public Enum eRtsControl
-    rcDisable = 0    ' RTS_CONTROL_DISABLE
-    rcEnable = 1     ' RTS_CONTROL_ENABLE
-    rcHandshake = 2  ' RTS_CONTROL_HANDSHAKE
-    rcToggle = 3     ' RTS_CONTROL_TOGGLE
-End Enum
-
-'===============================================================================
-' 枚举 - 流控制模式
-'===============================================================================
-
-Public Enum eFlowControl
-    fcNone = 0                ' 无流控制
-    fcXonXoff = 1             ' 软件流控制(XON/XOFF)
-    fcRtsCts = 2              ' 硬件流控制(RTS/CTS)
-    fcDtrDsr = 3              ' 硬件流控制(DTR/DSR)
-    fcRtsCtsAndXonXoff = 4    ' 混合流控制
-End Enum
 
 '===============================================================================
 ' 类型定义 - DCB
@@ -564,37 +455,39 @@ Public Function GetSystemErrorMessage(ByVal ErrorCode As Long) As String
 End Function
 
 ' 获取串口通信错误描述
+' 注意：这里使用底层数值，避免循环引用 cSerialPort 中的 eCommError 枚举
 Public Function GetCommErrorString(ByVal Errors As Long) As String
     Dim s As String
-    If (Errors And CE_RXOVER) Then s = s & "接收缓冲区溢出; "
-    If (Errors And CE_OVERRUN) Then s = s & "字符覆盖; "
-    If (Errors And CE_RXPARITY) Then s = s & "校验错误; "
-    If (Errors And CE_FRAME) Then s = s & "帧错误; "
-    If (Errors And CE_BREAK) Then s = s & "中断检测; "
-    If (Errors And CE_TXFULL) Then s = s & "发送缓冲区满; "
-    If (Errors And CE_PTO) Then s = s & "并口超时; "
-    If (Errors And CE_IOE) Then s = s & "I/O错误; "
-    If (Errors And CE_DNS) Then s = s & "设备未选择; "
-    If (Errors And CE_OOP) Then s = s & "缺纸; "
-    If (Errors And CE_MODE) Then s = s & "模式错误; "
+    If (Errors And &H1&) Then s = s & "接收缓冲区溢出; "
+    If (Errors And &H2&) Then s = s & "字符覆盖; "
+    If (Errors And &H4&) Then s = s & "校验错误; "
+    If (Errors And &H8&) Then s = s & "帧错误; "
+    If (Errors And &H10&) Then s = s & "中断检测; "
+    If (Errors And &H100&) Then s = s & "发送缓冲区满; "
+    If (Errors And &H200&) Then s = s & "并口超时; "
+    If (Errors And &H400&) Then s = s & "I/O错误; "
+    If (Errors And &H800&) Then s = s & "设备未选择; "
+    If (Errors And &H1000&) Then s = s & "缺纸; "
+    If (Errors And &H8000&) Then s = s & "模式错误; "
     If Len(s) > 2 Then s = Left$(s, Len(s) - 2)
     GetCommErrorString = s
 End Function
 
 ' 获取通信事件描述
+' 注意：这里使用底层数值，避免循环引用 cSerialPort 中的 eCommEvent 枚举
 Public Function GetCommEventString(ByVal Events As Long) As String
     Dim s As String
-    If (Events And EV_RXCHAR) Then s = s & "字符接收; "
-    If (Events And EV_RXFLAG) Then s = s & "事件字符接收; "
-    If (Events And EV_TXEMPTY) Then s = s & "发送完成; "
-    If (Events And EV_BREAK) Then s = s & "中断检测; "
-    If (Events And EV_CTS) Then s = s & "CTS变化; "
-    If (Events And EV_DSR) Then s = s & "DSR变化; "
-    If (Events And EV_ERR) Then s = s & "线路错误; "
-    If (Events And EV_RING) Then s = s & "振铃; "
-    If (Events And EV_RLSD) Then s = s & "RLSD变化; "
-    If (Events And EV_RX80FULL) Then s = s & "接收80%满; "
-    If (Events And EV_PERR) Then s = s & "打印机错误; "
+    If (Events And &H1&) Then s = s & "字符接收; "
+    If (Events And &H2&) Then s = s & "事件字符接收; "
+    If (Events And &H4&) Then s = s & "发送完成; "
+    If (Events And &H40&) Then s = s & "中断检测; "
+    If (Events And &H8&) Then s = s & "CTS变化; "
+    If (Events And &H10&) Then s = s & "DSR变化; "
+    If (Events And &H80&) Then s = s & "线路错误; "
+    If (Events And &H100&) Then s = s & "振铃; "
+    If (Events And &H20&) Then s = s & "RLSD变化; "
+    If (Events And &H400&) Then s = s & "接收80%满; "
+    If (Events And &H200&) Then s = s & "打印机错误; "
     If Len(s) > 2 Then s = Left$(s, Len(s) - 2)
     GetCommEventString = s
 End Function

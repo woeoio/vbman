@@ -60,7 +60,10 @@ End Property
 
 Friend Function IsStaticFile(Path As String) As Boolean
     Dim AppendFix As String: AppendFix = LCase(Right(Path, 4))
-    If InStr(1, Path, "..", vbTextCompare) > 0 Then Exit Function: If AppendFix = ".asp" Then Exit Function
+    ' 修复：原代码 Exit Function 后用 : 连接 .asp 检查，但 Exit Function 已退出函数，
+    ' 导致 .asp 文件永远不会被排除（安全漏洞：动态脚本源码会被当作静态文件发送）
+    If InStr(1, Path, "..", vbTextCompare) > 0 Then Exit Function
+    If AppendFix = ".asp" Then Exit Function
     If AppendFix = ".vbs" Then Exit Function
     ' 根路径视为静态文件（用于默认文档查找）
     If Path = "/" Then IsStaticFile = True: Exit Function
@@ -161,13 +164,15 @@ Friend Function GetCachedFile(sPath As String) As cHttpServerFileCacheEntry
 End Function
 
 ' 添加文件到缓存（仅当未超出大小上限）
+' 修复：添加数组未初始化检查，防止 UBound(Data) 在空数组上 GPF 崩溃
 Friend Sub AddFileToCache(sPath As String, Data() As Byte, ETagValue As String, LastModTime As Date)
     If MaxCacheFileSize <= 0 Then Exit Sub  ' 缓存已禁用
+    If (Not Data) = -1 Then Exit Sub        ' 数组未初始化，安全退出
     Dim fileSize As Long: fileSize = UBound(Data) + 1
     If fileSize > MaxCacheFileSize Then Exit Sub  ' 超出单文件上限
     Dim entry As cHttpServerFileCacheEntry
     Set entry = New cHttpServerFileCacheEntry
-    entry.Content = Data
+    entry.SetContent Data   ' 修复：Property Let 不支持数组参数，改用 Sub
     entry.ETag = ETagValue
     entry.LastModified = LastModTime
     entry.FileSize = fileSize

@@ -153,7 +153,11 @@ SendFile:
     Dim fileInfo As Object  ' Scripting.File
     Set fileInfo = ToolsFso.Inst.GetFile(sPath)
     Dim currentETag As String
-    currentETag = ToolsDateTime.ComputeETag(fileInfo.DateLastModified, fileInfo.Size)
+    ' 修复：fileInfo.Size 是 Variant 类型，超过 2GB 时隐式转 Long 会溢出崩溃
+    ' 改用 Variant 接收，ComputeETag 也改为接受 Variant 参数
+    Dim fileSize As Variant
+    fileSize = fileInfo.Size
+    currentETag = ToolsDateTime.ComputeETag(fileInfo.DateLastModified, fileSize)
     Dim lastModTime As Date
     lastModTime = fileInfo.DateLastModified
     Set fileInfo = Nothing
@@ -212,11 +216,23 @@ SendFile:
         ' 先读取到局部变量，避免 Property Get 返回值直接传入 ByRef 参数的潜在问题
         Dim cachedData() As Byte
         cachedData = cachedEntry.Content
+        ' 修复：缓存数据数组安全检查，防止未初始化数组传入 SendBodyByte 导致 UBound 崩溃
+        If (Not cachedData) = -1 Then
+            SendBodyText "", mimeType
+            Exit Sub
+        End If
         SendBodyByte cachedData, mimeType
     Else
         ' 从磁盘读取
         Dim Data() As Byte
         If ToolsStream.LoadFileAsBinary(sPath, Data) = False Then Call State404: Exit Sub
+        
+        ' 修复：LoadFileAsBinary 成功但 Data 仍可能为未初始化数组的防护
+        ' (Not Data) = -1 是 VB6 检查动态数组是否未初始化的惯用写法
+        If (Not Data) = -1 Then
+            SendBodyText "", mimeType
+            Exit Sub
+        End If
         
         ' 懒缓存：首次访问且未超出大小上限时加入缓存
         If Client.Context.Server.MaxCacheFileSize > 0 Then
@@ -230,10 +246,20 @@ SendFile:
     
     Exit Sub
 EH:
+    ' 修复：先标记 m_HasSent 防止 State500 递归调用 SendBodyByte 再次写入已损坏的 Socket
     On Error Resume Next  ' 防止 State500 内 SendData 再出错导致递归崩溃
+    m_HasSent = True
     Dim ErrInfo As String: ErrInfo = ERR.Number & "#" & ERR.Description
-    If Not m_HasSent Then
-        State500 "File: " & ErrInfo
+    ' 直接写原始错误响应，避免走完整 SendHeader→SendBodyByte 流程的递归风险
+    If Not Client Is Nothing Then
+        If Not Client.Socket Is Nothing Then
+            Dim errMsg As String
+            errMsg = "HTTP/1.1 500 Internal Error" & vbCrLf & _
+                     "Content-Type: text/plain" & vbCrLf & _
+                     "Content-Length: " & Len(ErrInfo) & vbCrLf & _
+                     "Connection: close" & vbCrLf & vbCrLf & ErrInfo
+            Client.Socket.SendData errMsg
+        End If
     End If
 End Sub
 
@@ -334,6 +360,8 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
     ' BUG-8 修复：防止重复发送响应
     If m_HasSent Then Exit Sub
     
+    On Error GoTo EH
+    
     ' 数组安全检查：确保 Data 已初始化
     ' (Not Data) = -1 是 VB6 检查数组是否未初始化的惯用写法
     Dim dataLen As Long
@@ -361,20 +389,26 @@ Private Sub SendBodyByte(Data() As Byte, DataType As String, Optional Status As 
     Header("Content-Length") = dataLen
     SendHeader Status, StatusText
     
-    ' BUG-8 修复：SendData 添加错误处理，防止客户端已断开时抛出异常
-    If Not Client Is Nothing Then
-        If Not Client.Socket Is Nothing Then
-            On Error Resume Next
-            Client.Socket.SendData Data
-            ' 统计：记录Body发送字节数
-            If Not Client.Parent Is Nothing Then
-                Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + dataLen
+    ' 修复：只在有数据时才发送 body，避免 0 长度 Data 传给 SendData 触发 Winsock 内部异常
+    If dataLen > 0 Then
+        If Not Client Is Nothing Then
+            If Not Client.Socket Is Nothing Then
+                On Error Resume Next
+                Client.Socket.SendData Data
+                ' 统计：记录Body发送字节数
+                If Not Client.Parent Is Nothing Then
+                    Client.Parent.Statistics.TotalBytesSent = Client.Parent.Statistics.TotalBytesSent + dataLen
+                End If
+                On Error GoTo 0
             End If
-            On Error GoTo 0
         End If
     End If
     
     Header.RemoveAll
+    m_HasSent = True
+    Exit Sub
+EH:
+    ' SendBodyByte 内部异常保护：标记已发送防止递归
     m_HasSent = True
 End Sub
 

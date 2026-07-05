@@ -4,7 +4,7 @@ BEGIN
   Persistable = 0  'NotPersistable
   DataBindingBehavior = 0  'vbNone
   DataSourceBehavior  = 0  'vbNone
-  MTSTransactionMode = 0  'NotAnMTSTransactionObject
+  MTSTransactionMode = 0  'NotAnMTSObject
 END
 Attribute VB_Name = "cHttpServerFileCacheEntry"
 Attribute VB_GlobalNameSpace = False
@@ -29,11 +29,18 @@ Public FileSize As Long
 ' 缓存时间（用于 Expires 头）/TTL 过期判断
 Public CachedAt As Date
 
-' 文件内容属性（只读：通过 Let 写入，Get 读取数组引用）
+' 修复：VB6 的 Property Let 不支持数组参数（编译通过但运行时 GPF 崩溃）
+' 改用 Public Sub SetContent 代替 Property Let 写入数组
+' Property Get 读取仍然安全可用
 Public Property Get Content() As Byte()
+    If (Not m_Content) = -1 Then
+        Dim safeEmpty() As Byte
+        Content = safeEmpty
+        Exit Property
+    End If
     Content = m_Content
 End Property
 
-Public Property Let Content(RHS() As Byte)
+Public Sub SetContent(RHS() As Byte)
     m_Content = RHS
-End Property
+End Sub

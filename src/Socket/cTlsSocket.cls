@@ -729,7 +729,7 @@ End Function
 Public Function Connect( _
     HostAddress As String, _
     ByVal HostPort As Long, _
-    Optional ByVal UseTls As Boolean = True, _
+    Optional ByVal UseTls As Boolean = False, _
     Optional ByVal LocalFeatures As UcsTlsLocalFeaturesEnum, _
     Optional RootCa As cTlsSocket, _
     Optional AlpnProtocols As String) As Boolean
@@ -1125,7 +1125,7 @@ Public Function SyncConnect( _
     HostAddress As String, _
     ByVal HostPort As Long, _
     Optional ByVal Timeout As Long, _
-    Optional ByVal UseTls As Boolean = True, _
+    Optional ByVal UseTls As Boolean = False, _
     Optional ByVal LocalFeatures As UcsTlsLocalFeaturesEnum, _
     Optional RootCa As cTlsSocket, _
     Optional AlpnProtocols As String) As Boolean

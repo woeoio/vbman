@@ -171,6 +171,21 @@ Public Declare Function KillTimerVB Lib "user32" Alias "KillTimer" ( _
     ByVal nIDEvent As Long) As Long
 
 '===============================================================================
+' Win32 API 声明 - 系统时间
+'===============================================================================
+
+Public Declare Function GetTickCount Lib "kernel32" () As Long
+
+'===============================================================================
+' Win32 API 声明 - 内存操作
+'===============================================================================
+
+Public Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" ( _
+    Destination As Any, _
+    Source As Any, _
+    ByVal Length As Long)
+
+'===============================================================================
 ' 常量 - CreateFile
 '===============================================================================
 

@@ -107,6 +107,11 @@ Public Event BreakDetected()
 ' 检测到振铃
 Public Event RingDetected()
 
+' 帧接收 - 当启用分帧模式(FrameInterval>0)后，每收到一个完整帧触发
+' FrameData: 这一帧的原始字节数据
+' 注意: 需要先设置 FrameInterval > 0 并调用 StartMonitoring
+Public Event FrameReceived(FrameData() As Byte)
+
 '===============================================================================
 ' 私有成员
 '===============================================================================
@@ -121,6 +126,13 @@ Private m_PollInterval As Long                                                  
 Private m_LastError As Long                                                     ' 最后的错误码
 Private m_ReceivedCount As Long                                                 ' 已接收总字节数
 Private m_SentCount As Long                                                     ' 已发送总字节数
+
+Private m_FrameInterval As Long                                                   ' 帧间隔超时(ms)，0=禁用分帧
+Private m_MaxFrameSize As Long                                                    ' 单帧最大字节数(防溢出)
+Private m_FrameBuf() As Byte                                                      ' 帧缓冲区
+Private m_FrameBufLen As Long                                                      ' 帧缓冲区有效长度
+Private m_FrameBufCap As Long                                                      ' 帧缓冲区容量
+Private m_LastRecvTime As Long                                                     ' 最后收到数据的时间(GetTickCount)
 
 '===============================================================================
 ' 类初始化/终止
@@ -137,6 +149,11 @@ Private Sub Class_Initialize()
     m_LastError = 0
     m_ReceivedCount = 0
     m_SentCount = 0
+    m_FrameInterval = 0
+    m_MaxFrameSize = 65536
+    m_FrameBufLen = 0
+    m_FrameBufCap = 0
+    m_LastRecvTime = 0
 End Sub
 
 Private Sub Class_Terminate()
@@ -330,6 +347,41 @@ Public Property Let PollInterval(ByVal Value As Long)
 End Property
 
 '===============================================================================
+' 属性 - 帧分帧 (方案B: 帧间隔超时分帧)
+'===============================================================================
+
+' 帧间隔超时(ms) - 0=禁用分帧(原始DataReceived模式)
+' 设为>0时启用分帧: 连续收到数据视为同一帧，超过此间隔无新数据则认为一帧结束
+' 典型值: 20-100ms (取决于设备协议)
+' 注意: StartMonitoring的轮询间隔建议 <= FrameInterval/2 以保证响应及时
+Public Property Get FrameInterval() As Long
+    FrameInterval = m_FrameInterval
+End Property
+
+Public Property Let FrameInterval(ByVal Value As Long)
+    If Value < 0 Then Value = 0
+    If Value > 5000 Then Value = 5000
+    m_FrameInterval = Value
+End Property
+
+' 单帧最大字节数 - 防止异常数据导致帧缓冲区无限增长
+' 超过此大小时强制触发FrameReceived并清空缓冲区
+Public Property Get MaxFrameSize() As Long
+    MaxFrameSize = m_MaxFrameSize
+End Property
+
+Public Property Let MaxFrameSize(ByVal Value As Long)
+    If Value < 256 Then Value = 256
+    If Value > 1048576 Then Value = 1048576
+    m_MaxFrameSize = Value
+End Property
+
+' 帧缓冲区当前长度(已收到的未触发帧的数据量)
+Public Property Get FrameBufferLength() As Long
+    FrameBufferLength = m_FrameBufLen
+End Property
+
+'===============================================================================
 ' 方法 - 打开串口
 '===============================================================================
 
@@ -406,6 +458,8 @@ End Function
 Public Sub ClosePort()
     If Not m_IsOpen Then Exit Sub
     If m_Monitoring Then StopMonitoring
+    ' 关闭前触发缓冲区中剩余的帧数据
+    If m_FrameBufLen > 0 Then FlushFrame
     CloseHandle m_Handle
     m_Handle = INVALID_HANDLE_VALUE
     m_IsOpen = False
@@ -732,6 +786,8 @@ Public Sub StopMonitoring()
         m_TimerID = 0
     End If
     m_Monitoring = False
+    ' 停止监控前触发缓冲区中剩余的帧数据
+    If m_FrameBufLen > 0 Then FlushFrame
 End Sub
 
 ' Poll方法 - 由Timer回调调用，检测缓冲区和状态变化
@@ -749,9 +805,84 @@ Public Sub Poll()
 
         ' 检查数据接收
         If cs.cbInQue > 0 Then
-            RaiseEvent DataReceived(cs.cbInQue)
+            If m_FrameInterval > 0 Then
+                ' 分帧模式: 读取数据到帧缓冲区
+                AppendToFrameBuf cs.cbInQue
+            Else
+                ' 原始模式: 直接触发DataReceived
+                RaiseEvent DataReceived(cs.cbInQue)
+            End If
+        End If
+
+        ' 分帧模式: 检查帧超时
+        If m_FrameInterval > 0 And m_FrameBufLen > 0 Then
+            If (GetTickCount() - m_LastRecvTime) >= m_FrameInterval Then
+                FlushFrame
+            End If
         End If
     End If
+End Sub
+
+'===============================================================================
+' 内部方法 - 帧缓冲区操作 (方案B)
+'===============================================================================
+
+' 读取数据追加到帧缓冲区
+Private Sub AppendToFrameBuf(ByVal BytesAvail As Long)
+    ' 初始化帧缓冲区
+    If m_FrameBufCap = 0 Then
+        m_FrameBufCap = 4096
+        ReDim m_FrameBuf(m_FrameBufCap - 1) As Byte
+    End If
+
+    ' 确保容量足够
+    If m_FrameBufLen + BytesAvail > m_FrameBufCap Then
+        Dim newCap As Long
+        newCap = m_FrameBufCap
+        Do While newCap < m_FrameBufLen + BytesAvail
+            newCap = newCap * 2
+        Loop
+        ReDim Preserve m_FrameBuf(newCap - 1) As Byte
+        m_FrameBufCap = newCap
+    End If
+
+    ' 读取数据到帧缓冲区尾部
+    Dim bytesRead As Long
+    If ReadFile(m_Handle, m_FrameBuf(m_FrameBufLen), BytesAvail, bytesRead, ByVal 0&) <> 0 Then
+        If bytesRead > 0 Then
+            m_FrameBufLen = m_FrameBufLen + bytesRead
+            m_ReceivedCount = m_ReceivedCount + bytesRead
+            m_LastRecvTime = GetTickCount()
+
+            ' 防止帧缓冲区溢出: 超过最大帧大小时强制触发
+            If m_FrameBufLen >= m_MaxFrameSize Then
+                FlushFrame
+            End If
+        End If
+    Else
+        m_LastError = GetLastError()
+    End If
+End Sub
+
+' 触发帧接收事件并清空帧缓冲区
+Private Sub FlushFrame()
+    If m_FrameBufLen = 0 Then Exit Sub
+
+    ' 复制帧数据到新数组
+    Dim frame() As Byte
+    ReDim frame(m_FrameBufLen - 1) As Byte
+    CopyMemory frame(0), m_FrameBuf(0), m_FrameBufLen
+
+    ' 重置帧缓冲区
+    m_FrameBufLen = 0
+
+    ' 触发事件
+    RaiseEvent FrameReceived(frame)
+End Sub
+
+' 手动触发当前帧缓冲区中的数据(停止监控或关闭端口前调用)
+Public Sub FlushFrames()
+    FlushFrame
 End Sub
 
 '===============================================================================
@@ -908,6 +1039,11 @@ Public Function GetStatusString() As String
         s = s & "Received: " & CStr(m_ReceivedCount) & vbCrLf
         s = s & "Sent: " & CStr(m_SentCount) & vbCrLf
         s = s & "Monitoring: " & CStr(m_Monitoring) & vbCrLf
+        If m_FrameInterval > 0 Then
+            s = s & "FrameInterval: " & CStr(m_FrameInterval) & "ms" & vbCrLf
+            s = s & "FrameBuffer: " & CStr(m_FrameBufLen) & "/" & CStr(m_FrameBufCap) & vbCrLf
+            s = s & "MaxFrameSize: " & CStr(m_MaxFrameSize) & vbCrLf
+        End If
 
         ' 错误状态
         Dim errs As Long

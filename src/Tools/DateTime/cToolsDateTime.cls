@@ -142,7 +142,9 @@ End Function
 ' 计算 ETag 标识（基于文件修改时间 + 大小，locale 无关）
 ' 输出格式: "YYYYMMDDHHNNSS-FileSize"（如 "20260622094200-1048576"）
 ' 用途: HTTP 协商缓存 ETag 头，比对文件是否更新
-Public Function ComputeETag(lastModified As Date, fileSize As Long) As String
+' 修复：fileSize 参数从 Long 改为 Variant，防止 fileInfo.Size > 2GB 时隐式转 Long 溢出崩溃
+' Scripting.File.Size 返回 Variant，超过 Long 范围时会导致运行时错误 6: Overflow
+Public Function ComputeETag(lastModified As Date, fileSize As Variant) As String
     ComputeETag = """" & _
         Right(Year(lastModified), 4) & _
         Right("0" & Month(lastModified), 2) & _
@@ -150,5 +152,5 @@ Public Function ComputeETag(lastModified As Date, fileSize As Long) As String
         Right("0" & Hour(lastModified), 2) & _
         Right("0" & Minute(lastModified), 2) & _
         Right("0" & Second(lastModified), 2) & _
-        "-" & fileSize & """"
+        "-" & CStr(fileSize) & """"
 End Function

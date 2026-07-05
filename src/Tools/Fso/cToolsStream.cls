@@ -97,14 +97,27 @@ End Function
 Public Function LoadFileAsBinary(ByVal Path As String, OutData() As Byte) As Boolean
     On Error GoTo EH
     LastError = ""
-    With Inst
-        If .State <> adStateClosed Then .Close
+    ' 修复：每次调用创建独立 Stream 实例，避免共享 Inst 在并重入时被意外关闭
+    ' 原代码使用共享 Inst (Public Inst As New ADODB.Stream)，
+    ' 在 HTTP 服务器场景下，两个请求交替处理时第二个调用的 .Close 会关闭第一个正在使用的 Stream，
+    ' 导致 OutData 为空数组/无效状态，下游 UBound(OutData) 直接 GPF 崩溃
+    Dim stm As ADODB.Stream
+    Set stm = New ADODB.Stream
+    With stm
         .Type = adTypeBinary
         .Open
         .LoadFromFile Path
-        OutData = .Read()
+        If .EOS Then
+            ' 0 字节文件：返回安全数组，避免下游 (Not Data) 或 UBound 崩溃
+            ' ADODB.Stream 对空文件 .Read() 行为因版本而异，可能返回空/Nothing/异常
+            ReDim OutData(0 To 0)
+            OutData(0) = 0
+        Else
+            OutData = .Read()
+        End If
         .Close
     End With
+    Set stm = Nothing
     LoadFileAsBinary = True
     Exit Function
 EH:

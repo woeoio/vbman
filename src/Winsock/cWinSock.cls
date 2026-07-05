@@ -971,7 +971,7 @@ Public Sub Connect(Optional RemoteHost As String, Optional ByVal RemotePort As L
         End If
     Else
         ' 普�?TCP 连接
-        If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort) Then
+        If Not m_oSocket.Connect(m_sRemoteHost, m_lRemotePort, UseTls:=False) Then
             pvRaiseError m_oSocket.LastError
             Exit Sub
         End If

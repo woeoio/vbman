@@ -117,19 +117,19 @@ End Function
 '    PushNewItemTo = True
 'End Function
 
-Public Function Encode(Optional Obj As Variant, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As String
+Public Function Encode(Optional obj As Variant, Optional Whitespace As Variant, Optional FromUnicode As Boolean) As String
     ' [using]: ToolsJsonVba.ConvertToJson from
     ' VBA-JSON v2.3.1
     ' (c) Tim Hall - https://github.com/VBA-tools/VBA-JSON
     LastError = ""
     Dim TmpO As Variant
-    If IsMissing(Obj) = True Then
+    If IsMissing(obj) = True Then
         If RootItems.Count > 0 Then Set TmpO = RootItems: GoTo Start
         If RootItem.Count > 0 Then Set TmpO = RootItem: GoTo Start
         Exit Function
     Else
-        If IsObject(Obj) = False Then RootText = Obj: GoTo ret
-        Set TmpO = Obj
+        If IsObject(obj) = False Then RootText = obj: GoTo ret
+        Set TmpO = obj
     End If
 Start:
     If TypeOf TmpO Is ADODB.Recordset Then
@@ -140,6 +140,10 @@ Start:
     End If
     If TypeOf TmpO Is cCollection Then
         Set TmpO = TmpO.RawCollection
+    End If
+
+    If TypeOf TmpO Is VBMANLIB.Dictionary Then
+        Set TmpO = TmpO.m_col
     End If
     '
     If TmpO.Count = 0 Then GoTo ret
@@ -184,7 +188,10 @@ Public Function Decode(ByRef Source As Variant) As cJson
         ElseIf TypeOf Source Is Collection Then
             Set RootItems = Source
             Exit Function
-        ElseIf TypeOf Source Is Dictionary Then
+        ElseIf TypeOf Source Is VBMANLIB.Dictionary Then
+            Set RootItem = Source
+            Exit Function
+        ElseIf TypeOf Source Is Scripting.Dictionary Then
             Set RootItem = Source
             Exit Function
         End If

@@ -41,7 +41,7 @@ Option Explicit
 '   - GetSortedKeys / GetSortedValuesByKey
 '   - RawCollection / InnerCollection
 
-Private m_col As New cCollection
+Public m_col As New cCollection
 Private m_CompareMode As CompareMethod       ' ȱʡ vbBinaryCompare
 
 Private Sub Class_Initialize()

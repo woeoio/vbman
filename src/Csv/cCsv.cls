@@ -159,6 +159,9 @@ Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
     Dim lN As Long: lN = Data.Count + 1
     Dim f As New Dictionary, d() As Variant: d = FieldsData
     If UBound(d) = -1 Then ReDim d(0)
+    If IsObject(d(0)) Then
+        If TypeOf d(0) Is cJson Then Set d(0) = d(0).Root
+    End If
     If TypeOf d(0) Is Dictionary Then
         Dim ff As Dictionary: Set ff = d(0)
         Set f = ToolsDic.DeepCopy(ff)

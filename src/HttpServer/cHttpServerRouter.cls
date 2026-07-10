@@ -65,11 +65,11 @@ Public Function Reg(ControllerName As String, Controller As Object) As Boolean
 End Function
 '开发者定义的路由处理，如果没有用户路由，则执行自动路由
 Public Function Add(RouteName As String, Handler As String, Optional MethodLimit As EnumRouteMethod = Any_) As Boolean
-    Dim n  As String: n = ToolsHttp.MapMethodName(MethodLimit)
-    Dim item As cHttpServerRouteItem
-    Set item = New cHttpServerRouteItem
-    Call item.Init(RouteName, Handler)
-    Set Dic(n)(RouteName) = item
+    Dim N  As String: N = ToolsHttp.MapMethodName(MethodLimit)
+    Dim Item As cHttpServerRouteItem
+    Set Item = New cHttpServerRouteItem
+    Call Item.Init(RouteName, Handler)
+    Set Dic(N)(RouteName) = Item
     Add = True
 End Function
 
@@ -112,7 +112,7 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If RouteBefore.Entry(Client.Context) = False Then GoTo EH
     If Client.Context.fIsAbort = True Then GoTo QH
     '开始路由
-    If Request.PathInfo = "/_dev" Then Response.test: Exit Function
+    If Request.PathInfo = "/_dev" Then Response.Test: Exit Function
     '匹配用户路由（支持参数路由 {param}）
     If Dic.Exists(Request.MethodName) = True Then
         Dim RD As Scripting.Dictionary, Handler As String
@@ -139,16 +139,16 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         '2.参数路由模式匹配（遍历含参数的路由项）
         Dim RouteKey As Variant
         Dim routeItem As cHttpServerRouteItem
-        Dim routeParams As Scripting.Dictionary
+        Dim RouteParams As Scripting.Dictionary
         
         '在当前方法字典中匹配
         For Each RouteKey In RD.Keys
             Set routeItem = RD(RouteKey)
             If routeItem.HasParams Then
-                Set routeParams = New Scripting.Dictionary
-                routeParams.CompareMode = TextCompare
-                If routeItem.Match(Request.PathInfo, routeParams) = True Then
-                    Set Request.RouteParams = routeParams
+                Set RouteParams = New Scripting.Dictionary
+                RouteParams.CompareMode = TextCompare
+                If routeItem.Match(Request.PathInfo, RouteParams) = True Then
+                    Set Request.RouteParams = RouteParams
                     Handler = routeItem.Handler
                     GoTo MatchController
                 End If
@@ -159,10 +159,10 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         For Each RouteKey In DicAny.Keys
             Set routeItem = DicAny(RouteKey)
             If routeItem.HasParams Then
-                Set routeParams = New Scripting.Dictionary
-                routeParams.CompareMode = TextCompare
-                If routeItem.Match(Request.PathInfo, routeParams) = True Then
-                    Set Request.RouteParams = routeParams
+                Set RouteParams = New Scripting.Dictionary
+                RouteParams.CompareMode = TextCompare
+                If routeItem.Match(Request.PathInfo, RouteParams) = True Then
+                    Set Request.RouteParams = RouteParams
                     Handler = routeItem.Handler
                     GoTo MatchController
                 End If
@@ -233,8 +233,8 @@ End Function
 Private Function RunHandlerController(ControllerName As String, ActionName As String, ctx As cHttpServerContext) As Boolean
     On Error GoTo EH
     If Controllers.Exists(ControllerName) = True Then
-        Dim c As Object: Set c = Controllers(ControllerName)
-        CallByName c, ActionName, VbMethod, ctx
+        Dim C As Object: Set C = Controllers(ControllerName)
+        CallByName C, ActionName, VbMethod, ctx
         RunHandlerController = True
     Else
         '控制器不存在
@@ -278,6 +278,7 @@ Private Sub Class_Initialize()
     DicDelete.CompareMode = TextCompare
     DicGroup.CompareMode = TextCompare
     
+    AutoRoute = True
 End Sub
 
 Private Sub Class_Terminate()

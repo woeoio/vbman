@@ -14,9 +14,9 @@ Attribute VB_Exposed = True
 Option Explicit
  
 ' As New→显式：改 As New 为显式创建
-Dim Dic As Scripting.Dictionary
+Dim Dic As Dictionary
 
-Public Property Get Handles() As Scripting.Dictionary
+Public Property Get Handles() As Dictionary
     Set Handles = Dic
 End Property
 
@@ -38,7 +38,7 @@ Public Function Add(HandleName As String, Handle As Object) As Boolean
 End Function
 
 Private Sub Class_Initialize()
-    Set Dic = New Scripting.Dictionary
+    Set Dic = New Dictionary
 End Sub
 
 Private Sub Class_Terminate()

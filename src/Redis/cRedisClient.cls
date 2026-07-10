@@ -810,7 +810,7 @@ Public Function HGetAll(ByVal Key As String) As Object
     On Error GoTo ErrorHandler
 
     Dim oDict As Object
-    Set oDict = CreateObject("Scripting.Dictionary")
+    Set oDict = New Dictionary
     oDict.CompareMode = vbTextCompare
 
     Dim vRet As Variant
@@ -831,7 +831,7 @@ Public Function HGetAll(ByVal Key As String) As Object
 ErrorHandler:
     m_sLastError = ERR.Description
     RaiseEvent OnError(m_sLastError)
-    Set HGetAll = CreateObject("Scripting.Dictionary")
+    Set HGetAll = New Dictionary
 End Function
 
 ' HDEL √¸¡Ó

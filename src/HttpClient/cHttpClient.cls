@@ -52,15 +52,15 @@ Public Event OnError(ByVal ErrorNumber As Long, ByVal ErrorDescription As String
 Public LastError As String
 Dim pvRequestData() As Byte
 Public RequestDataJson As New cJson
-Public RequestDataForm As New Scripting.Dictionary
-Public RequestDataQuery As New Scripting.Dictionary
-Public RequestHeaders As New Scripting.Dictionary
+Public RequestDataForm As New Dictionary
+Public RequestDataQuery As New Dictionary
+Public RequestHeaders As New Dictionary
 Public RequestContentType As String
 Public RequestChartSet As String
 Public RequestTimeOut As Long
 
-Public ResponseHeaders As New Scripting.Dictionary
-Public Cookies As New Scripting.Dictionary
+Public ResponseHeaders As New Dictionary
+Public Cookies As New Dictionary
 
 Public DebugStart As Boolean
 Public DebugInfo As New cJson

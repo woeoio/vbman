@@ -20,7 +20,7 @@ Friend Property Set flsSSEInst(o As cSSE)
 End Property
 
 ' 代理 cSSE.Data 字典，允许控制器直接操作数据后调用 Send
-Public Property Get Data() As Scripting.Dictionary
+Public Property Get Data() As Dictionary
     Set Data = SSEInst.Data
 End Property
 

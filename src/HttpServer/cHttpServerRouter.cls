@@ -46,16 +46,16 @@ Private Const C_METHOD_PUT As String = "PUT"
 Private Const C_METHOD_DELETE As String = "DELETE"
 
 '控制器字典
-Dim Controllers As Scripting.Dictionary
+Dim Controllers As Dictionary
 '方法字典
-Dim Dic As Scripting.Dictionary
-Dim DicAny As Scripting.Dictionary
-Dim DicGet As Scripting.Dictionary
-Dim DicPost As Scripting.Dictionary
-Dim DicPut As Scripting.Dictionary
-Dim DicDelete As Scripting.Dictionary
+Dim Dic As Dictionary
+Dim DicAny As Dictionary
+Dim DicGet As Dictionary
+Dim DicPost As Dictionary
+Dim DicPut As Dictionary
+Dim DicDelete As Dictionary
 '路由组
-Dim DicGroup As Scripting.Dictionary
+Dim DicGroup As Dictionary
 
 ''开发者定义的控制器字典注册函数
 Public Function Reg(ControllerName As String, Controller As Object) As Boolean
@@ -115,7 +115,7 @@ Friend Function Entry(Client As cClientCallback) As Boolean
     If Request.PathInfo = "/_dev" Then Response.Test: Exit Function
     '匹配用户路由（支持参数路由 {param}）
     If Dic.Exists(Request.MethodName) = True Then
-        Dim RD As Scripting.Dictionary, Handler As String
+        Dim RD As Dictionary, Handler As String
         Set RD = Dic(Request.MethodName)
         
         '1.精确匹配优先（O(1)，性能最高）
@@ -139,13 +139,13 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         '2.参数路由模式匹配（遍历含参数的路由项）
         Dim RouteKey As Variant
         Dim routeItem As cHttpServerRouteItem
-        Dim RouteParams As Scripting.Dictionary
+        Dim RouteParams As Dictionary
         
         '在当前方法字典中匹配
         For Each RouteKey In RD.Keys
             Set routeItem = RD(RouteKey)
             If routeItem.HasParams Then
-                Set RouteParams = New Scripting.Dictionary
+                Set RouteParams = New Dictionary
                 RouteParams.CompareMode = TextCompare
                 If routeItem.Match(Request.PathInfo, RouteParams) = True Then
                     Set Request.RouteParams = RouteParams
@@ -159,7 +159,7 @@ Friend Function Entry(Client As cClientCallback) As Boolean
         For Each RouteKey In DicAny.Keys
             Set routeItem = DicAny(RouteKey)
             If routeItem.HasParams Then
-                Set RouteParams = New Scripting.Dictionary
+                Set RouteParams = New Dictionary
                 RouteParams.CompareMode = TextCompare
                 If routeItem.Match(Request.PathInfo, RouteParams) = True Then
                     Set Request.RouteParams = RouteParams
@@ -253,14 +253,14 @@ End Function
 
 Private Sub Class_Initialize()
     ' 显式创建子对象（替代 As New 隐式创建）
-    Set Controllers = New Scripting.Dictionary
-    Set Dic = New Scripting.Dictionary
-    Set DicAny = New Scripting.Dictionary
-    Set DicGet = New Scripting.Dictionary
-    Set DicPost = New Scripting.Dictionary
-    Set DicPut = New Scripting.Dictionary
-    Set DicDelete = New Scripting.Dictionary
-    Set DicGroup = New Scripting.Dictionary
+    Set Controllers = New Dictionary
+    Set Dic = New Dictionary
+    Set DicAny = New Dictionary
+    Set DicGet = New Dictionary
+    Set DicPost = New Dictionary
+    Set DicPut = New Dictionary
+    Set DicDelete = New Dictionary
+    Set DicGroup = New Dictionary
     
     With Dic
         .Add C_METHOD_ANY, DicAny

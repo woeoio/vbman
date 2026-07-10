@@ -78,8 +78,8 @@ Public Sub Init(ByVal RoutePattern As String, ByVal RouteHandler As String)
 End Sub
 
 ''匹配路径，返回 True 表示匹配成功，params 输出提取的参数
-''调用方需负责创建 params（New Scripting.Dictionary）并传入
-Public Function Match(ByVal PathInfo As String, params As Scripting.Dictionary) As Boolean
+''调用方需负责创建 params（New Dictionary）并传入
+Public Function Match(ByVal PathInfo As String, params As Dictionary) As Boolean
     '去掉前导 /
     Dim raw As String
     If Left(PathInfo, 1) = "/" Then raw = Mid(PathInfo, 2) Else raw = PathInfo

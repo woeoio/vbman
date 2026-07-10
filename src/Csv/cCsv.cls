@@ -27,15 +27,15 @@ Public Event Progress(ByVal Operation As CsvOperationType, ByVal CurrentLine As 
 Public Event Complete(ByVal Operation As CsvOperationType, ByVal TotalLines As Long, ByVal Success As Boolean)
 
 'todo 需要改为文件流的处理方式，解决自动识别文件编码问题，以及字段内回车问题
-Public Data As New Scripting.Dictionary
-Public CurrentLineDic As New Scripting.Dictionary
+Public Data As New Dictionary
+Public CurrentLineDic As New Dictionary
 Public CurrentLineNumber As Long
 Public Delimiter As String
 Public LastError As String
 '用于列表控件渲染
 Public HasHeadTitle As Boolean
-Public HeadTitle As New Scripting.Dictionary
-Public HeadTitleWidth As New Scripting.Dictionary
+Public HeadTitle As New Dictionary
+Public HeadTitleWidth As New Dictionary
 Public HeadTitleWidthDefault As Long                                            '默认宽度1500
 Public HeadTitleWidthMax As Long                                                '最大宽度8000
 Public HeadTitleWidthAuto As Boolean                                            '是否自动宽度
@@ -81,8 +81,8 @@ Public Function ShowTo(Lv As Object, Optional DefaultWidth As Long = 800) As Boo
         .FullRowSelect = True                                                   ' 允许选择整行
         .GridLines = True                                                       ' 显示网格线
         .LabelEdit = 1                                                          ' lvwManual                                                  '禁止编辑行号
-        Dim Row As Scripting.Dictionary
-        'Dim Col As Scripting.Dictionary
+        Dim Row As Dictionary
+        'Dim Col As Dictionary
         Dim itm As Object
         'Dim itm As ListItem
         
@@ -108,7 +108,7 @@ EH:
     LastError = ERR.Number & "#" & ERR.Description
 End Function
 
-Public Function SetHeadTitleWidthByDic(ByVal Dic As Scripting.Dictionary) As Boolean
+Public Function SetHeadTitleWidthByDic(ByVal Dic As Dictionary) As Boolean
     For Each x In Dic.Keys()
         If HeadTitleWidth.Exists(x) = True Then HeadTitleWidth(x) = Dic(x)
     Next
@@ -133,12 +133,12 @@ Public Function DeleteColumn(Optional ColumnNumber As Long) As Boolean
 End Function
 Public Function NewColumn(ByVal Title As String, Optional Width As Long, Optional Content As String) As Boolean
     Dim CN As Long, lN As Long, L, C As String
-    Dim F As Scripting.Dictionary
+    Dim f As Dictionary
     If IsMissing(Content) = True Or IsNull(Content) Or IsEmpty(Content) Then Content = ""
     For Each L In Data.Keys()
         lN = lN + 1
-        Set F = Data(L)
-        CN = F.Count + 1
+        Set f = Data(L)
+        CN = f.Count + 1
         GoSub AddColumn
     Next
     Exit Function
@@ -149,7 +149,7 @@ AddColumn:
         C = Content
     End If
     If Width = 0 Then Width = HeadTitleWidthDefault
-    F.Add CN, C
+    f.Add CN, C
     'add width and title
     HeadTitle(CN) = Title
     HeadTitleWidth(CN) = Width
@@ -157,28 +157,28 @@ AddColumn:
 End Function
 Public Function NewLine(ParamArray FieldsData() As Variant) As Boolean
     Dim lN As Long: lN = Data.Count + 1
-    Dim F As New Scripting.Dictionary, D() As Variant: D = FieldsData
-    If UBound(D) = -1 Then ReDim D(0)
-    If TypeOf D(0) Is Scripting.Dictionary Then
-        Dim ff As Scripting.Dictionary: Set ff = D(0)
-        Set F = ToolsDic.DeepCopy(ff)
+    Dim f As New Dictionary, d() As Variant: d = FieldsData
+    If UBound(d) = -1 Then ReDim d(0)
+    If TypeOf d(0) Is Dictionary Then
+        Dim ff As Dictionary: Set ff = d(0)
+        Set f = ToolsDic.DeepCopy(ff)
     Else
         Dim CN As Long, x
-        For Each x In D
+        For Each x In d
             CN = CN + 1
             If IsMissing(x) = True Or IsNull(x) Or IsEmpty(x) Then x = ""
-            F.Add CN, x
+            f.Add CN, x
         Next
     End If
-    SyncColumnLength F
-    Data.Add lN, F
+    SyncColumnLength f
+    Data.Add lN, f
     CurrentLineNumber = lN
-    Set CurrentLineDic = F
+    Set CurrentLineDic = f
     Call SyncColumnWidth
-    Set F = Nothing
+    Set f = Nothing
     NewLine = True
 End Function
-Private Sub SyncColumnLength(LineDic As Scripting.Dictionary)
+Private Sub SyncColumnLength(LineDic As Dictionary)
     Dim dn As Long: dn = Data.Count
     If dn > 0 Then
         Dim d0n As Long: d0n = Data(1).Count
@@ -219,14 +219,14 @@ Private Sub SyncColumnWidth()
         End With
     End If
 End Sub
-Public Function GetLine(ByVal LineNumber As Long, Optional ByRef LineDic As Scripting.Dictionary) As Boolean
+Public Function GetLine(ByVal LineNumber As Long, Optional ByRef LineDic As Dictionary) As Boolean
     If Data.Exists(LineNumber) = False Then LastError = "行号不存在": Exit Function
     Set CurrentLineDic = Data(LineNumber)
     CurrentLineNumber = LineNumber
     If IsMissing(LineDic) = False Then Set LineDic = CurrentLineDic
     GetLine = True
 End Function
-Public Function SetLine(ByVal LineNumber As Long, ByRef LineDic As Scripting.Dictionary) As Boolean
+Public Function SetLine(ByVal LineNumber As Long, ByRef LineDic As Dictionary) As Boolean
     If Data.Exists(LineNumber) = False Then LastError = "行号不存在": Exit Function
     Set CurrentLineDic = LineDic
     SyncColumnLength CurrentLineDic
@@ -256,7 +256,7 @@ Public Property Let Value(ByVal LineNumber As Long, ByVal ColumnNumber As Long, 
     If Data(LineNumber).Exists(ColumnNumber) = False Then LastError = "列号不存在": Exit Property
     Data(LineNumber)(ColumnNumber) = Dat
 End Property
-Public Function SetCurrentLineData(ByVal ColumnNumber As Long, ByVal Dat As Variant, Optional ByRef LineDic As Scripting.Dictionary) As Boolean
+Public Function SetCurrentLineData(ByVal ColumnNumber As Long, ByVal Dat As Variant, Optional ByRef LineDic As Dictionary) As Boolean
     If IsMissing(LineDic) = True Then Set LineDic = CurrentLineDic
     If CurrentLineDic.Exists(ColumnNumber) = False Then LastError = "列号不存在": Exit Function
     CurrentLineDic(ColumnNumber) = Dat
@@ -287,13 +287,13 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
             RaiseEvent Complete(OperationLoadFrom, i - 1, False)
             Exit Function
         End If
-        Dim LineDic As New Scripting.Dictionary
+        Dim LineDic As New Dictionary
         lineText = fo.ReadLine
         If lineText = "" Then
             Dim Percent1 As Long: Percent1 = (i / TotalLines) * 100
             Dim EmptyData() As Variant
             RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent1 & "%", EmptyData)
-            GoTo CT
+            GoTo ct
         End If
         If ParseCsvLine(lineText, LineDic) = True Then
             'todo 此处也应该做首行对齐，避免用户的csv文件不规范
@@ -302,10 +302,10 @@ Public Function LoadFrom(ByVal FilePath As String, Optional IsFirstHead As Boole
             ' RaiseEvent RowLoaded(fo.LineNumber - 1, LineDic)
         End If
         Dim Percent2 As Long: Percent2 = (i / TotalLines) * 100
-        Dim LineData1() As Variant: LineData1 = LineDic.Items()
+        Dim LineData1() As Variant: LineData1 = LineDic.Items
         RaiseEvent Progress(OperationLoadFrom, i, TotalLines, Percent2 & "%", LineData1)
         Set LineDic = Nothing
-CT:
+ct:
     Next
     
     fo.Inst.Close
@@ -348,7 +348,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
     
     '如果IsFirstHead=True，先添加标题行
     If IsFirstHead = True And FieldCount > 0 Then
-        Dim TitleDic As New Scripting.Dictionary
+        Dim TitleDic As New Dictionary
         Dim i As Long
         For i = 0 To FieldCount - 1
             TitleDic.Add i + 1, Rs.fields(i).Name
@@ -358,7 +358,7 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
         RowCount = 1
         ' RaiseEvent RowLoaded(1, TitleDic)
         Dim Percent3 As Long: Percent3 = (RowCount / TotalRows) * 100
-        Dim LineData3() As Variant: LineData3 = TitleDic.Items()
+        Dim LineData3() As Variant: LineData3 = TitleDic.Items
         RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent3 & "%", LineData3)
     End If
     
@@ -374,19 +374,19 @@ Public Function LoadFromRecordSet(ByVal Rs As Object, Optional IsFirstHead As Bo
                 Exit Function
             End If
             RowCount = RowCount + 1
-            Dim LineDic As New Scripting.Dictionary
-            Dim J As Long
-            For J = 0 To FieldCount - 1
+            Dim LineDic As New Dictionary
+            Dim j As Long
+            For j = 0 To FieldCount - 1
                 Dim FieldValue As Variant
-                FieldValue = Rs.fields(J).Value
+                FieldValue = Rs.fields(j).Value
                 If IsNull(FieldValue) Then FieldValue = ""
-                LineDic.Add J + 1, FieldValue
+                LineDic.Add j + 1, FieldValue
             Next
-            SyncColumnLength LineDic.Items()
+            SyncColumnLength LineDic
             Dict.Add RowCount, LineDic
             ' RaiseEvent RowLoaded(RowCount, LineDic)
             Dim Percent4 As Long: Percent4 = (RowCount / TotalRows) * 100
-            Dim LineData4() As Variant: LineData4 = LineDic.Items()
+            Dim LineData4() As Variant: LineData4 = LineDic.Items
             RaiseEvent Progress(OperationLoadFromRecordSet, RowCount, TotalRows, Percent4 & "%", LineData4)
             Set LineDic = Nothing
             Rs.MoveNext
@@ -401,7 +401,7 @@ EH:
     RaiseEvent Complete(OperationLoadFromRecordSet, 0, False)
 End Function
 
-Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Scripting.Dictionary) As Boolean
+Private Function ParseCsvLine(ByVal Content As String, ByRef LineDic As Dictionary) As Boolean
     If Trim(Content) = "" Then LastError = "内容为空": Exit Function
     LineDic.RemoveAll
     Dim inQuotes As Boolean
@@ -463,7 +463,7 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
     Dim Fso As New cToolsStream
     Fso.UseLine = True
     Dim Key As Variant, i As Long, LineFields() As String
-    Dim LineDic As Scripting.Dictionary
+    Dim LineDic As Dictionary
     Dim TotalRows As Long
     Dim CurrentRow As Long
     
@@ -487,7 +487,7 @@ Public Function SaveTo(ByVal FilePath As String, Optional CharSet As String = "U
         Fso.WriteLine Join(LineFields, Delimiter)
         ' RaiseEvent RowSaved(CurrentRow, LineDic)
         Dim Percent5 As Long: Percent5 = (CurrentRow / TotalRows) * 100
-        Dim LineData5() As Variant: LineData5 = LineDic.Items()
+        Dim LineData5() As Variant: LineData5 = LineDic.Items
         RaiseEvent Progress(OperationSaveTo, CurrentRow, TotalRows, Percent5 & "%", LineData5)
     Next
     Fso.SaveFileAsText FilePath, , CharSet

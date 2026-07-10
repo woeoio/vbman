@@ -9,7 +9,7 @@ Public Sub TestRedisClient()
     Dim sResult As String
     Dim lResult As Long
     Dim i As Long
-    Dim Dict As Scripting.Dictionary
+    Dim Dict As Dictionary
     Dim vArray() As Variant
     
     Debug.Print "=========================================="

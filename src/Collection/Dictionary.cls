@@ -14,11 +14,11 @@ Attribute VB_Exposed = True
 Option Explicit
 
 ' Dictionary.cls
-' 完全兼容 Scripting.Dictionary 的字典类
+' 完全兼容 Dictionary 的字典类
 ' 内部使用 cCollection 实现（Collection 本身不支持按 Key 区分大小写查找，
 ' 这里通过 CompareMode 实现二进制/文本/数据库三种比较模式）
 '
-' 兼容的 Scripting.Dictionary 公共 API:
+' 兼容的 Dictionary 公共 API:
 '   - Add(Key, Item)              参数顺序为 (Key, Item)
 '   - Exists(Key)                 按 CompareMode 区分大小写
 '   - Item(Key) [default member]  支持 Get/Let/Set
@@ -31,7 +31,7 @@ Option Explicit
 '   - Key(Key) = NewKey           重命名 Key
 '   - NewEnum                     For Each 支持
 '
-' 扩展 API（cCollection 兼容，非 Scripting.Dictionary 标准）:
+' 扩展 API（cCollection 兼容，非 Dictionary 标准）:
 '   - Update(Item, Key)
 '   - Exists(Key, CompareCase)
 '   - Count()                     方法形式（属性和方法可同时使用）
@@ -49,7 +49,7 @@ Private Sub Class_Initialize()
 End Sub
 
 '=========================================================================
-' Scripting.Dictionary 标准 API
+' Dictionary 标准 API
 '=========================================================================
 
 ' 设置/获取比较模式：vbBinaryCompare=0, vbTextCompare=1, vbDatabaseCompare=2
@@ -111,12 +111,12 @@ Public Function Items() As Variant()
     Items = m_col.Items
 End Function
 
-' 元素数量（Scripting.Dictionary 中是属性）
+' 元素数量（Dictionary 中是属性）
 Public Property Get Count() As Long
     Count = m_col.Count
 End Property
 
-' 重命名 Key（Scripting.Dictionary 的 Key 语法是 Property Let Key(OldKey) = NewKey）
+' 重命名 Key（Dictionary 的 Key 语法是 Property Let Key(OldKey) = NewKey）
 Public Property Let Key(ByVal OldKey As String, ByVal NewKey As String)
     On Error Resume Next
     m_col.RenameKey OldKey, NewKey

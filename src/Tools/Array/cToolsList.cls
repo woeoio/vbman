@@ -20,7 +20,7 @@ Public Function RsToCollection(Obj As Variant) As cCollection
     Dim fd As ADODB.Field
     Dim i As Long, ii As Long
     Dim RsArr As New cCollection
-    Dim RsRow As Scripting.Dictionary
+    Dim RsRow As Dictionary
     Set Rs = Obj.Clone
     '克隆的对象记录集指针居然是初始位置
     Dim p As Long: p = IIf(Obj.AbsolutePage < 1, 1, Obj.AbsolutePage)
@@ -33,7 +33,7 @@ Public Function RsToCollection(Obj As Variant) As cCollection
     Do Until Rs.EOF = True
         '注意分页，不知道为啥分页参数不能控制rs记录集数量了，有空研究下
         If Rs.AbsolutePage <> p Then Exit Do
-        Set RsRow = New Scripting.Dictionary
+        Set RsRow = New Dictionary
         RsRow.CompareMode = TextCompare
         For i = 0 To Rs.fields.Count - 1
             Set fd = Rs.fields(i)

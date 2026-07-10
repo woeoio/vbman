@@ -76,12 +76,12 @@ Public LastErrDescription As String
 Public Rs As New ADODB.Recordset
 'convert rs to Dictionary object an save in class inst.
 Public Rows As cCollection
-Public Row As New Scripting.Dictionary
+Public Row As New Dictionary
 'Connection inst 20241011 今天发现conn居然有异步执行sql的能力, 后期挖掘下, 实现和前端异步交互，还有 stream 模式
 Public WithEvents Conn As ADODB.Connection
 Attribute Conn.VB_VarHelpID = -1
 'cDatabase pool, 多个数据库对象池，主要用于动态根据字符串key使用数据库对象的场景
-Dim Connections As New Scripting.Dictionary
+Dim Connections As New Dictionary
 
 '
 Private IsPage As Boolean
@@ -90,7 +90,7 @@ Private pvRawSqlString As String
 Private pvTableName As String
 Private pvWhereCondition As String
 Private pvWhereParams As New Collection
-Private pvFields As New Scripting.Dictionary  ' Field() 链式调用缓存 {fieldName: value}
+Private pvFields As New Dictionary  ' Field() 链式调用缓存 {fieldName: value}
 Private pvPageNum As Long
 Private pvPageLimit As Long
 Private pvPageOffset As Long
@@ -844,7 +844,7 @@ Public Function FetchParam(Optional CurType As CursorTypeEnum = adOpenKeyset, Op
         If Rows.count > 0 Then
             Set Row = Rows(1)
         Else
-            Set Row = New Scripting.Dictionary
+            Set Row = New Dictionary
         End If
     End If
 End Function
@@ -908,7 +908,7 @@ Public Function Fetch(Optional CurType As CursorTypeEnum = adOpenKeyset, Optiona
         If Rows.count > 0 Then
             Set Row = Rows(1)
         Else
-            Set Row = New Scripting.Dictionary
+            Set Row = New Dictionary
         End If
     End If
 End Function
@@ -1082,7 +1082,7 @@ Public Function BatchInsert(ByVal TableName As String, ByVal Data As Collection)
     Call TransBegin
     
     Dim i As Long
-    Dim bRow As Scripting.Dictionary
+    Dim bRow As Dictionary
     Dim fields As String, Values As String
     Dim SqlString As String
     

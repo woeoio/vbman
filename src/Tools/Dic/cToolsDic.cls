@@ -15,7 +15,7 @@ Option Explicit
 
 
 
-Public Function ToWwwFormUrlencoded(Dic As Scripting.Dictionary) As String
+Public Function ToWwwFormUrlencoded(Dic As Dictionary) As String
     ' 生成 www-form-urlencoded内容，即原始键值对
     ' 需要增加对数组类型的处理
     Dic.Add "a", 1
@@ -32,7 +32,7 @@ Public Function ToWwwFormUrlencoded(Dic As Scripting.Dictionary) As String
     ToWwwFormUrlencoded = Replace(A, ",", "&")
 End Function
 
-Public Function FromWwwFormUrlencoded(Content As String, Dic As Scripting.Dictionary) As Boolean
+Public Function FromWwwFormUrlencoded(Content As String, Dic As Dictionary) As Boolean
     ' 解析 www-form-urlencoded 内容，即原始键值对
     ' 需要增加对数组类型的处理
      Dim A As Variant, b As Variant, K As Variant, v As Variant, x As Variant: A = Split(Content, "&")
@@ -49,19 +49,19 @@ Public Function FromWwwFormUrlencoded(Content As String, Dic As Scripting.Dictio
     FromWwwFormUrlencoded = True
 End Function
 
-Public Sub TowLevelDicAssign(Dic As Scripting.Dictionary, Lv1Name As String, Lv2Name As String, Value As Variant)
+Public Sub TowLevelDicAssign(Dic As Dictionary, Lv1Name As String, Lv2Name As String, Value As Variant)
     '函数功能：双层节点的字典对象赋值方法
     If Dic.Exists(Lv1Name) = True Then
         Dic(Lv1Name)(Lv2Name) = Value
     Else
-        Dim D As New Scripting.Dictionary
+        Dim D As New Dictionary
         D.Add Lv2Name, Value
         Dic.Add Lv1Name, D
     End If
 End Sub
 
 
-Public Sub OverWrite(DistDic As Scripting.Dictionary, srcDic As Scripting.Dictionary, Optional OnlyKey As Boolean = True)
+Public Sub OverWrite(DistDic As Dictionary, srcDic As Dictionary, Optional OnlyKey As Boolean = True)
     '合并多个字典值到第一个
     Dim x As Variant, K As String
     For Each x In srcDic
@@ -84,12 +84,12 @@ Assign:
 End Sub
 
 
-Public Function DeepCopy(srcDic As Scripting.Dictionary) As Scripting.Dictionary
+Public Function DeepCopy(srcDic As Dictionary) As Dictionary
     '深拷贝字典对象，
     'todo 目前仅拷贝了第一层的值，需要改为递归实现深层对象赋值
     Dim x As Variant, K As Variant
-    Dim DistDic As New Scripting.Dictionary
-    Set DeepCopy = New Scripting.Dictionary
+    Dim DistDic As New Dictionary
+    Set DeepCopy = New Dictionary
     For Each K In srcDic.Keys()
         If IsObject(srcDic(K)) = True Then
             Set DistDic(K) = srcDic(K)

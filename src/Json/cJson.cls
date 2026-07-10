@@ -15,14 +15,14 @@ Option Explicit
 '作者: 邓伟, QQ:215879458
 
 Public RootText As String
-Public RootItem As New Scripting.Dictionary
+Public RootItem As New Dictionary
 Public RootItems As New Collection
 '    【20241014】
 '           由于 ToolsJsonVba.ConvertToJson 函数对数字类型值没有判断
 '           导致返回的数字值可能超过 js 可识别长度, 无法正常使用,
 '           因此应该修改源代码, 在 数字类型 的处理过程中把溢出值转字符串
 
-'Dim AllNewItem As New Scripting.Dictionary
+'Dim AllNewItem As New Dictionary
 
 Public WhiteSpaceSet As Variant
 
@@ -184,7 +184,7 @@ Public Function Decode(ByRef Source As Variant) As cJson
         ElseIf TypeOf Source Is Collection Then
             Set RootItems = Source
             Exit Function
-        ElseIf TypeOf Source Is Scripting.Dictionary Then
+        ElseIf TypeOf Source Is Dictionary Then
             Set RootItem = Source
             Exit Function
         End If

@@ -48,7 +48,7 @@ Private LastEventData As String
 Private LastEventRetry As Long
 
 '自定义请求头和超时
-Private m_Headers As Scripting.Dictionary
+Private m_Headers As Dictionary
 Private m_RequestTimeOut As Long
 
 '配置参数
@@ -71,7 +71,7 @@ Private Sub Class_Initialize()
     ReconnectDelay = 0
     m_RequestTimeOut = 60       '默认60秒超时
     
-    Set m_Headers = New Scripting.Dictionary
+    Set m_Headers = New Dictionary
     m_Headers.CompareMode = TextCompare
     
     '初始化重连定时器

@@ -15,8 +15,8 @@ Option Explicit
 
 Dim pWebRoot As String
 ' As New→显式：改 As New 为显式创建
-Dim rootFiles As Scripting.Dictionary
-Dim rootDirs As Scripting.Dictionary
+Dim rootFiles As Dictionary
+Dim rootDirs As Dictionary
 
 Dim Fso As Scripting.FileSystemObject
 
@@ -27,7 +27,7 @@ Public Port As Long
 Dim m_DefaultDocuments As Collection
 
 ' 静态文件内容缓存（懒缓存：首次访问且未超限才加入）
-Dim m_FileCache As Scripting.Dictionary
+Dim m_FileCache As Dictionary
 ' 缓存上限：单文件最大缓存字节数（默认 1MB，0=禁用缓存）
 Public MaxCacheFileSize As Long
 ' 缓存 TTL：秒数（默认 300=5分钟，0=永不过期）
@@ -78,9 +78,9 @@ End Function
 
 Private Sub Class_Initialize()
     ' 显式创建子对象（替代 As New 隐式创建）
-    Set rootFiles = New Scripting.Dictionary
-    Set rootDirs = New Scripting.Dictionary
-    Set m_FileCache = New Scripting.Dictionary
+    Set rootFiles = New Dictionary
+    Set rootDirs = New Dictionary
+    Set m_FileCache = New Dictionary
     m_FileCache.CompareMode = TextCompare
     Set Fso = New Scripting.FileSystemObject
     '设置大小写不敏感

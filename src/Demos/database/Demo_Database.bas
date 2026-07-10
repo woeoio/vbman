@@ -345,7 +345,7 @@ Private Sub Test_QueryData()
         If TestDB.Rows.count > 0 Then
             Debug.Print "       第一行数据:"
             Dim key As Variant
-            Dim Row As Scripting.Dictionary
+            Dim Row As Dictionary
             Set Row = TestDB.Rows(1)
             For Each key In Row.Keys
                 Debug.Print "         " & key & ": " & Row(key)
@@ -627,7 +627,7 @@ Private Sub Test_Pagination()
             Debug.Print "  第2页数据:"
             Dim i As Long
             For i = 1 To TestDB.Rows.count
-                Dim Row As Scripting.Dictionary
+                Dim Row As Dictionary
                 Set Row = TestDB.Rows(i)
                 Debug.Print "    ID: " & Row("id") & ", 用户名: " & Row("username")
             Next
@@ -805,11 +805,11 @@ Private Sub Test_BatchInsert()
     
     '准备批量数据
     Dim Data As New Collection
-    Dim Row As Scripting.Dictionary
+    Dim Row As Dictionary
     Dim i As Long
     
     For i = 1 To 5
-        Set Row = New Scripting.Dictionary
+        Set Row = New Dictionary
         Row.Add "username", "批量用户" & i
         Row.Add "email", "batch" & i & "@test.com"
         Row.Add "age", 50 + i

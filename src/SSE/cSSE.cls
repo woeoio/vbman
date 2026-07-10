@@ -18,8 +18,8 @@ Dim Json As cJson
 Dim IsStart As Boolean
 Dim Path As String
 Dim AcceptConnect As Boolean
-Dim Clients As Scripting.Dictionary
-Public Data As Scripting.Dictionary
+Dim Clients As Dictionary
+Public Data As Dictionary
 
 Public MapClients As cJson
 Public MapUsersToHSocket As cJson
@@ -30,7 +30,7 @@ Public LastError As String
 
 'To 对象
 Dim hSocketByUser As Long
-Dim hSocketsByGroup As Scripting.Dictionary
+Dim hSocketsByGroup As Dictionary
 
 Dim EH As Object
 'sse通用对象
@@ -200,8 +200,8 @@ Public Function Send(Optional ByVal hSocket As Long) As Boolean
     If Clients.Count = 0 Then GoTo QH
     
     ' 先捕获 Data 快照到局部变量，防止 SendData 触发重入时 Data 被污染
-    Dim SendData As Scripting.Dictionary
-    Set SendData = New Scripting.Dictionary
+    Dim SendData As Dictionary
+    Set SendData = New Dictionary
     Dim k As Variant
     For Each k In Data.Keys
         SendData.Add k, Data(k)
@@ -262,13 +262,13 @@ End Function
 Private Sub Class_Initialize()
     ' 显式创建所有子对象（替代 As New 隐式创建）
     Set Json = New cJson
-    Set Clients = New Scripting.Dictionary
-    Set Data = New Scripting.Dictionary
+    Set Clients = New Dictionary
+    Set Data = New Dictionary
     Set MapClients = New cJson
     Set MapUsersToHSocket = New cJson
     Set MapHSocketToUsers = New cJson
     Set MapGroups = New cJson
-    Set hSocketsByGroup = New Scripting.Dictionary
+    Set hSocketsByGroup = New Dictionary
 End Sub
 
 Private Sub Class_Terminate()

@@ -185,7 +185,7 @@ Public Function GetQueueInfo( _
     Dim result As Object
     
     ' 创建 Dictionary 对象（需要引用 Scripting Runtime 或后期绑定）
-    Set result = CreateObject("Scripting.Dictionary")
+    Set result = New Dictionary
     
     Set qinfo = CreateObject("MSMQ.MSMQQueueInfo")
     

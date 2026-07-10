@@ -14,10 +14,10 @@ Attribute VB_Exposed = True
 Option Explicit
 
 ' 响应 Cookie 存储（用于生成 Set-Cookie 头）
-Dim Data As Scripting.Dictionary
+Dim Data As Dictionary
 
 ' 请求 Cookie 存储（来自 Cookie 头，只读键值对）
-Private m_RequestCookies As Scripting.Dictionary
+Private m_RequestCookies As Dictionary
 
 ' 获取或创建响应 Cookie（用于 Set-Cookie）
 Public Property Get Cookie(ByVal Key As String) As cHttpServerCookieAttr
@@ -192,9 +192,9 @@ End Function
 
 Private Sub Class_Initialize()
     ' 显式创建子对象（替代 As New 隐式创建）
-    Set Data = New Scripting.Dictionary
+    Set Data = New Dictionary
     Data.CompareMode = TextCompare
-    Set m_RequestCookies = New Scripting.Dictionary
+    Set m_RequestCookies = New Dictionary
     m_RequestCookies.CompareMode = TextCompare
 End Sub
 

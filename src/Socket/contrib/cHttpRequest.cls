@@ -1495,7 +1495,7 @@ Private Function pvParseHeaderAttribs(ByVal sHeader As String) As Object
     Dim lIdx            As Long
     
     '--- TODO: need regex parser for semi-colons in quoted values
-    Set pvParseHeaderAttribs = CreateObject("Scripting.Dictionary")
+    Set pvParseHeaderAttribs = New Dictionary
     pvParseHeaderAttribs.CompareMode = vbTextCompare
     vSplit = Split(sHeader, ";")
     If UBound(vSplit) > 0 Then
@@ -2150,11 +2150,11 @@ Private Sub Class_Initialize()
     m_vOptions(WinHttpRequestOption_RejectUserpwd) = False
     Set m_vOptions(WinHttpRequestOption_RootCA) = Nothing
     SetTimeouts 5000, 5000, 30000, 30000
-    Set m_uRequest.Headers = CreateObject("Scripting.Dictionary")
+    Set m_uRequest.Headers = New Dictionary
     m_uRequest.Headers.CompareMode = vbTextCompare
-    Set m_uResponse.Headers = CreateObject("Scripting.Dictionary")
+    Set m_uResponse.Headers = New Dictionary
     m_uResponse.Headers.CompareMode = vbTextCompare
-    Set m_oCookies = CreateObject("Scripting.Dictionary")
+    Set m_oCookies = New Dictionary
     m_oCookies.CompareMode = vbTextCompare
     ReDim m_uRequest.ProxyList(-1 To -1) As UcsParsedUrl
 End Sub

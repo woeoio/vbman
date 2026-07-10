@@ -26,9 +26,9 @@ Dim Aes As New cAes
 Dim pvPwd As String
 Dim pvPath As String
 
-Dim RootDic As New Scripting.Dictionary
+Dim RootDic As New Dictionary
 
-Public Property Get Root() As Scripting.Dictionary
+Public Property Get Root() As Dictionary
 Attribute Root.VB_UserMemId = 0
     Set Root = RootDic
 End Property
@@ -40,13 +40,13 @@ Public Property Let MultiLineText(ByVal SectionName As String, ByVal KeyName As 
     Root(SectionName)(KeyName) = Replace(Text, vbCrLf, "\r\n")
 End Property
 
-Public Property Get Section(ByVal key As String) As Scripting.Dictionary
+Public Property Get Section(ByVal key As String) As Dictionary
     If RootDic.Exists(key) = False Then
-        RootDic.Add key, New Scripting.Dictionary
+        RootDic.Add key, New Dictionary
     End If
     '这里今天遇到一个奇怪的问题，遇到这个函数居然报错，刚才才发现就是因为字典的特性引起的：只要读取过一个键值，如果字典不存在该项目，也会创建一个空项目，这就导致好多地方会出现诡异的事情
     If IsObject(RootDic(key)) = False Then                                      '所以这里得先判断是否对象，不是就new 一下，同样的问题出现在 save 函数
-        Set RootDic(key) = New Scripting.Dictionary
+        Set RootDic(key) = New Dictionary
     End If
     Set Section = RootDic(key)
 End Property
@@ -67,7 +67,7 @@ Public Function SaveTo(Optional ByVal Path As String, Optional CharSet As String
     On Error GoTo EH
     Dim Text As String, Value As String
     Dim Section As Variant, key As Variant, Node As Object
-    Dim Dic As Scripting.Dictionary: Set Dic = RootDic
+    Dim Dic As Dictionary: Set Dic = RootDic
     If Path = "" Then Path = pvPath
     If Path = "" Then LastError = "文件路径不能为空": Exit Function
     '    FixFileExtName Path
@@ -100,7 +100,7 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
     On Error GoTo EH
     Dim Section As String
     Dim TextLine As String, i As Long
-    Dim Dic As Scripting.Dictionary: Set Dic = RootDic
+    Dim Dic As Dictionary: Set Dic = RootDic
     Call Dic.RemoveAll
     '    FixFileExtName Path
     '  如果是 loadForm 读取的ini文件，saveto 方法可以省略路径自动保存
@@ -135,7 +135,7 @@ Public Function LoadFrom(ByVal Path As String, Optional CharSet As String = "UTF
                     
                     ' 将键值对存储到字典中
                     If Not Dic.Exists(Section) Then
-                        Dic.Add Section, New Scripting.Dictionary
+                        Dic.Add Section, New Dictionary
                     End If
                     Dic(Section)(key) = Value
                 End If

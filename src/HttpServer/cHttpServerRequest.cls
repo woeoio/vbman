@@ -38,11 +38,11 @@ Public PathInfoList As cCollection
 Public PathInfoController As String
 Public PathInfoAction As String
 Public QueryInfo As String
-Public RouteParams As Scripting.Dictionary
-Public QueryString As Scripting.Dictionary
-Public Form As Scripting.Dictionary
+Public RouteParams As Dictionary
+Public QueryString As Dictionary
+Public Form As Dictionary
 Public Json As cJson
-Public Header As Scripting.Dictionary
+Public Header As Dictionary
 Public HeaderRaw  As String
 Public HeaderUserAgent As String
 Public HeaderAccept As String
@@ -182,13 +182,13 @@ End Function
 
 Private Sub Class_Initialize()
     ' 显式创建所有子对象（替代 As New 隐式创建）
-    Set Header = New Scripting.Dictionary
+    Set Header = New Dictionary
     Header.CompareMode = TextCompare
-    Set RouteParams = New Scripting.Dictionary
+    Set RouteParams = New Dictionary
     RouteParams.CompareMode = TextCompare
-    Set QueryString = New Scripting.Dictionary
+    Set QueryString = New Dictionary
     QueryString.CompareMode = TextCompare
-    Set Form = New Scripting.Dictionary
+    Set Form = New Dictionary
     Form.CompareMode = TextCompare
     Set PathInfoList = New cCollection
     Set Json = New cJson

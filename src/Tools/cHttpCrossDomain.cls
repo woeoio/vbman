@@ -20,10 +20,10 @@ Option Explicit
 '    Request.Response.AddHeaderEntry "Access-Control-Allow-Credentials", "true"
 '    Request.Response.AddHeaderEntry "Access-Control-Max-Age", 86400000
 
-'Dim DicOrigin As New Scripting.Dictionary
-'Dim DicMethods As New Scripting.Dictionary
-'Dim DicHeaders As New Scripting.Dictionary
-'Dim DicCredentials As New Scripting.Dictionary
+'Dim DicOrigin As New Dictionary
+'Dim DicMethods As New Dictionary
+'Dim DicHeaders As New Dictionary
+'Dim DicCredentials As New Dictionary
 
 Public AllowOrigin As String
 Public AllowMethods As String
@@ -51,7 +51,7 @@ Public Property Let Enable(v As Boolean)
     IsEnable = v
 End Property
 
-Friend Function AddTo(Headers As Scripting.Dictionary) As Boolean
+Friend Function AddTo(Headers As Dictionary) As Boolean
     If Enable = False Then Exit Function
     Headers("Access-Control-Allow-Origin") = AllowOrigin
     Headers("Access-Control-Allow-Methods") = AllowMethods

@@ -24,7 +24,7 @@ Public JsonPackFieldNameMsg As String
 Public JsonPackFieldNameData As String
 Public JsonPackFieldNameCount As String
 
-Public Header As Scripting.Dictionary
+Public Header As Dictionary
 
 '兼容asp对象
 Public Buffer As Boolean
@@ -32,7 +32,7 @@ Public CacheControl  As String
 Public CharSet As String
 Public CodePage  As Long
 Public ContentType As String
-Public Cookies As Scripting.Dictionary
+Public Cookies As Dictionary
 Public Expires  As Variant
 Public ExpiresAbsolute  As Variant
 Public LCID As Long
@@ -88,8 +88,8 @@ Public Sub Json(Data As Variant, Optional Code As Long = -1, Optional msg As Str
         Call SendBodyText(JsonInst.Encode(Data, Whitespace), "application/json")
         Exit Sub
     End If
-    Dim Dic As Scripting.Dictionary
-    Set Dic = New Scripting.Dictionary
+    Dim Dic As Dictionary
+    Set Dic = New Dictionary
     With Dic
         .Add JsonPackFieldNameCode, Code
         .Add JsonPackFieldNameMsg, msg
@@ -171,7 +171,7 @@ SendFile:
     If Not Client.Context Is Nothing Then
         If Not Client.Context.Request Is Nothing Then
             If Not Client.Context.Request.Header Is Nothing Then
-                Dim reqHeader As Scripting.Dictionary
+                Dim reqHeader As Dictionary
                 Set reqHeader = Client.Context.Request.Header
                 If reqHeader.Exists("If-None-Match") Then
                     If reqHeader("If-None-Match") = currentETag Then
@@ -313,7 +313,7 @@ Private Sub Class_Initialize()
     m_HasSent = False
     StatusCode = 0
     ' 显式创建子对象（替代 As New 隐式创建）
-    Set Header = New Scripting.Dictionary
+    Set Header = New Dictionary
     Set JsonInst = New cJson
 End Sub
 

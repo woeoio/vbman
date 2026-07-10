@@ -239,7 +239,7 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
     Dim sText           As String
     Dim vValue          As Variant
     #If ImplScripting Then
-        Dim oRetVal     As Scripting.Dictionary
+        Dim oRetVal     As Dictionary
     #Else
         Dim oRetVal     As VBA.Collection
     #End If
@@ -563,7 +563,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Dim lCompareMode    As VbCompareMethod
     Dim lCount          As Long
     #If ImplScripting Then
-        Dim oJson       As Scripting.Dictionary
+        Dim oJson       As Dictionary
     #Else
         Dim oJson       As VBA.Collection
     #End If
@@ -669,7 +669,7 @@ Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
     Dim vKey            As Variant
     Dim vItem           As Variant
     #If ImplScripting Then
-        Dim oParam      As Scripting.Dictionary
+        Dim oParam      As Dictionary
     #Else
         Dim oParam      As VBA.Collection
     #End If
@@ -764,7 +764,7 @@ Public Property Let JsonValue(oJson As Object, ByVal sKey As String, vValue As V
     Dim lKey            As Long
     Dim vItem           As Variant
     #If ImplScripting Then
-        Dim oParam      As Scripting.Dictionary
+        Dim oParam      As Dictionary
     #Else
         Dim oParam      As VBA.Collection
     #End If
@@ -863,7 +863,7 @@ Public Function JsonKeys(oJson As Object, Optional ByVal Key As String) As Varia
     Dim vItem           As Variant
     Dim lCount          As Long
     #If ImplScripting Then
-        Dim oParam      As Scripting.Dictionary
+        Dim oParam      As Dictionary
     #Else
         Dim oParam      As VBA.Collection
     #End If
@@ -975,7 +975,7 @@ Public Function JsonObjectType(oJson As Object, Optional ByVal Key As String) As
     Dim vKey            As Variant
     Dim vItem           As Variant
     #If ImplScripting Then
-        Dim oParam      As Scripting.Dictionary
+        Dim oParam      As Dictionary
     #Else
         Dim oParam      As VBA.Collection
     #End If
@@ -1015,7 +1015,7 @@ Public Function JsonToXmlDocument(vJson As Variant, Optional Root As Object, Opt
     Dim oArray          As Object
     Dim oItem           As Object
     #If ImplScripting Then
-        Dim oJson       As Scripting.Dictionary
+        Dim oJson       As Dictionary
     #Else
         Dim oJson       As VBA.Collection
     #End If
@@ -1115,8 +1115,8 @@ Public Function JsonFromXmlDocument(vXml As Variant) As Variant
     Dim bHasAttributes  As Boolean
     Dim vItem           As Variant
     #If ImplScripting Then
-        Dim oDict       As Scripting.Dictionary
-        Dim oArray      As Scripting.Dictionary
+        Dim oDict       As Dictionary
+        Dim oArray      As Dictionary
     #Else
         Dim oDict       As VBA.Collection
         Dim oArray      As VBA.Collection
@@ -1248,7 +1248,7 @@ End Function
         If oJson Is Nothing Then
             Exit Function
         End If
-        Set oRetVal = VBA.CreateObject("Scripting.Dictionary")
+        Set oRetVal = VBA.New Dictionary
         vKeys = JsonKeys(oJson)
         If UBound(vKeys) < 0 And oJson.Count > 0 Then
             For lKey = 0 To oJson.Count - 1
@@ -1279,22 +1279,22 @@ EH:
 #End If
 
 #If ImplScripting Then
-    Private Function pvJsonCreateObject(ByVal lCompareMode As VbCompareMethod) As Scripting.Dictionary
-        Set pvJsonCreateObject = New Scripting.Dictionary
+    Private Function pvJsonCreateObject(ByVal lCompareMode As VbCompareMethod) As Dictionary
+        Set pvJsonCreateObject = New Dictionary
         pvJsonCreateObject.CompareMode = lCompareMode
     End Function
     
-    Private Function pvJsonCompareMode(oJson As Scripting.Dictionary) As VbCompareMethod
+    Private Function pvJsonCompareMode(oJson As Dictionary) As VbCompareMethod
         pvJsonCompareMode = oJson.CompareMode
     End Function
     
-    Private Property Get pvJsonItem(oParam As Scripting.Dictionary, vKey As Variant) As Variant
+    Private Property Get pvJsonItem(oParam As Dictionary, vKey As Variant) As Variant
         If oParam.Exists(vKey) Then
             AssignVariant pvJsonItem, oParam.Item(vKey)
         End If
     End Property
 
-    Private Property Let pvJsonItem(oParam As Scripting.Dictionary, vKey As Variant, vValue As Variant)
+    Private Property Let pvJsonItem(oParam As Dictionary, vKey As Variant, vValue As Variant)
         If IsObject(vValue) Then
             Set oParam.Item(vKey) = vValue
         Else

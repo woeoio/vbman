@@ -35,7 +35,7 @@ Attribute m_oCleanupTimer.VB_VarHelpID = -1
 
 ' BUG-1 修复：用 Dictionary 替代 Collection，以 hSocket 为 Key 彻底消除索引漂移
 ' As New→显式：改 As New 为显式创建，确保 Set = Nothing 时真正释放
-Private m_cConnPool             As Scripting.Dictionary
+Private m_cConnPool             As Dictionary
 
 ' TLS 模式枚举
 Private Enum EnumTlsMode
@@ -67,7 +67,7 @@ Private m_WebRoot As String
 ' 自定义默认文档（在 Start 前收集，Start 时注入 HttpSvr）
 Private m_DefaultDocumentAdditions As Collection
 ' As New→显式：Session 字典显式创建
-Dim m_Sessions                  As Scripting.Dictionary
+Dim m_Sessions                  As Dictionary
 
 Public Event OnAccept(ClientInfo As cHttpServerClientInfo, Disconnect As Boolean)
 Public Event OnLogs(ByVal Level As String, ByVal Content As String)
@@ -345,8 +345,8 @@ End Function
 
 Private Sub Class_Initialize()
     ' 显式创建所有子对象（替代 As New 隐式创建）
-    Set m_cConnPool = New Scripting.Dictionary
-    Set m_Sessions = New Scripting.Dictionary
+    Set m_cConnPool = New Dictionary
+    Set m_Sessions = New Dictionary
     m_Sessions.CompareMode = TextCompare
     
     Set SSE = New cSSE

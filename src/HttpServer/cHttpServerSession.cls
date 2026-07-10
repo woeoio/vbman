@@ -13,8 +13,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Option Explicit
 
-' 使用 Scripting.Dictionary 存储会话数据（延迟创建，仅在首次写入时分配）
-Dim Data As Scripting.Dictionary
+' 使用 Dictionary 存储会话数据（延迟创建，仅在首次写入时分配）
+Dim Data As Dictionary
 
 ' SessionID
 Private pvSessionID As String
@@ -30,7 +30,7 @@ Private pvDirty As Boolean
 ' 确保 Data 字典已创建（内部辅助）
 Private Sub EnsureData()
     If Data Is Nothing Then
-        Set Data = New Scripting.Dictionary
+        Set Data = New Dictionary
         Data.CompareMode = TextCompare
     End If
 End Sub
@@ -219,10 +219,10 @@ Public Function Serialize() As String
     
     Dim Json As cJson
     Set Json = New cJson
-    Dim SessionData As Scripting.Dictionary
-    Set SessionData = New Scripting.Dictionary
-    Dim DataCopy As Scripting.Dictionary
-    Set DataCopy = New Scripting.Dictionary
+    Dim SessionData As Dictionary
+    Set SessionData = New Dictionary
+    Dim DataCopy As Dictionary
+    Set DataCopy = New Dictionary
     
     ' 复制 Data 字典，跳过 Object 类型（JSON 无法序列化）
     If Not Data Is Nothing Then
@@ -260,7 +260,7 @@ Public Function Deserialize(ByVal JsonString As String) As Boolean
     
     Dim Json As cJson
     Set Json = New cJson
-    Dim SessionData As Scripting.Dictionary
+    Dim SessionData As Dictionary
     
     Set SessionData = Json.Decode(JsonString).Root
     

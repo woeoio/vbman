@@ -338,7 +338,7 @@ Public Function AddToQueryString(ByVal url As String, ByVal QS As String) As Str
     End If
 End Function
 
-Public Function MakeContent(Dic As Scripting.Dictionary, Optional IsUrlEncode As Boolean = True) As String
+Public Function MakeContent(Dic As Dictionary, Optional IsUrlEncode As Boolean = True) As String
     If Dic.Count > 0 Then
         Dim Arr() As String
         ReDim Arr(Dic.Count - 1)
@@ -354,7 +354,7 @@ Public Function MakeContent(Dic As Scripting.Dictionary, Optional IsUrlEncode As
 End Function
 
 Rem 解析Request内容，即原始键值对
-Public Function ParseContent(Content As String, Obj As Scripting.Dictionary, Optional IsUrlDecode As Boolean = True) As Boolean
+Public Function ParseContent(Content As String, Obj As Dictionary, Optional IsUrlDecode As Boolean = True) As Boolean
     Rem 需要增加对数组类型的处理
     Dim a As Variant, b As Variant, k As Variant, v As Variant, x As Variant: a = Split(Content, "&")
     If UBound(a) > -1 Then
@@ -370,7 +370,7 @@ Public Function ParseContent(Content As String, Obj As Scripting.Dictionary, Opt
     End If
 End Function
 Rem 解析Request.Header内容，即标头键值对
-Public Function ParseKeyValue(Content As String, Obj As Scripting.Dictionary) As Boolean
+Public Function ParseKeyValue(Content As String, Obj As Dictionary) As Boolean
     Rem 需要增加对数组类型的处理
     Dim a As Variant, b As Variant, k As Variant, v As Variant, x As Variant: a = Split(Content, vbCrLf)
     If UBound(a) > -1 Then
@@ -399,7 +399,7 @@ End Function
 '=========================================================================
 
 ' 将集合对象转换为 application/x-www-form-urlencoded 格式字符串
-' @param Obj 集合对象（支持 cCollection 或 Scripting.Dictionary）
+' @param Obj 集合对象（支持 cCollection 或 Dictionary）
 ' @param IsUrlEncode 是否对值进行 URL 编码（默认 True）
 ' @return Form URL-Encoded 格式字符串，如 "key1=value1&key2=value2"
 ' @note 对于 Dictionary 按 Keys 插入顺序遍历；对于 cCollection 按当前顺序遍历
@@ -422,7 +422,7 @@ Public Function ToWwwFormUrlencoded(ByRef Obj As Object, Optional ByVal IsUrlEnc
     
     On Error Resume Next
     
-    ' 获取 Keys 数组（cCollection 和 Scripting.Dictionary 都支持 Keys() 方法）
+    ' 获取 Keys 数组（cCollection 和 Dictionary 都支持 Keys() 方法）
     Keys = Obj.Keys()
     If Err.Number <> 0 Then
         ToWwwFormUrlencoded = ""
@@ -454,7 +454,7 @@ End Function
 
 ' 将 application/x-www-form-urlencoded 格式字符串解析到集合对象
 ' @param Content Form URL-Encoded 格式字符串
-' @param Obj 集合对象（支持 cCollection 或 Scripting.Dictionary，会被清空后填充）
+' @param Obj 集合对象（支持 cCollection 或 Dictionary，会被清空后填充）
 ' @param IsUrlDecode 是否对值进行 URL 解码（默认 True）
 ' @return 是否解析成功
 Public Function FromWwwFormUrlencoded(ByVal Content As String, ByRef Obj As Object, Optional ByVal IsUrlDecode As Boolean = True) As Boolean

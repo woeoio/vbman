@@ -31,7 +31,7 @@ Public SSE As cSSEContext
 ' 服务器级统计对象引用（来自 Server.Statistics，仅引用不持有）
 Public Statistics As cHttpServerStatistics
 '用户数据，用于整个请求生命周期传递数据
-Public UserData As Scripting.Dictionary
+Public UserData As Dictionary
 
 Friend Property Get fIsAbort() As Boolean
     fIsAbort = IsAbort
@@ -106,7 +106,7 @@ Private Sub Class_Initialize()
     ' 显式创建子对象（替代 As New 隐式创建）
     Set TimeUse = New cTimeUse
     Set SSE = New cSSEContext
-    Set UserData = New Scripting.Dictionary
+    Set UserData = New Dictionary
 End Sub
 
 Private Sub Class_Terminate()

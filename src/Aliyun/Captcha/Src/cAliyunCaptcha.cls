@@ -26,7 +26,7 @@ Attribute VB_Exposed = True
 '
 ' 重构说明：
 ' 本版本基于文档 03.md 的指导进行重构：
-' 1. 使用 cCollection 替代 Scripting.Dictionary，支持 SortByKey() 排序
+' 1. 使用 cCollection 替代 Dictionary，支持 SortByKey() 排序
 ' 2. 使用 ToolsDateTime.GetIso8601Timestamp() 生成 UTC 时间戳
 ' 3. 使用 cCryptoHMAC 链式调用简化签名计算
 ' 4. 严格遵循阿里云 RPC V1 签名流程
